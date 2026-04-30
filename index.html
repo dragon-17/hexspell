@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src self ;
+        connect-src 'self' ws://localhost;
+        script-src 'self' 'unsafe-inline'  ;
+        style-src 'self'  *  'unsafe-inline' ;  font-src *; " />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexspell Converter</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333;
+            --accent: #2c3e50;
+            --highlight-space: #bdc3c7; /* Helles Grau für 00 */
+            --highlight-escape: #e67e22; /* Orange für Escapes */
+            --highlight-hex: #2980b9;   /* Blau für Standard Hex */
+            --highlight-math: palevioletred;   /* Violet für Standard Math Stuff */
+            --highlight-math-op: magenta;   /* Violet für Standard Math Stuff */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        
+        section,fieldset { margin-bottom: 30px; }
+        
+        fieldset { padding-bottom: 0; border-style: inset; }
+        fieldset>:not(legend){ height: 0; transition: height 300ms; interpolate-size: allow-keywords; overflow: hidden; display: block; }
+        legend::before{ content: "✕"; font-size: 1.4em; margin-inline: 0.3em; display: inline-block;  rotate: 45deg; transition: rotate 300ms, color 300ms; }
+        fieldset:focus-within,fieldset:has(>:active){  
+            padding-bottom: 1rem;  border-style: outset;  
+            pointer-events: none;
+            >:not(legend){ pointer-events: all;}
+            >*{ height: auto;};
+            >legend::before{ rotate: 0deg; transition: rotate 300ms, color 300ms; color: indianred;  } 
+        }
+        :is(legend,[conteneditable],button,label,input):active { color:  seagreen;}
+
+        section>label,legend { font-weight: bold; display: block; }
+        section>label { margin-bottom: 8px; }
+
+        textarea, .preview {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .editor { white-space: pre-wrap;  }
+        .preview {
+            background: #2d3436;
+            color: #dfe6e9;
+            word-break: break-all;
+            overflow-y: auto;
+            /* span { margin-right: 1ch; } */
+        }
+        #inputText {
+            padding: 0.5rem;
+            background-color: #eee;
+            word-break: break-all;
+            overflow-y: auto;
+        }
+        button, select
+         {  padding: 0.4rem; border: solid 1px; background-color:  #555; color: #eee; font-weight: 600; cursor: pointer; border-radius: 0.5rem; }
+
+        /* Syntax Highlighting */
+        .t { margin-right: 1ch; }
+        .t-space { color: var(--highlight-space); font-weight: lighter; border-bottom: 1px dotted #555; }
+        .t-escape { color: var(--highlight-escape); font-weight: bold; text-decoration: underline; }
+        .t-hex { color: var(--highlight-hex); }
+        .t-hex-diphton { color: var(--highlight-hex);  font-weight: bold; text-decoration: underline; }
+        .t-math { color: var(--highlight-math); }
+        .t-math-op { color: var(--highlight-math-op); }
+
+        .mark {
+            outline: 1px solid var(--highlight-escape);
+        }
+        .mapping-table {
+            font-size: 0.85em;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            /* columns: 4; */
+        }
+                /* Popover Styling */
+        .alt-popover {
+            position: absolute;
+            background: #2d3436;
+            color: white;
+            border: 1px solid var(--highlight-escape);
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-family: sans-serif;
+            font-size: 14px;
+        }
+
+        .alt-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+
+        .alt-item:hover {
+            background: var(--highlight-hex);
+        }
+
+        .alt-item.active {
+            font-weight: bold;
+            color: var(--highlight-escape);
+        }
+        [float]{  position: absolute; top:1rem; right: 0; width: fit-content;}
+        :has(>[float]){ position: relative; }
+        .done::after { content: "✓";}
+        .outline { border-color: seagreen; border-width: 4px; }
+    </style>
+</head>
+<body>
+
+<main class="container">
+    <h1>Hexspell Converter</h1>
+    <section>
+        <label for="inputText">Normal Text (Input):</label>
+        <div float>
+            <b><i>Ex: </i></b><select id="selectEncode"></select>
+            <button id="bntEncode" onclick="fullSyncFromText()">Encode</button>
+        </div>
+        <div contenteditable id="inputText" class="editor">hello world!
+foobar
+abra kadabra ta da
+
+Try to read the hexspell, You can do it!
+
+Math:
+ 2+ 8*5 = 42</div>
+    </section>
+
+    <section>
+        <label for="hexOutput">Hexspell Output (Highlighting+Hover-Hint):</label>
+        <button float id="bntDecode" onclick="fullSyncFromHex()">Decode</button>
+        <div contenteditable id="hexOutput" class="preview editor"></div>
+    </section>
+
+    <section>
+        <label for="rawOutput">Raw space-less Hex String (for Code):</label>
+        <div float>
+            <button  onclick="downloadBinary(copyHexEl.value)">Donwload.bin</button>
+            <button  onclick="download(copyHexEl.value)">Download</button>
+            <button  onclick="copy(this.nextElementSibling.value,this)">Copy</button>
+        </div>
+        <textarea id="rawOutput" style="min-height: 60px;"></textarea>
+    </section>
+
+    <section>
+        <details>
+            <summary>
+                <h3 style="display: inline-block;">Rule-Reference</h3>
+            </summary>
+
+            <pre class="mapping-table">
+0=o | 1=l/i | 2=r/z | 3=x/Esc | 4=n | 
+5=s | 6=h/p | 7=t   | 8=ei/I  | 9=g/j/y | 
+a=a | b=b/k | c=c/u/v| d=d    | e=e | 
+f=f | 00=" "| 44=m  | cc=w    | 0000="\n"
+
+// digits like Ascii Digits
+30=0 | 31=1 | 32=2 | 33=3 |...| 39=9
+
+3a=':' // real ASCII \x3a => ':'  read as Esc Aufzälung(DE listing) 
+3b=';' // real ASCII \x3b => ';'  read as Esc Break
+3c='c' // escape for the overloaded c 
+3d='@' // means next is literal    Ex.:  3d41 3d42 => "AB"   3d3d => "="  
+3e='!' // NOT real ASCII, but reads as Esc Exclamation 
+3f='?' // real ASCII \x3f => '?'  read as Esc Fragezeichen(DE questionmark)
+
+// specail escapes for disambiguation, use Option to emit them
+'74'='k'
+'325'='z'
+'f2'='v'
+'9c'='qu'
+// 2 byte Math operation
+'3add'="+"
+'35cb'="-"
+'344c'="*"
+'3d1f'="/"
+</pre>
+        </details>  
+    </section>
+     <fieldset> 
+        <legend tabindex="0" title="Click Encode or Decode bnt to reaplly" >Advanced Options</legend>
+        <label title="Allows better disambiguation of character&#10;query param:  esc=1 | esc=0">Use Disambiguation Escape<input id="disambigEsc" type="checkbox"></label>
+        <label title="Better for subsequent characters mapping to the same number like g and y&#10;query param:  sameNum=1 | sameNum=0">Use Same Num Diphthongs <input id="sameNumDiphton" checked type="checkbox"></label>
+    </fieldset>
+</main>
+
+<script>/**
+ * HexSpell Engine mit ID-Tracking & Popover-Steuerung
+ */
+
+// Konfiguration der Mappings
+const charToHexMap = {
+    a:'a', b:'b', c:'c', d:'d', e:'e', f:'f', // identity
+    g:'9', h:'6', i:'1', j:'9', k:'b', l:'1', 
+    m:'44',n:'4', o:'0', p:'6', q:'9', r:'2',
+    s:'5', t:'7', 
+    u:'c', 
+    v:'fd', w:'cc',
+    x:'36',// 3 was left, xn is rare 36 looks like a X,  you can also omit and use just 3, but that is usesed for escapes  
+    y: '9', z:'2', 
+    
+    // digits  same as their ASCII encoding      
+    // 31 as 1 is most ambigious cause  1 can e vokal  xi is common  also 38 as alt  xi/xei 
+    //   digit esc like 34=>xn are quit easy to differentiate   
+    0:'30',   1:'31',  2:'32',  3:'33',  4:'34',   
+    5:'34',   6:'36',  7:'37',  8:'38',  9:'39', 
+
+    ' ':'00', // Null byte as space
+    '\n':'0000',
+    ':':'3a', // 0x3a is ASCII ':'   Read out: Esc Aufzählung(DE)
+    ';':'3b', // Read out: Esc Break -> .|;  also 0x3b is ASCII ";"
+    '.':'3b',',':'3b',// combine colon dot and semicolon in one punctuation marker 
+    // 3c as escape for c or v or for control
+    '@':'3d', // means interpret next byte as a number/ASCII character   3d 01 3d 41 3d 42  @1@A@B  (or only 1AB) 
+              // may also by removed from output depending on application
+              // related: twice escape open data block  e5ce5c
+    '!':'3E', // 0x3E is NOT '!', but ASCII '>';  but Read out Esc Exclamation(EN/Lat) 
+    '?':'3f', // 0x3f is ASCII '?'   Read out: Esc Fragezeichen(DE)
+    
+    '+':'3add', // esc add    
+    '-':'35cb', // esc sub
+    '*':'344c', // esc mu
+    '/':'3d1f', // esc dif(ide) (I now its spelled divide)
+};
+// alternativ mapping for less ambiguities
+const charToHexEsc = {
+    o: 'e5c0', // escape solves problem with o " " 000 -> " o" wrong order
+    v:"fd",// fd is rare, and v is common -> maybe even a letter
+    // x:"3c",// xc is rare, but use 3c as start for a control character
+    // x:"34",// xn is rare, and x is more common -> maybe even a letter  34 is alredy a number
+    x:"36", //  xp or xh    36 is already number 6, but number six has the x sound also in German sechs, so 6e3656e11 -> he6spell is still readble
+    i:8,   // looks less good to read  ist  157 vs 857, but is 100% invertable cause 8 is not used also upper circle form i dot
+    k:'74',   
+    c:'6c',// hc and hp are ultra rare in EN and very rare inDE
+    z:"7b",//  tb ist selten
+    p:"6b",//  hb and pb are rare, so use b as marker that 6 means p and not default h
+    // h:"9f",// opt but look like a capital H
+}
+// advanced execptions: makes some diptongs of letter using the same number easier 
+const charDiphtonToHex = {
+    'qu':'9b', // is like its own letter like w
+    'gy':'91', // common ending -> better than 99 also interpretation  91=>gl is more rare 
+    'yj': '19', // 99->19  pyjama=> 619a44a over 699a44a    19 as lj or ij is not common 
+    'li':'18',
+    'oo':'0e5c0', // keeps oo and does not emit space from 00
+    // 'o ':'e5c000', // keep trailing "o "  good for auto decode  hinders reading
+    'il':'81',
+    'll':'12', // lr and lz are super rare
+    'ri': '28', // to allow making 21 to rl and not ri 
+    // 'ill':'811',  // not necc due to algo
+    'ili':'818',
+    'yl':'81',// opt collison with il, but less confusion what  91 means  gl yl jl ql 
+    'gly ':'91800', // common ending  -> use different for  better than 919 or 911 (with gy diphtong)
+}
+/* idea is to emit for 3c no 'x', but a 3ch or 4ch controle character  
+    pro: 
+        better readable control characters, that could be used to store markup data like heading, bold, italic, input
+        can use more punctuation like a  "," "." "\t" or proper \n (less 0000->"  "&"\n" conflict)
+           -> alteranativ is treat 0-padded single letter after words (should have no meaning)    <word>000d0000<nextWd>  -> " .  "
+             -> problem words with double o and making shorter has more confusion e..g with words like " do " 
+        shorter  ctrl-char above 1 need only 3 digits   3cf  3ct     
+    cons:
+        You lose the simple 3c -> and need another for 3 like  36 which may be decoded as 6 or you nned the 2byte escape 3d78 =>"x" 
+        3d<xy> can already display hte control chars with 4c (only 1ch more)    3d01 -> SoHeading  3d04 -> EoTransmission
+*/
+const hexTocontrolChars = {
+    '3c00':['\x00'],// may be variable Ex 3c000 is odd padded null bytes, 
+    // could be used for alignment e.g. to make hex save utf-8 friendly
+    // 3c0x anf 3c1x are 32  4ch code  3c2 to 3cF are 3ch, with exception that 3cx5 forms the -Seperator group
+    '3c01':['<h1>','\x01'/*StartofHeading*/], // can be used for markup
+    '3c02':['<h2>','\x02'], 
+    '3c03':['<h3>','\x03'], 
+    '3c04':['<h4>','\x04'], // 4 should suffice
+
+    '3c10':['|','\x10'/*data link escape -> not needed*/], // do not use only 3ch 3c1, but keep 0 to 
+    // allow the  3c14  -> Esc In for '['  and   3c07 -> Esc Out  ']'
+
+
+    
+    '3cf5':['\x1c'],// File Seperator just read name
+    '3c95':['\x1d'],// Group seperator
+    '3cd5':['\x1e'],// Data/Record seperator  3c2 for R is already used for Start of text   
+    '3cc5':[ '', '\x1f'],// Unit seperator; could be used inside a word as Zero-Width-Joiner (prbl. better)
+
+
+}
+
+const hexToAlts = {
+    0: ['o'], 1: ['l', 'i'], 2: ['r', 'z'], 
+    3: ['x'], 4: ['n'],  5: ['s'],
+    6: ['h', 'p'], 7: ['t'], 
+    8: [ 'i'/*memnoic: 8 as I ght*/,'ei'],  9: ['g', 'j', 'y','q'/*opt cause 9b=qu*/],
+    '00': [' '],// conflict with letter o, may need to use e5c0 to get ending o
+    '0000':['\n'],
+    30:['0','-'], 31:['1'], 32:['2'], 33:['3'], 34:['4'],
+    35:['5'], 36:['6'], 37:['7'], 38:['8'], 39:['9'],
+    44: ['m'], 
+    a: ['a'], b: ['b', 'k'], c: ['u','c', 'v'], 
+    d: ['d'],e: ['e'], f: ['f'],
+    
+    cc: ['w'],
+    fd: ['v'], 
+    '9b': ['q'],
+
+    // letter escapes
+    '3a':[':'], // real ASCII \x3a => ':'  read as Esc Aufzälung(DE listing) 
+    '3b':[';'], // real ASCII \x3b => ';'  read as Esc Break
+    '3c':['c'], // control character start
+    '3d':['@'], // means next byte is literal -> can be used for 255 number, therefore memnoic esc digit
+    '3e':['!'], // NOT real ASCII, but reads as Esc Exclamation 
+    '3f':['?'], // real ASCII \x3f => '?'  read as Esc Fragezeichen(DE questionmark)
+
+    'bb':['-'],// hyphon
+    // 'ffff':[  '\x1c'],// alt symbol  file seperator
+
+    // escapes
+    '74':['k'],//  tn  rare EN   quite rare DE
+    // '325':['z'],
+    // '36f':['p'],
+    // '73':['z'],//  tx  ultra rare En and DE     no t with escape(number/punctu) afterwards  73e  ->  ze  or  t!   tradeoff
+    // '73':['p'],// look like B so P would be good
+    '7b':['z'],//  tb  quite rare En and DE
+    'fd':['v'],// fd is uncommon and look a little bit from the shape (esp. the d) like a v
+    // '92':['q'],//   two sound like the U of Qu, but gr quite common
+    // '9f':['q'],// gf ultra rare in EN and rare in DE, but looks like a fraktur capital H
+    '9f':['h'],// gf jf yf qf ultra rare in EN and rare in DE 
+    '6b':['p'],// hb is rare in EN and quite uncommon in DE  
+
+    // math
+    '3add':["+"],
+    '35cb':["-"],
+    '344c':["*"],
+    '3d1f':["/"],
+};
+const HexDiphthongTochar = {
+    '91':'gy',
+    '19': 'yj',
+    '918':'gly', 
+    '81':'il',
+    '21': 'rl',
+    '12':'ll',
+    '18':'li',
+    '11':'ll', // prevent  11=>li due to vokal alteration
+    '811':['ill'],
+}
+
+// State Management
+let activePopover = null;
+let currentSelectedIdx = 0;
+let charCounter = 0;
+let blockFullUpdate = false;
+
+const inputEl = document.getElementById('inputText');
+const hexEl = document.getElementById('hexOutput');
+const copyHexEl = document.getElementById('rawOutput');
+const disambigEsc = document.getElementById('disambigEsc');
+const sameNumDiphton = document.getElementById('sameNumDiphton');
+
+const bntEncode = document.getElementById('bntEncode');
+const bntDecode = document.getElementById('bntDecode');
+
+let _Select = HTMLSelectElement.prototype;_Select=null;
+const selectEncode = _Select?? document.getElementById('selectEncode');
+
+
+const encodeEx = {
+    "hello world":`hello world!
+foobar
+abra kadabra ta da
+
+Try to read the hexspell, You can do it!
+
+Math:
+ 2+ 8*5 = 42`,
+
+    "star wars":`it is a dark time for the rebellion. although the death star has been destroyed, imperial troops have driven the rebel forces from their hidden base and pursued them across the galaxy.
+evading the dreaded imperial starfleet, a group of freedom fighters led by luke skywalker have established a new secret base on the remote ice world of hoth.
+the evil lord darth vader, obsessed with finding young skywalker, has dispatched thousands of remote probes into the far reaches of space  `,
+};
+
+function buildOpts(selectElm,optObj, changeCallback){
+    for(const key in optObj){
+        const opt = document.createElement("option");
+        opt.innerHTML = opt.value = key;
+        selectElm.append(opt);
+    }
+    if(changeCallback) selectElm.onchange = (ev)=>{
+        changeCallback(optObj[selectElm.selectedOptions[0].value]);
+    } 
+}
+buildOpts(selectEncode,encodeEx,fullSyncFromText);
+
+
+
+/**
+ * Initialisiert oder Re-Generiert beide Editoren komplett
+ */
+function fullSyncFromText(text="") {
+    if(blockFullUpdate) return;
+    text  ||= inputEl.innerText;
+    text = text.toLowerCase();
+    charCounter = 0;
+    let textHTML = "";
+    let hexHTML = "";
+    let rawHex = "";
+    let useEscpaces = disambigEsc.checked;
+    let useDiphtongs = sameNumDiphton.checked;
+
+    for (let i=0, char=""; char=text[i];i++) {
+        const id = `c-${charCounter++}`;
+
+        let [code,title] = encodeChar(char);
+        let nextChar = text[i+1]; // extra rule to prevent o escape in word, cause not needed
+        if(useEscpaces && !( char=="o"&& !(['o',' '].includes(nextChar))  ) ){
+            code = charToHexEsc[char]||code;
+            title = `'${char}' via disambiguation Esc`;
+        } 
+
+        if(useDiphtongs){
+            let biChar = text.slice(i,i+2);
+            let triChar = text.slice(i,i+3);
+            if(charDiphtonToHex[biChar]){
+                code = charDiphtonToHex[biChar];
+                char = biChar;
+                title = `'${biChar}'`;
+                i+=1;
+            } else if( charDiphtonToHex[triChar]){
+                code = charDiphtonToHex[triChar];
+                char = triChar;
+                title = `'${triChar}'`;
+                i+=2;
+            }
+        }
+        if (code) {
+            let alts = hexToAlts[code] || [char];
+            textHTML += `<span id="${id}-txt" data-ref="${id}">${char}</span>`;
+            hexHTML += `<span id="${id}-hex" title="${title||alts.map(a=>"'"+a+"'"+(a==" "?`(Space)`:"")).join(' | ')}" data-ref="${id}" class="${testCodeType(code,char)}" data-alts="${alts.join(';')}" data-idx="0">${code}</span> `;
+            rawHex += code;
+        }
+    }
+    // Wir nutzen RequestAnimationFrame um Cursor-Sprünge zu minimieren
+    requestAnimationFrame(() => {
+        inputEl.innerHTML = textHTML;
+        hexEl.innerHTML = hexHTML;
+        copyHexEl.value = rawHex;
+
+        bntEncode.classList.add("outline");
+        bntDecode.classList.remove("outline");
+    });
+    return rawHex;
+}
+/* returns encode char with a title */
+function encodeChar(char="",code=""){
+    code ||=charToHexMap[char] ;
+    let title = "";
+    if(!code){
+        const data = (char.charCodeAt()%255);
+        code = "3d"+ data.toString(16);
+        title = `@ '${String.fromCharCode(data)}'(0x${data.toString(16)})   \nNote on 0x3d: \n\t- escapes next to a raw ASCII Code \n\t - or means '@' char`;
+    }
+    if(char=="w"){
+        title = `'w' c=>u,v  so w (aka. double-u) is cc `
+    }
+    title||=hexToAlts[code]?.map?.(a=>"'"+a+"'"+(a==" "?`(Space)`:""))||[char];    
+    return [ code , title]
+}
+function testCodeType(code,char=""){
+    if("+*-/".includes(char) || "+*-/".includes(  hexToAlts[code]?.[0])  ) return type = 't-math-op';
+    if(code.length>1 && code.startsWith("3")) return  /\d/.test(code[1])? 't-math': "t-escape";
+    if(code=="00"|| code=="0000" || char=="-")  return "t-space";
+    return "t-hex";
+}
+const vokals = { a:1,e:1,i:1,o:1,u:1, y:1,'ei':1 };
+const isVokal = (s)=>s && s in vokals
+const isKonsonant = (s)=>s && !(s in vokals)
+
+/**  Tries to insert a vokal after a konsonat if there are multiple option like with `1 => l,i`  */
+function fullSyncFromHex(hex=""){
+    if(blockFullUpdate) return
+    let text = hex|| hexEl.innerText;
+    text = text.toLowerCase();
+    charCounter = 0;
+    let textHTML = "";
+    let hexHTML = "";
+    let rawHex = "";
+    let rawText = "";
+    let useEscpaces = disambigEsc.checked;
+    let useDiphtongs = sameNumDiphton.checked;
+
+    let lastIsVokal = true;
+
+    const textStream = text.replace(/\s+/g,""); 
+    for (let i=0, code=""; code=textStream[i];i++) {
+        const id = `c-${charCounter++}`;
+        
+        let biCode = textStream.slice(i,i+2);
+        let triCode = textStream.slice(i,i+3);
+        let quadCode = textStream.slice(i,i+4);
+        
+        let alts = hexToAlts[code];
+        
+        if(biCode=="3d"){
+            code = quadCode
+            alts = [String.fromCharCode( parseInt( quadCode.slice(2),16))]; i+=3;
+        } else if(triCode=="e5c"){ // escape uses the first hexToAlts entry, it allows to 
+        //  1. differenciate between space '00' and double o   0e5c0 ->"oo"
+        //  2. circumvent the vokal/konsonant alteration for ambigious letters like   -able -> -abie ,cause b kons and pick from l,i the i
+            code = quadCode;
+        
+            alts = [ hexToAlts[code.at(-1)]?.[0 ]]; i+=3;
+        } 
+        else if(hexToAlts[quadCode]){
+            alts = hexToAlts[quadCode]; code = quadCode; i+=3;
+        } else if(hexToAlts[triCode]){
+            alts = hexToAlts[triCode]; code = triCode; i+=2;
+        } else if(hexToAlts[biCode]){
+            alts = hexToAlts[biCode]; code = biCode; i+=1;
+        }
+
+        if(useDiphtongs){
+            if(HexDiphthongTochar[biCode]){
+                alts = [ HexDiphthongTochar[biCode]];
+                code = biCode;
+                i+=1;
+            } else if( HexDiphthongTochar[triCode]){
+                alts = [HexDiphthongTochar[triCode]];
+                code = triCode;
+                i+=2;
+            }
+        }
+        
+        let char = alts.length==1? alts[0] : alts.filter(  lastIsVokal? isKonsonant : isVokal)[0]??alts[0];
+        
+
+        if (char) {
+            const lastChar = char.at(-1);
+            lastIsVokal = !/[a-z]/i.test(lastChar) || !!vokals[lastChar];
+
+            textHTML += `<span id="${id}-txt" data-ref="${id}">${char}</span>`;
+            let title = "";
+            hexHTML += `<span id="${id}-hex" title="${title||alts.map(a=>"'"+a+"'"+(a==" "?`(Space)`:"")).join(' | ')}" data-ref="${id}" class="${testCodeType(code,char)}" data-alts="${alts.join(';')}" data-idx="0">${code}</span> `;
+            rawHex += code;
+            rawText += char;
+        }
+    }
+    // Wir nutzen RequestAnimationFrame um Cursor-Sprünge zu minimieren
+    requestAnimationFrame(() => {
+        inputEl.innerHTML = textHTML;
+        hexEl.innerHTML = hexHTML;
+        copyHexEl.value = rawHex;
+        
+        bntDecode.classList.add("outline");
+        bntEncode.classList.remove("outline");
+    });
+    return rawText;
+}
+
+/**
+ * Einzel-Token Update (wird vom Popover gerufen)
+ */
+function updateToken(refId, altIdx) {
+    const hexSpan = document.getElementById(`${refId}-hex`);
+    const txtSpan = document.getElementById(`${refId}-txt`);
+    
+    if (!hexSpan || !txtSpan) return;
+
+    const alts = hexSpan.dataset.alts.split(';');
+    const chosenChar = alts[altIdx];
+
+    hexSpan.dataset.idx = altIdx;
+    txtSpan.innerText = chosenChar;
+    
+    // Kleiner visueller Effekt
+    txtSpan.style.color = "var(--accent)";
+    setTimeout(() => txtSpan.style.color = "", 500);
+}
+
+/**
+ * Popover Steuerung
+ */
+function openPopover(targetSpan) {
+    if (activePopover) closePopover();
+
+    const alts = targetSpan.dataset.alts.split(';');
+    if (alts.length < 2) return;
+
+    currentSelectedIdx = parseInt(targetSpan.dataset.idx);
+    const refId = targetSpan.dataset.ref;
+
+    const popover = document.createElement('div');
+    popover.className = 'alt-popover';
+    
+    const renderItems = () => {
+        popover.innerHTML = alts.map((alt, i) => 
+            `<div class="alt-item ${i === currentSelectedIdx ? 'active' : ''}">${alt}</div>`
+        ).join('');
+    };
+
+    renderItems();
+    document.body.appendChild(popover);
+
+    const rect = targetSpan.getBoundingClientRect();
+    popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
+    popover.style.left = `${rect.left}px`;
+    activePopover = popover;
+
+    // Keyboard-Handler für das Popover
+    const navHandler = (e) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            currentSelectedIdx = (currentSelectedIdx + 1) % alts.length;
+            renderItems();
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            currentSelectedIdx = (currentSelectedIdx - 1 + alts.length) % alts.length;
+            renderItems();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            updateToken(refId, currentSelectedIdx);
+            closePopover();
+        } else if (e.key === 'Escape') {
+            closePopover();
+        }
+    };
+    window.addEventListener('keydown', navHandler);
+
+
+    activePopover._handler = navHandler; // Store reference to remove later
+}
+
+function closePopover() {
+    if (activePopover) {
+        window.removeEventListener('keydown', activePopover._handler);
+        activePopover.remove();
+        activePopover = null;
+    }
+}
+const htmlEsc = {"\n":"<br>"," ":"&nbsp;"};
+/**
+ * Event Listener Setup
+ */
+[inputEl, hexEl].forEach(editor => {
+    let activEl = null;
+    let activeSyncEl = null;
+    const syncActiveElm = (useNextSib)=>{
+        let target = getSelection().anchorNode;
+        if(target.nodeType==Node.TEXT_NODE)target = target.parentElement;
+        activEl = useNextSib? target.nextElementSibling??target : target;
+    }
+    editor.onbeforeinput = (e)=>{ 
+        const type = e.inputType.toLowerCase();
+        if(e.data|| type.includes("delete")|| type.includes("paste")|| type.includes("undo")|| type.inlcudes("redo")) e.target._dirty = true;
+    };
+
+    const syncSameChar = (useNextSib)=>{
+        syncActiveElm(useNextSib);
+        if(activEl.dataset.ref){
+            document.querySelectorAll(".mark")
+                .forEach(e=>e.classList.remove("mark"));
+            document.querySelectorAll(`[data-ref="${activEl.dataset.ref}"`)
+                .forEach(e=>{ if(e!==activEl) activeSyncEl=e;  e.classList.add("mark")});
+        }
+    }
+    editor.addEventListener('keydown', (e) => {
+        if(e.key.includes("Arrow")) { syncSameChar(   e.key.includes("ight")) }
+        // CTRL + TAB für Popover auf dem aktuellen Zeichen
+        if (e.ctrlKey && e.key === ' ') {
+            e.preventDefault();
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            let node = selection.anchorNode;
+            let target = node.nodeType === 3 ? node.parentElement : node;
+
+            if (target && target.hasAttribute('data-alts')) {
+                openPopover(target);
+            }
+        }
+    });
+    editor.onmouseup = ()=> syncSameChar();
+});
+
+inputEl.addEventListener('blur',()=> {  if(inputEl._dirty){ fullSyncFromText();inputEl._dirty=0}}); 
+hexEl.addEventListener('blur',()=> {  if(hexEl._dirty){ fullSyncFromHex();hexEl._dirty=0}}); 
+
+
+function readURLParams(){
+
+    const query = new URLSearchParams(location.search);
+    
+    if(query.has("esc")){
+        let esc = query.get("esc"); 
+        esc= (esc=="false" || !+esc)? false:true;
+        disambigEsc.checked = esc;
+    }
+    if(query.has("sameNum")){
+        let sameNum = query.get("sameNum") 
+        sameNum= (sameNum=="false" || !+sameNum)? false:true;
+        sameNumDiphton.checked = sameNum;
+    }
+
+    let out = "";
+    if(query.has("text")){
+        resText = query.get("text");
+        out =  fullSyncFromText(resText);
+    }
+    if(query.has("hex")){
+        resText = query.get("hex");
+        out =  fullSyncFromHex(resText);
+    }
+    if(query.has("api")){
+        // make the html minimal
+        document.head.remove();
+        // console.log(out)
+
+        // weiterleiten geht nicht
+        // const href = "data:text/plain;charset=utf-8," + encodeURIComponent(out);
+        // window.location.href = href;
+            
+        // doc neu offnen als text geht auch nicht
+        // Löscht das HTML-Dokument und wechselt zu Plaintext
+        // document.open("text/plain"); 
+        // document.write(out);
+        // document.close();
+
+        document.documentElement.innerText = out; 
+        setTimeout( ()=>window.close(),20);
+        return
+        
+        // logging does not work is for security reasons not piped to the console
+        // console.error("HEXSPELL_API_RESULT:" + out);
+        // setTimeout( ()=>window.close(),20);
+    }
+}
+
+fullSyncFromText();
+
+window.onload = readURLParams;
+
+function copy(text, button){
+    navigator.clipboard.writeText(text);
+    button?.classList?.add("done");  
+}
+
+/**
+ * Lädt den Hex-String als einfache Textdatei (.txt) herunter.
+ */
+function download(hexOut) {
+    // Falls noch Leerzeichen enthalten sind, entfernen wir sie für die Datei
+    const cleanHex = hexOut.replace(/\s/g, '');
+    const blob = new Blob([cleanHex], { type: 'text/plain' });
+    triggerDownload(blob, "hexspell_output.txt");
+}
+/**
+ * Wandelt den Hex-String in echte Bytes um und lädt diese als Binärdatei (.bin) herunter.
+ */
+function downloadBinary(hexOut) {
+    let cleanHex = hexOut.replace(/\s/g, '');
+    
+    // Sicherstellen, dass die Länge gerade ist (2 Zeichen = 1 Byte)
+    if (cleanHex.length % 2 !== 0) {
+        console.warn("Hex-String hat eine ungerade Länge. Füge 3c0 als padding ans.");
+        cleanHex+= "3x0";
+        return;
+    }
+
+    // Uint8Array erstellen, um die Bytes zu halten
+    const len = cleanHex.length / 2;
+    const bytes = new Uint8Array(len);
+
+    for (let i = 0; i < cleanHex.length; i += 2) {
+        bytes[i / 2] = parseInt(cleanHex.substr(i, 2), 16);
+    }
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    triggerDownload(blob, "hexspell_data.bin");
+}
+
+/**
+ * Hilfsfunktion zum Auslösen des Browser-Downloads
+ */
+function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    
+    // Kurz ins DOM einfügen, klicken und wieder entfernen
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }, 0);
+}
+
+</script>
+
+</body>
+</html>

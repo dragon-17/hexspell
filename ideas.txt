@@ -1,0 +1,155 @@
+
+Interpretiere Hex Farben als Wörter (VS-Code hat in .txt eine color preview)
+ #A4d2ea _5 #15f #Da41e1 #fa7e20  #0AAa #15f #acf #014
+	#500157 #06e144
+8
+a..f A..F ->  ihr Buchstabe
+ge ~ 9e
+h ~ 6 // decke unteren Bogen der 6 offen und das h wie fractur 𝔥 oder 𝕳
+i,j ~ 1 , 2 bei 2 denke schiefes i
+j ~ 1, 2 oder 9
+J ~ 7
+k ~ schwer   74 oder verwende 'c'  oder b weil gleiche shiluette    cec5 =>"Keks"  c als 'u'|'v'  (Ueus Ueus Vevs Vecs)  macht weniger Sinn und nach vokal e ein konsonant (blitz (Z,) DE ü=ue)
+     ce ist Ze ca ist Ka   mit escape varianten selector  3ca(0) =>"k"  
+     14 als A5C11-A27 "k" hat Konflikt mit   14=>"in", was intuitiver ist als  74=>"tn"|"jn"
+l ~ 1 oder 2 
+M,m ~ AA | 4 
+n ~ 4
+o ~ 0 | c 
+p ~ f | 6 
+q ~ 9 | 91 | a1
+r ~ 2  spiegelverkehrt und den basis strich wegdenken
+s ~ 5
+t ~ f  oder 7  
+u ~ c oder 0
+v ~  c // denke es schiefer bis senkrecht
+w ~  cc
+x ~ 5c  erster bogen ist geschwungen oder 3, weil übrig 
+y ~  9 oder 3 (vieleicht problem mit 3 als escape) 
+z ~ 2 oder  ce // spriche CE laut aus es klingt verwandt mit Zeta
+
+
+8 -> &  
+7 -> /
+6 -> *
+4 -> + 
+2 -> - nur untere basis
+
+Operatoren via deren name
+61c5 ~ plus
+5cb7 ~ subt(ract)
+44c1 ~ mul(tiply)
+d1f 
+
+
+alternativ nutze   escape um wortwörtliche Zahl anzudeuten
+esc (ape) 4
+e5c4
+oder das im DE seltene x 3, die 3 wird auch nicht benötigt da hex sowohl das E als auch das B bereits hat
+31    34
+
+das ist auch der ascii code der Zahlen  0x30 =>"0" 0x31 =>"1"  0x32 =>"2"  0x39 =>"9"
+
+auch 0x3a =>":"  escape A(ufzälung)
+     0x3b =>";"  escape B(reak)       oder 'b' literally und kein "k" , 3b als "xb" oder "xk" macht sowieso selten Sinn
+     0x3f =>"?"  escape F(ragezeichen)  oder 'f' literally und kein "t"
+
+     0x33 =>"3"  3 literally
+
+
+6 ->  h oder p  -> klingt ähnlich
+ph als  96  oder f6 
+
+
+Verdopple den Buchstaben um Caps/Scream/bold font oder doppelte font size anzudeuten
+ddaa55 00 115577 00  4411cc6677 00 0014  01
+D A S " " I S T  " " N I C H T " " O k    !
+
+d 0 0 0   ". "  d wie dot
+1 0 0 0   "! "
+5 0 0 0   "? "
+
+
+5c   -> x
+a1f6a  -> alpha
+befa   9a44a  de1fa ef  
+cefa -> zeta doppeltes Buchstaben können einmal gestrichen werden
+
+
+Daniel -> da42e1
+Sophia -> 50f61a
+4 ~ n | m //wirkt gut
+
+2 ~ r // übrig geblieben
+
+5fa2 cca25   Star Wars
+
+5c6cce27  Schwert
+
+
+Hex Spell  
+
+Weiterentwicklung von wortähnlichen hex codes: 0xdead  0xc0ffee
+Verwendung:   * Fun  * Leet Code  * Word zu hex farbe
+
+tabelle hex zu möglicher Buchstabe
+0 ~ o   
+ 00 ~ " " Word seperator, nach context eine 0 auch " " | "o" | "-"(Bindestrich zusammengestzte Wörter)
+
+1 ~ l, i  Wenn vokal Sinn macht interpretiere als vokal i, sonst l   disambiguiere mit 8 ~ ei,I
+
+2 ~  r, z
+
+3 ~  x oder beginn escape  (Note häufiges 3=>E | 3~B nicht nötige Verschwendung, da hex "E" und "B" mit e b literally enthält)
+    31  ->  say esacpe one ->   1
+    32  ->  2
+    ... 39  -> 9
+    30  -> 0
+ Alternativ ausfühliches escape via 2bytes  e5cX     e5c3=>3  e5cc=>c  
+
+4 ~  n   (ignoriere hori Querstrich, sieht wie schiefes n/N aus) 
+ 44 ~ m
+
+5 ~  s S  (n.e.o.)
+
+6 ~  h , p (hohe stimmt nicht, aber p und h verwandt/ teils austauchbar vgl. 'ph' in Sophia/Sopia/Sohia)
+
+7 ~  t, (opt J)   Schreibschrift  t
+
+8 ~  ei, I  nach eng eight=8   
+
+9 ~  g,j,y,   q (verwende c als "u" + vokal (a,e,1,)),  
+        j y sind bereits miteinander assoziert   Julius Yulius  Juri / Yuri   
+        j y können falls lautsprachlich sinvoll als i mit  1 oder 8 eschrieben werden 
+
+a  ~  a
+
+b  ~  b, k (ähnlich Form, nutze "k"=74 für klarheit falls Leser eher an b="b" denken würde)
+
+c  ~  c, u(vokal),v        lese c 90° gedreht für wie u
+        cc w(double u/v)
+    escape  3c => "c",
+    cf  v auch als f  daher    escape  xcf als v und 
+    xf  esc v
+    xcc  esc w
+
+d  ~  d
+e  ~  e
+f  ~  f  (opt t wegen Ähnlichkeit als Abweichung um Wort Siluette/Buchstabenkontrast für lesbarkeit zu verbessern)
+
+
+Space idee  padding links um auf ganzes byte / gerade char anzahl zu kommen. Falss keine 0 an Wort Grenze null by 00 einfügen
+HexSpell:    a11  44e4  a2e e9ca1
+De:          all   Men  are equal
+HexEncode   0a11 00 44e4 0a2e  0e9ca1
+
+    vielicht sogar automatischer unterschied ob 0 ein "o" oder " " ist je nach selten/häufiger vokal Dopplung    
+        0a=>" a"|"oa"(selten)   
+	0e=>" e"|"oe"(selten außer DE ö=oe)  
+	01=>" <x>"|"ol"(problem)|"oi"(kleineres problem)   
+	0c=>" <x>"|"ou"(häufig EN)|"ov"(häufig EN)|"ow"(nur bei 0cc, häufig EN)   vieleicht braucht eshierfür immer ein Space nullbyte  
+	08=>" i"|"oi"(vieleicht nur 08 als "oi" erlauben)
+ 
+
+    
+
