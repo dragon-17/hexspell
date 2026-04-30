@@ -31,8 +31,17 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            counter-reset: figTbl 0  /* otherCntr 3 */ ;
         }
-
+        figure { float: inline-end;  counter-increment: figTbl; }
+        figure:has(table) figcaption { 
+            &::before {content: "Table "counter(figTbl)". "; font-weight: bold; }  
+            &::after {content: ":" }  
+        }
+        table {border-collapse: collapse;}
+        td:nth-child(n+2) { border-left: 1px solid #bdc3c7; }
+        td { padding-inline: 0.5rem; }
+        thead {border-bottom: 2px solid;}
         .container {
             width: 100%;
             max-width: 900px;
@@ -43,6 +52,24 @@
         }
 
         h1 { color: var(--accent); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        
+        /* chips and info icons */
+        sup, [info]{ 
+            display: inline-block;
+            white-space: pre-wrap;/* use lead and trail space to avoid text overlap with capsula */
+            padding: 0.0;
+            min-width: 1.7em;
+            min-height: 1.7em; 
+            width: auto;
+            height: auto;
+            border-radius: 2em;
+            border: none;
+            font-size: 0.3em;
+            text-align: center;
+            vertical-align: text-top;
+            cursor: unset;
+        }
+        [info],sup:has(i:only-child) { cursor: help; }
         
         section,fieldset { margin-bottom: 30px; }
         
@@ -56,7 +83,7 @@
             >*{ height: auto;};
             >legend::before{ rotate: 0deg; transition: rotate 300ms, color 300ms; color: indianred;  } 
         }
-        :is(legend,[conteneditable],button,label,input):active { color:  seagreen;}
+        :is(legend,[contenteditable],button,label,input):active { color:  seagreen;}
 
         section>label,legend { font-weight: bold; display: block; }
         section>label { margin-bottom: 8px; }
@@ -86,7 +113,8 @@
             word-break: break-all;
             overflow-y: auto;
         }
-        button, select
+        /* button style text color reversed + border */
+        button, select, [info-popover],[info-hover],:is(h2,h3)>label, :where(sup:has(i:only-child),[info],[chip])
          {  padding: 0.4rem; border: solid 1px; background-color:  #555; color: #eee; font-weight: 600; cursor: pointer; border-radius: 0.5rem; }
 
         /* Syntax Highlighting */
@@ -94,18 +122,18 @@
         .t-space { color: var(--highlight-space); font-weight: lighter; border-bottom: 1px dotted #555; }
         .t-escape { color: var(--highlight-escape); font-weight: bold; text-decoration: underline; }
         .t-hex { color: var(--highlight-hex); }
-        .t-hex-diphton { color: var(--highlight-hex);  font-weight: bold; text-decoration: underline; }
         .t-math { color: var(--highlight-math); }
         .t-math-op { color: var(--highlight-math-op); }
 
         .mark {
-            outline: 1px solid var(--highlight-escape);
+            outline: 1px dashed var(--highlight-escape);
         }
         .mapping-table {
             font-size: 0.85em;
             background: #eee;
             padding: 10px;
             border-radius: 5px;
+            width: fit-content;
             /* columns: 4; */
         }
                 /* Popover Styling */
@@ -121,17 +149,14 @@
             font-family: sans-serif;
             font-size: 14px;
         }
-
         .alt-item {
             padding: 4px 8px;
             cursor: pointer;
-            border-radius: 2px;
+            white-space: pre;
         }
-
         .alt-item:hover {
             background: var(--highlight-hex);
         }
-
         .alt-item.active {
             font-weight: bold;
             color: var(--highlight-escape);
@@ -139,15 +164,69 @@
         [float]{  position: absolute; top:1rem; right: 0; width: fit-content;}
         :has(>[float]){ position: relative; }
         .done::after { content: "✓";}
-        .outline { border-color: seagreen; border-width: 4px; }
+        .outline { text-decoration: underline dotted var(--highlight-math-op);  }
+        [callout]{
+            border-left: solid 3px var(--highlight-hex);
+            margin-left: 3ch;padding-left: 1rem;
+        }
+        
+        :where(:focus + [info-popover]):not(:has(h3>label:first-of-type input:checked)){
+            display: inline-block;
+            animation: vanish forwards 3s;
+        }
+        :has(>[info-popover],>[info-hover]) { position: relative; }
+        :is(:hover>[info-hover][area-parent], :hover+[info-hover]){  display: inline-block;  }
+
+        @keyframes vanish { 0% {opacity: 1;}  90% {opacity: 0.8;} to {  display: none; opacity: 0.2; } }
+        [info-popover],[info-hover]{
+            font-family: inherit;
+            font-size: initial;
+            display: none;
+            position: absolute;
+            cursor: unset;
+            width: fit-content;
+            top: 0rem; translate: 0 -100%;
+            left: 2rem;
+            z-index: 300;
+            &[bottom]{  top: auto; bottom: 0;  translate:  0 100%;}
+            &[left]{   translate: -100% 0;}
+            &[right]{ left: auto; right: 0; translate: 100% 0;}
+            
+            h3 { margin: 0; }
+            
+            &:not(&:has(h3>label:first-of-type input:checked)):is(&:hover,&:focus-within),&:focus-within  { 
+                display: inline-block; 
+                animation: none; 
+                h3>label:first-of-type {  width: auto; height: auto; }
+            }
+            &:hover :where(h3)>button:first-of-type{  &::after { content: "[ Hover-Out to vanish ]"; } }
+            h3>button:first-of-type,h3>button:hover { float: inline-end; color: var(--highlight-escape);  &::after {content: "[ click to NOT vanish ]";}  }
+            &:focus-within h3>button:first-of-type{ color: var(--highlight-math-op);  &::after { content: "[ Tab to vanish ]"; } }
+            h3>label:first-of-type{
+                width: 0;
+                height: 0; overflow: hidden;
+                font-size: smaller;
+                font-weight: normal;
+                margin-left: min(2%,10rem);
+                /* float: inline-end; */
+                margin-left: 1rem;
+                padding: 0.2rem;
+                color: var(--highlight-math-op);
+                &::before { content: "Dont show again"; }
+            }
+        }
+        pre code {color: var(--highlight-escape)}
     </style>
 </head>
 <body>
+<template>
+    This is a<sup chip style="background-color: #e67e22;">  10i  </sup> chip
+</template>
 
 <main class="container">
-    <h1>Hexspell Converter</h1>
+    <h1>Hexspell Converter <a href="#rules-reference"><sup><i title="Go to Rule-Reference">?</i></sup></a></h1>
     <section>
-        <label for="inputText">Normal Text (Input):</label>
+        <label for="inputText">Normal Text (Input):<sup chip> <span id="inLen"></span> char </sup></label>
         <div float>
             <b><i>Ex: </i></b><select id="selectEncode"></select>
             <button id="bntEncode" onclick="fullSyncFromText()">Encode</button>
@@ -163,60 +242,99 @@ Math:
     </section>
 
     <section>
-        <label for="hexOutput">Hexspell Output (Highlighting+Hover-Hint):</label>
+        <label for="hexOutput">Hexspell Output (Highlighting+Hover-Hint):
+            <sup chip >  <span id="outLen"></span> bytes  <i>?</i><pre info-hover
+                >Counts only the Bytes, White Space is not part of Encoding,
+ and is ignored by the decoder</pre
+            >  </sup>
+        </label>
         <button float id="bntDecode" onclick="fullSyncFromHex()">Decode</button>
         <div contenteditable id="hexOutput" class="preview editor"></div>
+        
+        <pre info-popover bottom tabindex><h3
+>Info: <label><input type="checkbox"></label> <button vanish-ctrl></button></h3
+>  You can <b>edit</b> text the output and it will update the <kbd for="inputText">Input</kbd> field 
+  once you leave it. You can also press the <kbd for="bntDecode">Decode</kbd> button.
+  
+  The reverse mapping is <b>ambigious</b>, so it may not produce your input text.
+  During Decode press <code><kbd>Ctrl+Space</kbd></code> when you are over a ambigious character
+   to choose an alternative mapping e.g.:
+  for <code>1 => ['l','i' ]</code> or <code>9 => ['g','j','y','q']</code>
+</pre>
     </section>
 
     <section>
-        <label for="rawOutput">Raw space-less Hex String (for Code):</label>
+        <label for="rawOutput">Raw space-less Hex String (for Code):<sup chip > <span id="outCopyLen"></span> bytes </sup></label>
         <div float>
             <button  onclick="downloadBinary(copyHexEl.value)">Donwload.bin</button>
             <button  onclick="download(copyHexEl.value)">Download</button>
-            <button  onclick="copy(this.nextElementSibling.value,this)">Copy</button>
+            <button  onclick="copy(copyHexEl.value,this)">Copy</button>
         </div>
         <textarea id="rawOutput" style="min-height: 60px;"></textarea>
     </section>
 
-    <section>
+    <section >
         <details>
             <summary>
                 <h3 style="display: inline-block;">Rule-Reference</h3>
             </summary>
-
-            <pre class="mapping-table">
+            <pre class="mapping-table" id="rules-reference">
 0=o | 1=l/i | 2=r/z | 3=x/Esc | 4=n | 
 5=s | 6=h/p | 7=t   | 8=ei/I  | 9=g/j/y | 
 a=a | b=b/k | c=c/u/v| d=d    | e=e | 
-f=f | 00=" "| 44=m  | cc=w    | 0000="\n"
+f=f | 00=" "| 44=m  | cc=w    | 0000="\n"(use Opt.)
 
 // digits like Ascii Digits
 30=0 | 31=1 | 32=2 | 33=3 |...| 39=9
 
-3a=':' // real ASCII \x3a => ':'  read as Esc Aufzälung(DE listing) 
+3a=':' // real ASCII \x3a => ':'  read as Esc Aufzälung(DE enumeration/listing)  
 3b=';' // real ASCII \x3b => ';'  read as Esc Break
-3c='c' // escape for the overloaded c 
+3c='c' // escape for control code 
 3d='@' // means next is literal    Ex.:  3d41 3d42 => "AB"   3d3d => "="  
 3e='!' // NOT real ASCII, but reads as Esc Exclamation 
 3f='?' // real ASCII \x3f => '?'  read as Esc Fragezeichen(DE questionmark)
 
 // specail escapes for disambiguation, use Option to emit them
-'74'='k'
-'325'='z'
-'f2'='v'
-'9c'='qu'
+74=k
+7b=z
+fd=v
+9b=qu
 // 2 byte Math operation
-'3add'="+"
-'35cb'="-"
-'344c'="*"
-'3d1f'="/"
+3add='+'
+35cb='-'
+344c='*'
+3d1f='/'
 </pre>
+
+<figure>
+<figcaption>Baisc Hex-to-Ascii mapping</figcaption>
+<table
+><thead
+><tr><td>0<td>1<td>2<td>3<td>4<td>5<td>6<td>7<td>8<td>9<td>a<td>b<td>c<td>d<td>e<td>f</tr></thead
+><tr><td>o<td>l,i<td>r,z<td>x,ESC<td>n<td>s<td>h,p<td>t<td>i<td>g,y,j,q<td>a<td>b,k<td>c,u,v,w<td>d<td>e<td>f</tr></thead>
+</table>
+</figure>
+<figure>
+<figcaption>Hex-to-Char special <kbd>ESCAPE</kbd> bi-combos for less ambiguity and punctuation</figcaption>
+<table>
+    <thead><tr>
+        <td>cc  <td> fd  <td>74   <td>q   <td>p  <td>h <sup><i>?</i></sup><pre info-hover area-parent>Optional, just hex 6 (as in <i>6afde</i>) is already h ("have")</pre> 
+        <td>j  <td> y 
+    </tr></thead>
+    <tbody><tr>
+        <td>w<pre info-hover area-parent> double-u, (<i>note:</i> c is u in hexspell),&#10;impact: cc uu vv rare, so low impact</pre>
+        <td>v<sup><i>?</i></sup><pre info-hover area-parent> 'fd' is rare and has the shape of v:<br> f is '\' and d is '/' -> \/</pre>
+        <td>k<sup><i>?</i></sup><pre info-hover area-parent> '74' Looks A bit like k:<br> 7 is '|' and 4 is '&lt;' -> |&lt;</pre>
+    </tr></tbody>
+</table>
         </details>  
     </section>
      <fieldset> 
         <legend tabindex="0" title="Click Encode or Decode bnt to reaplly" >Advanced Options</legend>
-        <label title="Allows better disambiguation of character&#10;query param:  esc=1 | esc=0">Use Disambiguation Escape<input id="disambigEsc" type="checkbox"></label>
-        <label title="Better for subsequent characters mapping to the same number like g and y&#10;query param:  sameNum=1 | sameNum=0">Use Same Num Diphthongs <input id="sameNumDiphton" checked type="checkbox"></label>
+        <label title="by Inserting special Escape markers (hex: e5c =>'esc' ) this allows better disambiguation of character&#10; but output looks less clean and readable;&#10; query param:  esc=1 | esc=0">Use Disambiguation Escape<input id="disambigEsc" type="checkbox"></label>
+        <label title="Better for subsequent characters mapping to the same number like g and y&#10;query param:  sameNum=1 | sameNum=0">Use Same Num Combos <input id="sameNumCombo" checked type="checkbox"></label>
+        <label title="Conflicts if you want to use more than one ' '(space) in your text;&#10;  query param:  reabdableWS=1 | reabdableWS=0">Use <code>"\n"&lt;=>"0000"</code> for better readable text <input id="reableWSin" checked type="checkbox"></label>
+        <p callout><strong>Note:</strong><br> If <i>reverse decoding</i> should work check both <code>`Disambiguation Escape`</code> and <code>`Same Num Combos`</code>. Is still <b>not 100% reversable</b>.</p>
     </fieldset>
 </main>
 
@@ -242,7 +360,7 @@ const charToHexMap = {
     5:'34',   6:'36',  7:'37',  8:'38',  9:'39', 
 
     ' ':'00', // Null byte as space
-    '\n':'0000',
+    
     ':':'3a', // 0x3a is ASCII ':'   Read out: Esc Aufzählung(DE)
     ';':'3b', // Read out: Esc Break -> .|;  also 0x3b is ASCII ";"
     '.':'3b',',':'3b',// combine colon dot and semicolon in one punctuation marker 
@@ -254,40 +372,70 @@ const charToHexMap = {
     '?':'3f', // 0x3f is ASCII '?'   Read out: Esc Fragezeichen(DE)
     
     '+':'3add', // esc add    
-    '-':'35cb', // esc sub
+    // '-':'35cb', // esc sub  us for char encode the shorter bb
+    '-':'bb',
     '*':'344c', // esc mu
     '/':'3d1f', // esc dif(ide) (I now its spelled divide)
 };
 // alternativ mapping for less ambiguities
 const charToHexEsc = {
-    o: 'e5c0', // escape solves problem with o " " 000 -> " o" wrong order
+    i:8,   // looks less good to read  ist  157 vs 857, but is 100% invertable cause 8 is not used also upper circle form i dot
+    o: 'e5c0', // escape solves problem with "o " 000 -> " o" wrong order,   starting letter o " o"->000->" o" work fine
+    
     v:"fd",// fd is rare, and v is common -> maybe even a letter
     // x:"3c",// xc is rare, but use 3c as start for a control character
     // x:"34",// xn is rare, and x is more common -> maybe even a letter  34 is alredy a number
     x:"36", //  xp or xh    36 is already number 6, but number six has the x sound also in German sechs, so 6e3656e11 -> he6spell is still readble
-    i:8,   // looks less good to read  ist  157 vs 857, but is 100% invertable cause 8 is not used also upper circle form i dot
     k:'74',   
     c:'6c',// hc and hp are ultra rare in EN and very rare inDE
     z:"7b",//  tb ist selten
     p:"6b",//  hb and pb are rare, so use b as marker that 6 means p and not default h
-    // h:"9f",// opt but look like a capital H
+    j:"9d", // gd jd is rare letter J ends With D sound in DE (Jodt)
+    y:"97", //    gt jt yt are rare and 7 matches the stroke direction of a y
+    // h:"9f",// opt,  look like a capital H
 }
-// advanced execptions: makes some diptongs of letter using the same number easier 
-const charDiphtonToHex = {
+// advanced execptions: makes some combos of letter using the same number, resulting in ambiguity, easier 
+const charComboToHex = {
     'qu':'9b', // is like its own letter like w
     'gy':'91', // common ending -> better than 99 also interpretation  91=>gl is more rare 
-    'yj': '19', // 99->19  pyjama=> 619a44a over 699a44a    19 as lj or ij is not common 
+
+    // 'o ':'e5c0 00', // keep trailing "o "  good for auto decode  hinders reading
+    'o ':'30 00', // Is a 0, but look good enough on decode and solves the space problem
+    // 'oo':'0e5c0', // keeps oo and does not emit space from 00
+    'oo': '88', // ii is rare and no more problem with double O, also better to emit this than a e5c secquence
+    
+    // differentiate between succesiv i and l  cause  ill -> 111 would be confusing and is hard to decode sensible
     'li':'18',
-    'oo':'0e5c0', // keeps oo and does not emit space from 00
-    // 'o ':'e5c000', // keep trailing "o "  good for auto decode  hinders reading
     'il':'81',
+    'ill':'811', // prevent due to vokal alteration  will -> cc 1 1 1  
     'll':'12', // lr and lz are super rare
-    'ri': '28', // to allow making 21 to rl and not ri 
-    // 'ill':'811',  // not necc due to algo
+    'ri': '28', // using 8 instead of 1 for all ri allows making 21 to rl, which is more common 
     'ili':'818',
     'yl':'81',// opt collison with il, but less confusion what  91 means  gl yl jl ql 
-    'gly ':'91800', // common ending  -> use different for  better than 919 or 911 (with gy diphtong)
+    'gly ':'91800', // common ending  -> use different for  better than 919 or 911 (with gy combo)
+
+    'you': '90c',  // otherwise 90c -> goc (you don't see quickly that this came from 90c as "you" ) 
+
+    'cou': 'c08', // better than c0c, which suggests coc or uoc
+    // problem  c08 may mean i, but  couX  more common than coiX and when X is no l you can use the 1 for c014 -> coin
+    'coi':'c01',
+    'coil':'co81',//  confuseable with coul
+    // maybee ou as diphton?  08 , cause the 08-> oi is more rare and could be replaced with a oiX -> 01X as long as X is no l
+    'ou': '08'
+
 }
+
+
+// special rule to use '0000' as new line -> is very readable
+const charToHexReadableWS = {
+    '\n':'0000',
+    // '.': '00d', // -> expect a space after the dot then 00d00 is unlikely to be a word
+};
+// more readble punctuation syntax for space sorounded characters
+const charCombineReadableWSToHex = {
+    '. ':'d00',
+}
+
 /* idea is to emit for 3c no 'x', but a 3ch or 4ch controle character  
     pro: 
         better readable control characters, that could be used to store markup data like heading, bold, italic, input
@@ -311,73 +459,93 @@ const hexTocontrolChars = {
     '3c10':['|','\x10'/*data link escape -> not needed*/], // do not use only 3ch 3c1, but keep 0 to 
     // allow the  3c14  -> Esc In for '['  and   3c07 -> Esc Out  ']'
 
-
     
     '3cf5':['\x1c'],// File Seperator just read name
     '3c95':['\x1d'],// Group seperator
     '3cd5':['\x1e'],// Data/Record seperator  3c2 for R is already used for Start of text   
-    '3cc5':[ '', '\x1f'],// Unit seperator; could be used inside a word as Zero-Width-Joiner (prbl. better)
+    '3cc5':[ '\u200c', '\x1f'],// Unit seperator; could be used inside a word as Zero-Width-(Non?)-Joiner (prbl. better)
 
 
 }
 
 const hexToAlts = {
-    0: ['o'], 1: ['l', 'i'], 2: ['r', 'z'], 
+    0: ['o'], 1: ['l', 'i','!'], 2: ['r', 'z','?'], 
     3: ['x'], 4: ['n'],  5: ['s'],
-    6: ['h', 'p'], 7: ['t'], 
-    8: [ 'i'/*memnoic: 8 as I ght*/,'ei'],  9: ['g', 'j', 'y','q'/*opt cause 9b=qu*/],
-    '00': [' '],// conflict with letter o, may need to use e5c0 to get ending o
-    '0000':['\n'],
-    30:['0','-'], 31:['1'], 32:['2'], 33:['3'], 34:['4'],
-    35:['5'], 36:['6'], 37:['7'], 38:['8'], 39:['9'],
-    44: ['m'], 
+    6: ['h', 'p'], 7: ['t','z'/*works well try replace z with t*/,'/'], 
+    8: [ 'i'/*memnoic: 8 as I ght*/,'ei','.'/* 8 ist rund (Reim Punkt) und wirkt abschließend/ in sich geschloßen */],  
+    9: ['g', 'j', 'y','q'/*opt cause 9b=qu*/],
+    '00': [' ','oo'],// conflict with letter o, may need to use e5c0 to get ending o
+   
+    30:['0','o'], 31:['1','xl','xi'], 32:['2','xr'], 33:['3','xx'], 34:['4','xn'],
+    35:['5','xs'], 36:['6','x','xp'], 37:['7','xt'], 38:['8','xi'], 39:['9','xg','xj','xy'],
+    44: ['m','nn'], 
     a: ['a'], b: ['b', 'k'], c: ['u','c', 'v'], 
     d: ['d'],e: ['e'], f: ['f'],
     
-    cc: ['w'],
-    fd: ['v'], 
-    '9b': ['q'],
+    cc: ['w','uu','cc','cu','uc','vu','uv','wu'],
+    fd: ['v','fd'], 
+    '9b': ['qu','q','gb','yb'],
 
     // letter escapes
-    '3a':[':'], // real ASCII \x3a => ':'  read as Esc Aufzälung(DE listing) 
-    '3b':[';'], // real ASCII \x3b => ';'  read as Esc Break
-    '3c':['c'], // control character start
-    '3d':['@'], // means next byte is literal -> can be used for 255 number, therefore memnoic esc digit
-    '3e':['!'], // NOT real ASCII, but reads as Esc Exclamation 
-    '3f':['?'], // real ASCII \x3f => '?'  read as Esc Fragezeichen(DE questionmark)
+    '3a':[':','xa'], // real ASCII \x3a => ':'  read as Esc Aufzälung(DE listing) 
+    '3b':[';','xb'], // real ASCII \x3b => ';'  read as Esc Break
+    '3c':['c','xc'], // control character start or 'x'
+    '3d':['@','xd'], // means next byte is literal -> can be used for 255 number, therefore memnoic esc digit
+    '3e':['!','xe'], // NOT real ASCII, but reads as Esc Exclamation 
+    '3f':['?','xf'], // real ASCII \x3f => '?'  read as Esc Fragezeichen(DE questionmark)
 
-    'bb':['-'],// hyphon
+    'bb':['-','bb'],// hyphon
     // 'ffff':[  '\x1c'],// alt symbol  file seperator
 
     // escapes
-    '74':['k'],//  tn  rare EN   quite rare DE
-    // '325':['z'],
-    // '36f':['p'],
-    // '73':['z'],//  tx  ultra rare En and DE     no t with escape(number/punctu) afterwards  73e  ->  ze  or  t!   tradeoff
-    // '73':['p'],// look like B so P would be good
-    '7b':['z'],//  tb  quite rare En and DE
-    'fd':['v'],// fd is uncommon and look a little bit from the shape (esp. the d) like a v
+    '74':['k','tn'],//  tn  rare EN   quite rare DE
+    '6c':['c','hc','pc'],
+    // '325':['z','xzs'],
+    // '36f':['p','xpf'],
+    // '73':['z','tx'],//  tx  ultra rare En and DE     no t with escape(number/punctu) afterwards  73e  ->  ze  or  t!   tradeoff
+    // '73':['p','tx'],// look like B so P would be good
+    '7b':['z','tb'],//  tb  quite rare En and DE
+    'fd':['v','fd'],// fd is uncommon and look a little bit from the shape (esp. the d) like a v
     // '92':['q'],//   two sound like the U of Qu, but gr quite common
     // '9f':['q'],// gf ultra rare in EN and rare in DE, but looks like a fraktur capital H
-    '9f':['h'],// gf jf yf qf ultra rare in EN and rare in DE 
-    '6b':['p'],// hb is rare in EN and quite uncommon in DE  
+    '9f':['h','gf','jf','yf','qf'],// alts ultra rare in EN and rare in DE 
+    '6b':['p','pb','hb'],// hp pb are rare in EN and quite uncommon in DE  
+    '97':['y', 'yt', 'gt','jt',], 
 
     // math
-    '3add':["+"],
-    '35cb':["-"],
-    '344c':["*"],
-    '3d1f':["/"],
+    '3add':["+",'xadd'],
+    '35cb':["-",'xsub'],
+    '344c':["*",'xmu','xnnu'],
+    '3d1f':["/",'xdif','\x1f','xdlf'],// 3d 1f is also ESC 1f which is the unit seperator, but that is rare so ignore it
+
+    // '3fac':['/','xfac'], factor instead of mu for multiply
+    // '32ec':['/','xrec'], reciprocial instead of dif for divide -> solves 3d esc ambiguity
 };
-const HexDiphthongTochar = {
-    '91':'gy',
-    '19': 'yj',
-    '918':'gly', 
-    '81':'il',
-    '21': 'rl',
-    '12':'ll',
-    '18':'li',
-    '11':'ll', // prevent  11=>li due to vokal alteration
+const HexCombosTochar = {
+    '91':['gy','gl','yl','gi','ji'/* arabishe word use this a lot*/,'yi','qui','qul'],
+    '19': ['ig','lg','ij','yj'],
+    '918':['gli','gly','yli'], 
+    '81':['il','öl'],
+    '21': ['rl','ri','zl','zi'],
+    '18':['li','lö','lä'],
+    '11':['ll','ii','||','!!'], // prevent  11=>li due to vokal alteration
+    '12':['ll','lr','lz','ir','iz'], // cursive  lr is rare  lz is common in DE, i uses the 8 for decodabillity anyway
     '811':['ill'],
+
+    '88':['oo','ii','y','yi'],
+    '66b':['pp','ppb','hhb','ppk','hhk'],
+
+    '16':['lp','lh'],
+
+
+    '90c': ['you','goc','gov'],
+    '0017':[' it',' lt'],
+    'c08': ['cou','coi','coy'],
+
+    '3000':['0 ','o '],
+}
+const HexToCharReadableWS = {
+     '0000':['\n','  '],
 }
 
 // State Management
@@ -390,10 +558,15 @@ const inputEl = document.getElementById('inputText');
 const hexEl = document.getElementById('hexOutput');
 const copyHexEl = document.getElementById('rawOutput');
 const disambigEsc = document.getElementById('disambigEsc');
-const sameNumDiphton = document.getElementById('sameNumDiphton');
+const sameNumCombo = document.getElementById('sameNumCombo');
+const reableWSin = document.getElementById('reableWSin');
 
 const bntEncode = document.getElementById('bntEncode');
 const bntDecode = document.getElementById('bntDecode');
+
+const inLen = document.getElementById('inLen');
+const outLen = document.getElementById('outLen');
+const outCopyLen = document.getElementById('outCopyLen');
 
 let _Select = HTMLSelectElement.prototype;_Select=null;
 const selectEncode = _Select?? document.getElementById('selectEncode');
@@ -431,7 +604,7 @@ buildOpts(selectEncode,encodeEx,fullSyncFromText);
 /**
  * Initialisiert oder Re-Generiert beide Editoren komplett
  */
-function fullSyncFromText(text="") {
+function fullSyncFromText(text="",{useEscpaces = disambigEsc.checked,useSameNumCombo = sameNumCombo.checked, reableWS= reableWSin.checked }={}) {
     if(blockFullUpdate) return;
     text  ||= inputEl.innerText;
     text = text.toLowerCase();
@@ -439,29 +612,31 @@ function fullSyncFromText(text="") {
     let textHTML = "";
     let hexHTML = "";
     let rawHex = "";
-    let useEscpaces = disambigEsc.checked;
-    let useDiphtongs = sameNumDiphton.checked;
 
     for (let i=0, char=""; char=text[i];i++) {
         const id = `c-${charCounter++}`;
 
         let [code,title] = encodeChar(char);
         let nextChar = text[i+1]; // extra rule to prevent o escape in word, cause not needed
+        if(reableWS && charToHexReadableWS[char]){
+            code = charToHexReadableWS[char];
+            title = `'${char}' via readable White Space extra rule`;
+        } else
         if(useEscpaces && !( char=="o"&& !(['o',' '].includes(nextChar))  ) ){
             code = charToHexEsc[char]||code;
             title = `'${char}' via disambiguation Esc`;
-        } 
+        } else
 
-        if(useDiphtongs){
+        if(useSameNumCombo){
             let biChar = text.slice(i,i+2);
             let triChar = text.slice(i,i+3);
-            if(charDiphtonToHex[biChar]){
-                code = charDiphtonToHex[biChar];
+            if(charComboToHex[biChar]){
+                code = charComboToHex[biChar];
                 char = biChar;
                 title = `'${biChar}'`;
                 i+=1;
-            } else if( charDiphtonToHex[triChar]){
-                code = charDiphtonToHex[triChar];
+            } else if( charComboToHex[triChar]){
+                code = charComboToHex[triChar];
                 char = triChar;
                 title = `'${triChar}'`;
                 i+=2;
@@ -482,6 +657,8 @@ function fullSyncFromText(text="") {
 
         bntEncode.classList.add("outline");
         bntDecode.classList.remove("outline");
+
+        syncLen( inputEl.textContent.length, rawHex.length/2);
     });
     return rawHex;
 }
@@ -491,8 +668,9 @@ function encodeChar(char="",code=""){
     let title = "";
     if(!code){
         const data = (char.charCodeAt()%255);
-        code = "3d"+ data.toString(16);
-        title = `@ '${String.fromCharCode(data)}'(0x${data.toString(16)})   \nNote on 0x3d: \n\t- escapes next to a raw ASCII Code \n\t - or means '@' char`;
+        const hexData = data.toString(16).padStart(2,"0");
+        code = "3d"+ hexData;
+        title = `@ '${String.fromCharCode(data)}'(0x${hexData})   \nNote on 0x3d: \n\t- escapes next to a raw ASCII Code \n\t - or means '@' char`;
     }
     if(char=="w"){
         title = `'w' c=>u,v  so w (aka. double-u) is cc `
@@ -502,16 +680,22 @@ function encodeChar(char="",code=""){
 }
 function testCodeType(code,char=""){
     if("+*-/".includes(char) || "+*-/".includes(  hexToAlts[code]?.[0])  ) return type = 't-math-op';
-    if(code.length>1 && code.startsWith("3")) return  /\d/.test(code[1])? 't-math': "t-escape";
+    if(code.length==2 && code.startsWith("3")) return  /\d/.test(code[1])? 't-math': "t-escape";
     if(code=="00"|| code=="0000" || char=="-")  return "t-space";
     return "t-hex";
 }
+function syncLen(textLen,hexByteCount){
+    inLen.innerText = textLen;
+    outLen.innerText = hexByteCount;
+    outCopyLen.innerText = hexByteCount;
+}
+
 const vokals = { a:1,e:1,i:1,o:1,u:1, y:1,'ei':1 };
 const isVokal = (s)=>s && s in vokals
 const isKonsonant = (s)=>s && !(s in vokals)
 
 /**  Tries to insert a vokal after a konsonat if there are multiple option like with `1 => l,i`  */
-function fullSyncFromHex(hex=""){
+function fullSyncFromHex(hex="",{useEscpaces = disambigEsc.checked, useSameNumCombo = sameNumCombo.checked, reableWS= reableWSin.checked, vokalAlteration=true}={}){
     if(blockFullUpdate) return
     let text = hex|| hexEl.innerText;
     text = text.toLowerCase();
@@ -520,30 +704,33 @@ function fullSyncFromHex(hex=""){
     let hexHTML = "";
     let rawHex = "";
     let rawText = "";
-    let useEscpaces = disambigEsc.checked;
-    let useDiphtongs = sameNumDiphton.checked;
-
+    
     let lastIsVokal = true;
 
     const textStream = text.replace(/\s+/g,""); 
     for (let i=0, code=""; code=textStream[i];i++) {
         const id = `c-${charCounter++}`;
-        
+        let title = "";
         let biCode = textStream.slice(i,i+2);
         let triCode = textStream.slice(i,i+3);
         let quadCode = textStream.slice(i,i+4);
         
-        let alts = hexToAlts[code];
+        let alts = hexToAlts[code]??[];
         
-        if(biCode=="3d"){
+        if(reableWS && HexToCharReadableWS[quadCode]){
+            code = quadCode;
+            alts = HexToCharReadableWS[quadCode];
+            title = `'${alts[0]}' via readable White Space extra rule`;
+            i+=3;
+        } else if(biCode=="3d"){
             code = quadCode
             alts = [String.fromCharCode( parseInt( quadCode.slice(2),16))]; i+=3;
         } else if(triCode=="e5c"){ // escape uses the first hexToAlts entry, it allows to 
         //  1. differenciate between space '00' and double o   0e5c0 ->"oo"
         //  2. circumvent the vokal/konsonant alteration for ambigious letters like   -able -> -abie ,cause b kons and pick from l,i the i
             code = quadCode;
-        
-            alts = [ hexToAlts[code.at(-1)]?.[0 ]]; i+=3;
+            const escChar = hexToAlts[code.at(-1)]?.[0 ];
+            alts = [ escChar, 'ESC'+escChar,'esc'+escChar]; i+=3;
         } 
         else if(hexToAlts[quadCode]){
             alts = hexToAlts[quadCode]; code = quadCode; i+=3;
@@ -553,27 +740,24 @@ function fullSyncFromHex(hex=""){
             alts = hexToAlts[biCode]; code = biCode; i+=1;
         }
 
-        if(useDiphtongs){
-            if(HexDiphthongTochar[biCode]){
-                alts = [ HexDiphthongTochar[biCode]];
-                code = biCode;
-                i+=1;
-            } else if( HexDiphthongTochar[triCode]){
-                alts = [HexDiphthongTochar[triCode]];
-                code = triCode;
-                i+=2;
-            }
+        if(useSameNumCombo){
+            for(let n=4,nCode; nCode=textStream.slice(i,i+n), n>1;n--) 
+            if(HexCombosTochar[nCode]){
+                alts = HexCombosTochar[nCode];
+                code = nCode;
+                i+=n-1; 
+                break;
+            } 
         }
-        
-        let char = alts.length==1? alts[0] : alts.filter(  lastIsVokal? isKonsonant : isVokal)[0]??alts[0];
-        
+
+        let char = !vokalAlteration ||  alts?.length<=1? alts[0] : 
+            alts.filter(  lastIsVokal? isKonsonant : isVokal)[0]??alts[0];// "smart"-guess switch between vokal-konsonant  1->l,i  c->c,u 
 
         if (char) {
             const lastChar = char.at(-1);
             lastIsVokal = !/[a-z]/i.test(lastChar) || !!vokals[lastChar];
 
             textHTML += `<span id="${id}-txt" data-ref="${id}">${char}</span>`;
-            let title = "";
             hexHTML += `<span id="${id}-hex" title="${title||alts.map(a=>"'"+a+"'"+(a==" "?`(Space)`:"")).join(' | ')}" data-ref="${id}" class="${testCodeType(code,char)}" data-alts="${alts.join(';')}" data-idx="0">${code}</span> `;
             rawHex += code;
             rawText += char;
@@ -587,6 +771,8 @@ function fullSyncFromHex(hex=""){
         
         bntDecode.classList.add("outline");
         bntEncode.classList.remove("outline");
+
+        syncLen( inputEl.textContent.length, rawHex.length/2);
     });
     return rawText;
 }
@@ -628,7 +814,7 @@ function openPopover(targetSpan) {
     
     const renderItems = () => {
         popover.innerHTML = alts.map((alt, i) => 
-            `<div class="alt-item ${i === currentSelectedIdx ? 'active' : ''}">${alt}</div>`
+            `<div class="alt-item ${i === currentSelectedIdx ? 'active' : ''}">'${alt}'</div>`
         ).join('');
     };
 
@@ -671,7 +857,6 @@ function closePopover() {
         activePopover = null;
     }
 }
-const htmlEsc = {"\n":"<br>"," ":"&nbsp;"};
 /**
  * Event Listener Setup
  */
@@ -700,6 +885,10 @@ const htmlEsc = {"\n":"<br>"," ":"&nbsp;"};
     editor.addEventListener('keydown', (e) => {
         if(e.key.includes("Arrow")) { syncSameChar(   e.key.includes("ight")) }
         // CTRL + TAB für Popover auf dem aktuellen Zeichen
+        if(e.ctrlKey && e.key=="Enter"){
+            e.preventDefault();
+            e.target.id=="inputText"?  fullSyncFromText() : fullSyncFromHex();
+        }
         if (e.ctrlKey && e.key === ' ') {
             e.preventDefault();
             const selection = window.getSelection();
@@ -732,7 +921,12 @@ function readURLParams(){
     if(query.has("sameNum")){
         let sameNum = query.get("sameNum") 
         sameNum= (sameNum=="false" || !+sameNum)? false:true;
-        sameNumDiphton.checked = sameNum;
+        sameNumCombo.checked = sameNum;
+    }
+    if(query.has("reabdableWS")){
+        let reableWS= query.get("reabdableWS") 
+        reableWS= (reableWS=="false" || !+reableWS)? false:true;
+        reableWSin.checked = reableWS;
     }
 
     let out = "";
