@@ -1423,6 +1423,7 @@ function readURLParams(){
     if(query.has("compact")){
         CompactHexOut.checked = parseQueryStrBool(query.get("compact"));
     }
+    const keep = query.has("keep")
 
     let out = "";
     if(query.has("text")){
@@ -1450,7 +1451,7 @@ function readURLParams(){
         // document.close();
 
         document.documentElement.innerText = out; 
-        setTimeout( ()=>window.close(),200);
+        if(!keep) setTimeout( ()=>window.close(),200);
         return
         
         // logging does not work is for security reasons not piped to the console
