@@ -2,6 +2,25 @@
 
 A human-readable hexadecimal encoding system for text that creates a good secret language while maintaining readability.
 
+Taking a input text you can convert it into a readable hexadecimal stream:
+
+    hello world!
+    foobar
+
+    try to read the hexspell, you can do it!
+
+    abra kadabra ta daa!!!
+
+Readable hex output (spaces are only for formating, only hex digit determine the content):
+    
+    6 e 12 0 00 cc 0 2 1 d 3E 0000 
+    f 88 b a 2 0000 
+    0000 
+    7 2 9 00 7 0 00 2 e a d 00 7 6 e 00 6 e 3 5 6 e 12 3b 00 90c 00 c a 4 00 d 0 00 1 7 3E 0000 
+    0000 a b 2 a 00 b a d a b 2 a 00 7 a 00 d a a 3E 3E 3E
+
+Best you try out the [live demo](https://dragon-17.github.io/hexspell/).
+
 ## Overview
 
 Hexspell is a creative take on hexadecimal encoding, inspired by concepts like [hexspeak](https://en.wikipedia.org/wiki/Hexspeak) (e.g., `0xcoffee`, `0xdeadbeef`) but extended to encode all characters. It uses a 4-bit encoding system combined with special combos and escape sequences for complete character coverage.
@@ -88,10 +107,61 @@ chrome --headless --dump-dom "file:///path/to/index.html?api&text=Your+Text+Here
 
 ## Encoding System
 
-- **Base Unit:** 4-bit encoding per character
+### Overview
+- **Base Unit:** 4-bit encoding per character (hex digits 0-f)
 - **Combos:** Special character combinations for extended coverage
-- **Escapes:** Escape sequences for characters outside the basic set
+- **Escapes:** Escape sequences (marked with `e5c`) for characters outside the basic set
 - **Optimization:** Configurable output formats (readable, compact, etc.)
+
+### Table 1: Basic Hex-to-Character Mapping
+
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | a | b | c | d | e | f |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **o** | **l**, (i) | **r**, z | **x** | **n**, m | **s** | **h**, p | **t** | **i** | **g**, y, j, q | **a** | **b**, k | **c**, u, v, w | **d** | **e** | **f** |
+
+**Mappings Explained:**
+- **0** = 'o' (zero looks like o)
+- **1** = 'l' or 'i' (1 looks like lowercase l; use 8 for 'i')
+- **2** = 'r' or 'z'
+- **3** = 'x' (requires escape marker; or use combo 'bf')
+- **4** = 'n' or 'm' (use combo 'd4' for double 'n')
+- **5** = 's'
+- **6** = 'h' or 'p' (use '6b' combo for 'p', '9f' for 'h')
+- **7** = 't'
+- **8** = 'i' (the dot above the 8 represents 'i')
+- **9** = 'g', 'y', 'j', or 'q' (use '9b' combo for 'qu')
+- **a** = 'a'
+- **b** = 'b' or 'k' (use '74' combo for 'k')
+- **c** = 'c', 'u', 'v', or 'w' (use 'cc' combo for 'w')
+- **d** = 'd'
+- **e** = 'e'
+- **f** = 'f' (or 'fb' for alternate)
+
+### Table 2: Special Escape & Combo Sequences
+
+| Combo | Mapping | Notes |
+|-------|---------|-------|
+| **cc** | w | Double-u (cc = uu, vv rare, low impact) |
+| **fd** | v | f='\' and d='/' → \/ (visual mnemonic) |
+| **74** | k | 7='\|' and 4='<' → \|< (looks like k) |
+| **9b** | qu | - |
+| **6b** | p | Better decodability (pb is rare) |
+| **9f** | h | Looks like capital H (optional, use hex 6 instead) |
+| **9d** | j | gd, jd are rare |
+| **97** | y | gt, jt, yt are rare; '7' matches y's stroke |
+| **7b** | z | - |
+| **bf** | x | - |
+| **00** | (space) | Null byte as space |
+| **3a** | : | ESC Enumeration |
+| **3b** | ;, . , | ESC Break (general delimiter) |
+| **3c** | (control) | Beginning of control code (e.g., 3c7 = tab) |
+| **3d** | @ | Interpret next byte as ASCII number/char |
+| **3e** | ! | 0x3E is ASCII '>' (read as ESC Exclamation) |
+| **3f** | ? | ESC Question mark |
+| **3add** | + | ESC Add |
+| **35cb**, **bb** | - | ESC Subtract (bb is shorter) |
+| **344c** | * | ESC Multiply (mu) |
+| **3d1f** | / | ESC Divide |
 
 ## Examples
 
