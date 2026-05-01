@@ -1,0 +1,43 @@
+## Hexspell API
+
+Pipe the result on windows into `more` or linux `cat`(prbl mroe efficient), 
+without this your chrome headless would still run and you need to press CTR+C to stop it.
+
+>$      C:\path\to\chrome.exe --headless --dump-dom  "file:///C:\abs\path\to\this\index.html?api&hex=6100cce173d"  | more
+
+A default path to chrome is "C:\Program Files\Google\Chrome\Application\chrome.ex" 
+You can also add your browser to your %PATH% variable, to have a short cmd for all kind of --headless browser task
+like
+
+For my local machine, after I added `chrome` to %PATH% I get following command to deconver the spell `6100cce17`: 
+
+>$      chrome --headless --dump-dom  "file:///C:\Users\danie\Documents\Progammierung\Javascript\hexspell\index.html?api&hex=6100cce17"  | more
+
+You can use enviroment variables like here for my machine on windows:
+
+>$      set HEX_API="file:///C:\Users\danie\Documents\Progammierung\Javascript\hexspell\index.html"
+
+        :: # just to see that env var work
+        
+        echo "My Api Path is %HEX_API%  \nDoes it work?\nIf so, you can just add a query param"
+
+        chrome --headless --dump-dom  "%HEX_API%?api=1&esc=1&sameNum=1&readableWS=1&compact=1&hex=6100cce17" | cat
+
+
+Example with a file. The text should be URL encoded (e.g. " "->+), but with "" chorme seems to be fine without:
+
+>$      chrome --headless --dump-dom  "%HEX_API%?api=1&esc=1&text=Here+URL+Encoded+text+you+want+to+hexspell"  > outFile.txt
+
+No URL encoded version, that should also work:
+
+>$      chrome --headless --dump-dom  "%HEX_API%?api=1&esc=1&text=Here a normal string, even unencoded !?. are forgiven "  | cat       (windows | more)
+
+
+Due to using a headless browser as a node runtime replacement, the result is a html page: 
+
+<!DOCTYPE html>
+<html>Your result is between the html tag</html>
+
+You can use on linux `sed` and on windows the bash script in this repo.
+
+$>     chrome --headless --dump-dom "$HEX_API?api&text=TEXT HERE" | sed -n 's/.*<html>\(.*\)<\/html>.*/\1/p'

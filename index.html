@@ -20,6 +20,7 @@
             --highlight-hex: #2980b9;   /* Blau für Standard Hex */
             --highlight-math: palevioletred;   /* Violet für Standard Math Stuff */
             --highlight-math-op: magenta;   /* Violet für Standard Math Stuff */
+            --highlight-error: crimson;   /* Violet für Standard Math Stuff */
         }
 
         body {
@@ -38,6 +39,7 @@
             &::before {content: "Table "counter(figTbl)". "; font-weight: bold; }  
             &::after {content: ":" }  
         }
+        .error { color: var(--highlight-error) }
         table {border-collapse: collapse;}
         td:nth-child(n+2) { border-left: 1px solid #bdc3c7; }
         td { padding-inline: 0.5rem; }
@@ -69,7 +71,7 @@
             vertical-align: text-top;
             cursor: unset;
         }
-        [info],sup:has(i:only-child) { cursor: help; }
+        [info],sup:has(i:only-child),sup[i],sup[info] { cursor: help; font-style: italic; }
         
         section,fieldset { margin-bottom: 30px; }
         
@@ -114,7 +116,7 @@
             overflow-y: auto;
         }
         /* button style text color reversed + border */
-        button, select, [info-popover],[info-hover],:is(h2,h3)>label, :where(sup:has(i:only-child),[info],[chip])
+        button, select, aside,sup+aside,:is(h2,h3)>label, :where(sup:has(i:only-child),[info],[chip],sup[i])
          {  padding: 0.4rem; border: solid 1px; background-color:  #555; color: #eee; font-weight: 600; cursor: pointer; border-radius: 0.5rem; }
 
         /* Syntax Highlighting */
@@ -128,6 +130,7 @@
         .mark {
             outline: 1px dashed var(--highlight-escape);
         }
+        label sup { background-color: var(--highlight-hex); }
         .mapping-table {
             font-size: 0.85em;
             background: #eee;
@@ -170,21 +173,23 @@
             margin-left: 3ch;padding-left: 1rem;
         }
         
-        :where(:focus + [info-popover]):not(:has(h3>label:first-of-type input:checked)){
+        /* popover aside */
+        :has(>aside) { position: relative; }
+        :where(:focus + :is(aside[pop],i+aside)):not(:has(h3>label:first-of-type input:checked)){
             display: inline-block;
             animation: vanish forwards 3s;
         }
-        :has(>[info-popover],>[info-hover]) { position: relative; }
-        :is(:hover>[info-hover][area-parent], :hover+[info-hover]){  display: inline-block;  }
+        :is(:hover>aside, :hover+aside){  display: inline-block;  }
 
         @keyframes vanish { 0% {opacity: 1;}  90% {opacity: 0.8;} to {  display: none; opacity: 0.2; } }
-        [info-popover],[info-hover]{
+        aside[pop],sup+aside,i+aside{
             font-family: inherit;
+            text-align: left;
             font-size: initial;
+            white-space: pre-wrap; min-width: max-content;
             display: none;
             position: absolute;
             cursor: unset;
-            width: fit-content;
             top: 0rem; translate: 0 -100%;
             left: 2rem;
             z-index: 300;
@@ -224,7 +229,7 @@
 </template>
 
 <main class="container">
-    <h1>Hexspell Converter <a href="#rules-reference"><sup><i title="Go to Rule-Reference">?</i></sup></a></h1>
+    <h1>Hexspell Converter <a href="#rules-reference"><sup info>?</sup></a></h1>
     <section>
         <label for="inputText">Normal Text (Input):<sup chip> <span id="inLen"></span> char </sup></label>
         <div float>
@@ -243,15 +248,24 @@ Math:
 
     <section>
         <label for="hexOutput">Hexspell Output (Highlighting+Hover-Hint):
-            <sup chip >  <span id="outLen"></span> bytes  <i>?</i><pre info-hover
-                >Counts only the Bytes, White Space is not part of Encoding,
- and is ignored by the decoder</pre
+            <sup chip >  <span id="outLen"></span> bytes <span id="outCharLen"></span> chars <i>?</i><aside 
+>If you save the hex spell as a binary, you will save some bytes 
+(<code>-30%</code> decode-save via escape / <code>-40%</code> no escape 
+for average text with low special-symbol/letter ratio).
+But if you save it as a .txt hexadecimal number you need 
+about <code>30%</code> more storage.
+Spaces in the decoder are ignored and can be stripped.
+You need even more storage if you save the helper white-space 
+from the decoder.</aside
             >  </sup>
         </label>
-        <button float id="bntDecode" onclick="fullSyncFromHex()">Decode</button>
+        <div float>
+            <b><i>Ex: </i></b><select id="selectDecode"></select>
+            <button  id="bntDecode" onclick="fullSyncFromHex()">Decode</button>
+        </div>
         <div contenteditable id="hexOutput" class="preview editor"></div>
         
-        <pre info-popover bottom tabindex><h3
+        <aside pop bottom tabindex><h3
 >Info: <label><input type="checkbox"></label> <button vanish-ctrl></button></h3
 >  You can <b>edit</b> text the output and it will update the <kbd for="inputText">Input</kbd> field 
   once you leave it. You can also press the <kbd for="bntDecode">Decode</kbd> button.
@@ -260,9 +274,10 @@ Math:
   During Decode press <code><kbd>Ctrl+Space</kbd></code> when you are over a ambigious character
    to choose an alternative mapping e.g.:
   for <code>1 => ['l','i' ]</code> or <code>9 => ['g','j','y','q']</code>
-</pre>
+</aside>
     </section>
 
+    
     <section>
         <label for="rawOutput">Raw space-less Hex String (for Code):<sup chip > <span id="outCopyLen"></span> bytes </sup></label>
         <div float>
@@ -296,10 +311,10 @@ f=f | 00=" "| 44=m  | cc=w    | 0000="\n"(use Opt.)
 
 // specail escapes for disambiguation, use Option to emit them
 74=k
-7b=z
+7b=z  (sadly 72 means alredy common tr)
 fd=v
 9b=qu
-// 2 byte Math operation
+// 2 byte Math operation read the op name
 3add='+'
 35cb='-'
 344c='*'
@@ -311,20 +326,73 @@ fd=v
 <table
 ><thead
 ><tr><td>0<td>1<td>2<td>3<td>4<td>5<td>6<td>7<td>8<td>9<td>a<td>b<td>c<td>d<td>e<td>f</tr></thead
-><tr><td>o<td>l,i<td>r,z<td>x,ESC<td>n<td>s<td>h,p<td>t<td>i<td>g,y,j,q<td>a<td>b,k<td>c,u,v,w<td>d<td>e<td>f</tr></thead>
+><tr><td>o
+    <td>l,<i >(i)<sup info>?</sup><aside> alternative of '8' for better readability.&#10; 1 looks like a i. Use 8 for better decoding</aside></i>
+    <td>r,z<td>x<sup i>?</sup><aside>3 is only just x if used with ESC.
+Use a ESC code before the 3 to indicat that this is the Letter X 
+and no Esc as in <code>6e<u>e5c</u>3006e3</code> ("hex hex" last 3 needs no esc cause EOF).
+Or use the combo <code>bf => x</code> instead.
+You can also use the digit 6 (hexsp. 36), 
+the spelling <i>six</i> (or DE <i>sechs</i>) contains a x.
+</aside>
+    
+<td>n,m(nn)<sup i>?</sup><aside>If you want nn you should use the combo 
+<code>d4</code> (double 4) or 
+use escape <code>4<u>e5c</u>4</code>
+</aside>
+    <td>s
+    <td>h,p<sup i>?</sup><aside>Use for decodabillity <code>6b=>"p"</code> and <code>9f=>"h"</code>(looks like capital h)</aside>
+    <td>t
+    <td>i<sup i>?</sup><aside>Imagine the upper 'o' of 8 to be the i-dot.
+<b>Note:</b> <code>"88"=>oo</code> (more common than ii)
+             <code>"08"=>ou</code> (more common than oi)
+               Ex.:  087 -> 
+               for oit use <code>017</code> (oit > olt)
+    </aside>
+    <td>g,y,j,q<sup i>?</sup><aside>(<code>9b=>'qu'</code>)</aside>
+    <td>a<td>b,k<sup i>?</sup><aside>For decodeability use Combo <code>74=>"k"</code>, 74 as tn is rare</aside>
+    <td>c,u,v,w(cc)<td>d<td>e<td>f,<i>c(fb)</i></tr></thead>
 </table>
 </figure>
 <figure>
 <figcaption>Hex-to-Char special <kbd>ESCAPE</kbd> bi-combos for less ambiguity and punctuation</figcaption>
 <table>
     <thead><tr>
-        <td>cc  <td> fd  <td>74   <td>q   <td>p  <td>h <sup><i>?</i></sup><pre info-hover area-parent>Optional, just hex 6 (as in <i>6afde</i>) is already h ("have")</pre> 
-        <td>j  <td> y 
+        <td>cc  <td> fd  <td>74   <td>9b   <td>6b  <td>9f <sup i>?</sup><aside>Optional, just hex 6 (as in <i>6afde</i>) is already h ("have")</aside> 
+        <td>9d  <td> 97 <td>7b</td> <td>bf</td>
+
+        <td>00 <td>3a <td>3b <td>3c <td>3d <td>3e <td>3f 
+            <td>3add</td>
+            <td>35cb, bb</td>
+            <td>344c</td>
+            <td>3d1f</td>
     </tr></thead>
     <tbody><tr>
-        <td>w<pre info-hover area-parent> double-u, (<i>note:</i> c is u in hexspell),&#10;impact: cc uu vv rare, so low impact</pre>
-        <td>v<sup><i>?</i></sup><pre info-hover area-parent> 'fd' is rare and has the shape of v:<br> f is '\' and d is '/' -> \/</pre>
-        <td>k<sup><i>?</i></sup><pre info-hover area-parent> '74' Looks A bit like k:<br> 7 is '|' and 4 is '&lt;' -> |&lt;</pre>
+        <td>w<sup i>?</sup><aside> double-u, (<i>note:</i> c is u in hexspell),&#10;impact: cc uu vv rare, so low impact</aside>
+        <td>v<sup i>?</sup><aside> 'fd' is rare and has the shape of v:<br> f is '\' and d is '/' -> \/</aside>
+        <td>k<sup i>?</sup><aside> '74' Looks A bit like k:<br> 7 is '|' and 4 is '&lt;' -> |&lt;</aside>
+        <td>qu
+        <td>p <sup i>?</sup><aside> has still it 6 with its shape and the b sound. Also pb is rare</aside>
+        <td>h <sup i>?</sup><aside> Looks like a capital H. But not needed just hex 6 gives you a h</aside>
+        <td>j <sup i>?</sup><aside> gd, jd are rare letter J ends With D sound in DE (Jodt)</aside>
+        <td>y <sup i>?</sup><aside> gt, jt, yt are rare and '7' matches the stroke direction of a y</aside>
+        <td>z 
+        <td>x
+        <td>' '<sup i>?</sup><aside> Null byte as space </aside>
+        <td>:<sup i>?</sup><aside> 0x3a is ASCII ':'   Read out: Esc Aufzählung(DE) </aside>
+        <td>; (, .)<sup i>?</sup><aside> Read out: Esc Break -> .,;  also 0x3b is ASCII ";" serves as general expression/sentence delimiter</aside>
+        <td>x,^xy?<sup i>?</sup><aside><code>3c</code> is the beginning of a control code,
+read it as Esc like <code>3c7</code> Esc t -> <code>\t</code> (tab)</aside>
+        <td>@<sup i>?</sup><aside> means interpret next byte as a number/ASCII character   
+3d 01 3d 41 3d 42  @1@A@B  (or only 1AB) 
+ may also by removed from output depending on application
+ related idea: twice escape open data block  e5ce5c </aside>
+        <td>!<sup i>?</sup><aside> 0x3E is NOT '!', but ASCII '>';  but Read out Esc Exclamation(EN/Lat)  </aside>
+        <td>?<sup i>?</sup><aside>  0x3f is ASCII '?'   Read out: Esc Fragezeichen(DE)  </aside>
+        <td>+
+        <td>-
+        <td>*<sup i>?</sup><aside>  esc mu  </aside>
+        <td>/<sup i>?</sup><aside>  esc dif(ide) (I now its spelled divide)  </aside>
     </tr></tbody>
 </table>
         </details>  
@@ -333,8 +401,10 @@ fd=v
         <legend tabindex="0" title="Click Encode or Decode bnt to reaplly" >Advanced Options</legend>
         <label title="by Inserting special Escape markers (hex: e5c =>'esc' ) this allows better disambiguation of character&#10; but output looks less clean and readable;&#10; query param:  esc=1 | esc=0">Use Disambiguation Escape<input id="disambigEsc" type="checkbox"></label>
         <label title="Better for subsequent characters mapping to the same number like g and y&#10;query param:  sameNum=1 | sameNum=0">Use Same Num Combos <input id="sameNumCombo" checked type="checkbox"></label>
-        <label title="Conflicts if you want to use more than one ' '(space) in your text;&#10;  query param:  reabdableWS=1 | reabdableWS=0">Use <code>"\n"&lt;=>"0000"</code> for better readable text <input id="reableWSin" checked type="checkbox"></label>
+        <label title="Conflicts if you want to use more than one ' '(space) in your text;&#10;  query param:  readableWS=1 | readableWS=0">Use <code>"\n"&lt;=>"0000"</code> for better readable text <input id="reableWSin" checked type="checkbox"></label>
+        <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
         <p callout><strong>Note:</strong><br> If <i>reverse decoding</i> should work check both <code>`Disambiguation Escape`</code> and <code>`Same Num Combos`</code>. Is still <b>not 100% reversable</b>.</p>
+        <footer> <small>you can set them via query param and use over the api, hover field for more</small></footer>
     </fieldset>
 </main>
 
@@ -350,14 +420,14 @@ const charToHexMap = {
     s:'5', t:'7', 
     u:'c', 
     v:'fd', w:'cc',
-    x:'36',// 3 was left, xn is rare 36 looks like a X,  you can also omit and use just 3, but that is usesed for escapes  
+    x:'3',// 3 was left, xn is rare 36 looks like a X,  you can also omit and use just 3, but that is usesed for escapes  
     y: '9', z:'2', 
     
     // digits  same as their ASCII encoding      
     // 31 as 1 is most ambigious cause  1 can e vokal  xi is common  also 38 as alt  xi/xei 
     //   digit esc like 34=>xn are quit easy to differentiate   
     0:'30',   1:'31',  2:'32',  3:'33',  4:'34',   
-    5:'34',   6:'36',  7:'37',  8:'38',  9:'39', 
+    5:'35',   6:'36',  7:'37',  8:'38',  9:'39', 
 
     ' ':'00', // Null byte as space
     
@@ -380,14 +450,25 @@ const charToHexMap = {
 // alternativ mapping for less ambiguities
 const charToHexEsc = {
     i:8,   // looks less good to read  ist  157 vs 857, but is 100% invertable cause 8 is not used also upper circle form i dot
-    o: 'e5c0', // escape solves problem with "o " 000 -> " o" wrong order,   starting letter o " o"->000->" o" work fine
+    // o: 'e5c0', // escape solves problem with "o " 000 -> " o" wrong order,   starting letter o " o"->000->" o" work fine
     
     v:"fd",// fd is rare, and v is common -> maybe even a letter
     // x:"3c",// xc is rare, but use 3c as start for a control character
     // x:"34",// xn is rare, and x is more common -> maybe even a letter  34 is alredy a number
-    x:"36", //  xp or xh    36 is already number 6, but number six has the x sound also in German sechs, so 6e3656e11 -> he6spell is still readble
-    k:'74',   
-    c:'6c',// hc and hp are ultra rare in EN and very rare inDE
+    // x:"36", //  xp or xh    36 is already number 6, but number six has the x sound also in German sechs, so 6e3656e11 -> he6spell is still readble
+    // x:"52", // sr sz rare esp. in DE
+    // x:"54", //  sn is quite common in EN
+    // x:"f4", //  fn is only a common CSS abbrev rarer than sn sr sz and shap fits a bit
+    // x:"b5", // ks, bs is rare, read the b as a k than ks like x, but bs is not rare
+    x:"bf", // kf, bf is rare, read the b as a k than kf sound a bit more than x
+
+
+    k:'74',
+    // c:'6c',// hc and hp are ultra rare in EN and very rare inDE
+    
+    // disable c with the esc option, but still allow backtransform
+    // c:'fb',// fb, fk is rare the visually better fc/6c are ambgigious due to c also -> u so fc->? fu,c;  or  6c as  c,pu,pc ; 
+    
     z:"7b",//  tb ist selten
     p:"6b",//  hb and pb are rare, so use b as marker that 6 means p and not default h
     j:"9d", // gd jd is rare letter J ends With D sound in DE (Jodt)
@@ -398,31 +479,59 @@ const charToHexEsc = {
 const charComboToHex = {
     'qu':'9b', // is like its own letter like w
     'gy':'91', // common ending -> better than 99 also interpretation  91=>gl is more rare 
+    'ph':'6d',
 
     // 'o ':'e5c0 00', // keep trailing "o "  good for auto decode  hinders reading
-    'o ':'30 00', // Is a 0, but look good enough on decode and solves the space problem
+    // 'o ':'3000', // Is a 0, but look good enough on decode and solves the space problem
+    ' o':'00e5c0',
     // 'oo':'0e5c0', // keeps oo and does not emit space from 00
     'oo': '88', // ii is rare and no more problem with double O, also better to emit this than a e5c secquence
     
+    // 44 get m   cause nx is rare !! may colide with other use of 3
+    // 'nn': '43',
+    'nn': 'd4',// dn is in DE rare
+
     // differentiate between succesiv i and l  cause  ill -> 111 would be confusing and is hard to decode sensible
     'li':'18',
     'il':'81',
     'ill':'811', // prevent due to vokal alteration  will -> cc 1 1 1  
-    'll':'12', // lr and lz are super rare
+    'll':'12', // lr and lz are super rare in en, but lz is common in DE  Salz Pelz Stolz
+    'lz':'17b',  // ltb is rare(not used) in DE
     'ri': '28', // using 8 instead of 1 for all ri allows making 21 to rl, which is more common 
     'ili':'818',
     'yl':'81',// opt collison with il, but less confusion what  91 means  gl yl jl ql 
     'gly ':'91800', // common ending  -> use different for  better than 919 or 911 (with gy combo)
 
     'you': '90c',  // otherwise 90c -> goc (you don't see quickly that this came from 90c as "you" ) 
+    'uc':'cfb', // otherwise cc would be w
+    'up':'c6b',
+    'iece':'8ece',// to avoid trouble with leue
 
     'cou': 'c08', // better than c0c, which suggests coc or uoc
     // problem  c08 may mean i, but  couX  more common than coiX and when X is no l you can use the 1 for c014 -> coin
-    'coi':'c01',
+    'coi':'c01',// uoi us rare voi
     'coil':'co81',//  confuseable with coul
-    // maybee ou as diphton?  08 , cause the 08-> oi is more rare and could be replaced with a oiX -> 01X as long as X is no l
-    'ou': '08'
+    // maybee ou as diphton?  08 , cause the 08-> oi is more rare
+    'ou': '08',
+    'act':'afb7',
+    'eir':'e82',
+    'plu':'6b1c',
+    'pic':'6b1fb',
+    'f2e1':'frei',
 
+    'pp':'66b', // so 66 can be a hh 
+    'mp':'446', // save the 446b escape 
+    
+    // no need to escape these so keep them short for better read flow
+    'sky':'5b9',
+    'rk':'2b',
+    'oug':'0c9',// form >   08->ou 089
+    'ty': '79',  'tg':'7e5c9',
+    'anci':'a4c8',
+
+    // contains escape
+    'esch':'e5b6', //  esbh esbp eskp eskp  are no words and  e5c h would only emit h so replace c with b
+    // using   esch -> e5cb looks better, but can mean 'esub' like in  de/resublimation
 }
 
 
@@ -478,13 +587,19 @@ const hexToAlts = {
    
     30:['0','o'], 31:['1','xl','xi'], 32:['2','xr'], 33:['3','xx'], 34:['4','xn'],
     35:['5','xs'], 36:['6','x','xp'], 37:['7','xt'], 38:['8','xi'], 39:['9','xg','xj','xy'],
-    44: ['m','nn'], 
     a: ['a'], b: ['b', 'k'], c: ['u','c', 'v'], 
     d: ['d'],e: ['e'], f: ['f'],
     
+    44: ['m','nn'],
     cc: ['w','uu','cc','cu','uc','vu','uv','wu'],
     fd: ['v','fd'], 
     '9b': ['qu','q','gb','yb'],
+    '9d':['j','gd'],
+    '97':['y','gt','yt'],
+
+    // '53':['x','sx'],// !! overlap with control codes, would need escape before sx<controlcode>
+    // 'f4':['x','fn'], // more rare than control codes
+    'bf':['x','kf','bf'],  
 
     // letter escapes
     '3a':[':','xa'], // real ASCII \x3a => ':'  read as Esc Aufzälung(DE listing) 
@@ -495,15 +610,33 @@ const hexToAlts = {
     '3f':['?','xf'], // real ASCII \x3f => '?'  read as Esc Fragezeichen(DE questionmark)
 
     'bb':['-','bb'],// hyphon
+    // k is only for s and r more likly
+    '5b':['sk','bk'],
+    '5bb':['s-','sbb'],
+    '2b':['rk','rb'],
+    '5b9':['sky','sby'], 
+    '2b9':['rky','rby'], 
+    'b9':['by','ky'],
+    
+    // respect escape  97 -> y
+    'b97':['by','byt','ky'],
+    'b97e':['byte','kye'],
+    'b9e':['bye','kye'],
+    '5b97':['sky','skyt'],
+    '2b97':['rky','rby'],
+    
     // 'ffff':[  '\x1c'],// alt symbol  file seperator
 
     // escapes
     '74':['k','tn'],//  tn  rare EN   quite rare DE
-    '6c':['c','hc','pc'],
+    // '6c':['c','hc','pc'], // maybee keep it for disambiguation
+    'fb':['c','fb','fk'],
+   
     // '325':['z','xzs'],
     // '36f':['p','xpf'],
     // '73':['z','tx'],//  tx  ultra rare En and DE     no t with escape(number/punctu) afterwards  73e  ->  ze  or  t!   tradeoff
     // '73':['p','tx'],// look like B so P would be good
+    // '72':['z','tr'],// tr to common
     '7b':['z','tb'],//  tb  quite rare En and DE
     'fd':['v','fd'],// fd is uncommon and look a little bit from the shape (esp. the d) like a v
     // '92':['q'],//   two sound like the U of Qu, but gr quite common
@@ -521,28 +654,234 @@ const hexToAlts = {
     // '3fac':['/','xfac'], factor instead of mu for multiply
     // '32ec':['/','xrec'], reciprocial instead of dif for divide -> solves 3d esc ambiguity
 };
+
 const HexCombosTochar = {
     '91':['gy','gl','yl','gi','ji'/* arabishe word use this a lot*/,'yi','qui','qul'],
+    '91c':[ 'gic','glu','jic','yiu' ],
     '19': ['ig','lg','ij','yj'],
     '918':['gli','gly','yli'], 
+    '49e': ['nge','nje','nye'],
+    
     '81':['il','öl'],
-    '21': ['rl','ri','zl','zi'],
+    '21': ['rl','ri','zl','zi'],// ri is 10:1 more common than rl, but ri can be done via 28 
     '18':['li','lö','lä'],
-    '11':['ll','ii','||','!!'], // prevent  11=>li due to vokal alteration
+    // '11':['ll','ii','||','!!'], // prevent  11=>li due to vokal alteration
+    'a11':['all','aii'],
+    'e11':['ell','eii'],
+    '011':['oll','oii'],
+    'c11':['ull','uii'],
+    '111':['ill','iii'],
+    'b15':['bis','kis','bls','kls'],
+
     '12':['ll','lr','lz','ir','iz'], // cursive  lr is rare  lz is common in DE, i uses the 8 for decodabillity anyway
+    'f12':['fir','fiz'],
+
+    // 'e12':['eir','eiz','elz'],
     '811':['ill'],
 
-    '88':['oo','ii','y','yi'],
-    '66b':['pp','ppb','hhb','ppk','hhk'],
 
+    'f1a': ['fla','fia'],// use f8a for fia
+
+    '88':['oo','ii','y','yi'],
+    '886':['oop','ooh','iip'],
+    '886b':['oop','oopb','iip','iipb'],//respect 6b->p rule
+    '1ee':['lee','iee'],
+    '1eee':['ieee','leee'],// the standard
+    // '43': ['nn','nx'], // overlap with 3 escape, but 43 makes sense cause 4 and 3 are close, same as  12 for 11 ll
+    'd4': ['nn','dn'],
+    'd44': ['dm'],
+
+    '66b':['pp','ppb','hhb','ppk','hhk'],
+  
     '16':['lp','lh'],
+    '16b':['lp','lpb','lh'],//respect 6b->p rule
+    // '17b':['lz','ltz'],
+   
+    '1446':['imp','imh','lmp'],
+    'e446':['emp','emh',],
+    'e446b':['emp','empb'],
 
 
     '90c': ['you','goc','gov'],
+    // not working  00 may be eaten first by other space key
     '0017':[' it',' lt'],
+    '0015':[' is',' ls'],
+    // '00144':[' im',' lm'],
+    '14400':['im ','lm '],
+    '2c00':['zu ','ru ','rc '],
+    'e2c':['erc','ezu'],
+    'e2c9':['ercy','ezug'],
+    '2c9':['zug','ruy'],
+    '1446':['imp','lmp'],
+    '1446b':['imp','lmp'],
+    '1c9':['lug','iug','icy','luy'],
+    '04ce':['once','onue'],
+    '1400':['in ','ln '],
     'c08': ['cou','coi','coy'],
+    
+    '1ce':['ice','lue','lü'],
+   
 
-    '3000':['0 ','o '],
+    '0c9': ['oug','ocy'/*chemistry*/,'ovy','ovg',],  // no esc 97 cause 0c97 ocyt 
+    '0c5': ['ous','ocs','ovs'],
+    'o67': ['opt','oht'],
+    'u67': ['upt','uht'],
+    '2ce':['rce','rue'],
+
+    'c11':['ull','cll','cil','uil'],
+    'c12':['ull','cir',  'ciz', 'ulz','clr'],// handled lz   iz via  82
+
+    'c5e':['use','cse'],
+    // 'c00':['u ','c ','v '],// end of word rarely c or v
+    // '8c':['ic','iu','iv',], // ecept you have a vokal before
+
+    'e14': ['ein','eln'], 
+    'a14':['ain','aln'],
+    'e114': ['elln','eiln','elin'],
+    'e1c1':['eici','elui',],
+
+    '9b14':['quin','quln','gbin','gbln','gkin','jbln','jbin','ykin'],
+    '9b15':['quis'],
+    '9bb':['g-','j-','qub'],
+
+
+    '5c1':['sci','sui'],
+    '4c1':['nci','nui','nul'],
+    'c7':['ut','ct'],
+    'c74':['uk','ck','utn','ctn'],
+
+    // h p heuristic  -> by default use h so here the letters after which a t makes more sense
+    // trouple for sh 3:1 sp   ch 6:3 uh
+    'a6':['ap','ah'], 'e6':['ep','eh'],'16':['ip','lp','lh'],
+    '86':['ip','up','uh','ih'],  // vokals
+    'c6b':['up','cp'],
+    // 'c6':ap_ah, // u and c are mixed
+    '00c600':[' up '], // no free ch
+    '446':['mp','mh'],
+    '446b':['mp','mh'],
+    '86b':['ip','ihb'],// rule 6b=>p
+    '16b':['ip','ihb'],
+
+    
+    '06':['op','oh'],
+    '064':['ohn','opn'],
+    '0644':['ohm','opm'],
+    
+    '26':['rp','rh','zp','zh'],
+    '067':['opt','oht'],
+    '2067':['roht'],
+    // '62':['pr','hr'],
+    '0062':[' pr',' hr','hr'],
+
+    '66':['pp','('], // w/o this <vokal>66-><vokal>ph,
+    //  -> ugly readablr cause first and second 6 have two differenct meanings 
+    // pp less common than ph, but still use for readabillity  6d for ph and 66 a pp or as a open brace
+    //  pd, hd is rare enough 
+    // you need the combinator of vacals to select pp over ph
+    'a66':['app','ahh'],
+    'e66':['epp','ehh'],
+    '166':['ipp','ihh'],
+    '066':['opp','ohh'],
+    'c66':['upp','chh','uhh'],
+    
+    'c66b':['chp','uppb'],// respect the 6b -> p convention
+    'a66b':['app','appb'],
+    'e66b':['epp','eppb'],
+    '166b':['ipp','ippb'],
+
+    'e6e':['ehe','epe'],
+    'e6b':['ep','epb'],
+    'e6e1':['ehei','epei'],
+    'e6e12':['epell','ehell'],
+    'ee6':['eep','eeh'], // EN for a german ie sound
+    'ee6b':['eep','eepb','eeh'], // EN for a german ie sound
+    // '8e6':['iep','ieh'], 
+
+    'bfce':['xce','xue'],
+
+    // encoder will mapp ph to 6d
+    
+    '6d':['ph','pd'],// to make ph usable with only 1 byte 
+    '6df':['pdf','hdf','phf'],// still allow only two senible  pd and hd words plus phf for ph consitency
+    'c6d':['chd'],
+    '4466':['mph','mpp'], // mph > mpp
+    '466':['nph','mpp'], // mph > mpp
+
+    // '96':['gh','yp'],
+    // '3':ap_ah,  for x     gh 20:1  gp   hp 1:1 hh  pp 1.5:1 ph
+
+    '69':['hy','py','hg'],// y after p and h  do to -> combine with p heuristic 
+    'a69':['apy','apg'],'e69':['epy','epg'],'169':['ipy','ipg'],'c69':['chy','upy',],'069':['opy','ohy'],
+    '269':['rpy','rhy'],
+    '29':['ry','rg','rj'],// im DE ist rg sehr viel häufiger als 29
+    '297':['ry','ryt'],
+    '2976':['ryth','ryh'],// here t is common
+    // '19':['ly']  y after l    g after i
+    '449':['my','mg'],
+    '59':['sy','sg'],
+    '79':['ty','tg'],
+    '4497':['my','myt','mgt'], // rule 97->y
+    '59b':['squ'],// rule 9b->q
+    '79b':['tqu'],
+    
+    
+    '61':['hi','hl'], // maybee use 68 instead
+    '61a':['pla','hia'],
+    '61e':['ple','hie'],
+    '610':['plo','pio'],
+    '61c':['hic', 'plu','pic','piu'],// pic and plu should use an escape
+    '16b':['ick'],
+
+    'b1':['bl','bi','kl','ki'],// use b8 for bi and 748 for ki 
+    '748':['kl','tni'],
+
+    
+    // may cause trouble with new lines and multi WS
+    // '7000':['to '],
+    // '1000':['lo '],
+    // '3000':['0 ','xo ','o '],
+
+
+    // deutsch
+    '562': ['spr','shr'],
+    '5c6':['sch','suh',],
+    'ac6':['ach','auh'],
+    '1c6':['ich','iuh'],
+    '164':['ihn','ipn'],
+    // 'iac':[]
+    'e5b6':['esch','eskh','eskp'],
+    'b14':['bin','kin','bln','kln'],
+    '1644':['ihm','ipm'],
+    'ece':['eue','ece'],
+    'c4d':['und','cnd'],
+    'cfb':['uc','ufb','ufk','cfk'],
+    '8ece':['iece','ieue'],
+    '01c6':['olch','oich'],
+    '01c6b':['olup','oicp'],
+    'ec6':['ech','euh'],
+    'oc6':['och','ouh'],
+    'ccc':['wu','uw','cuv','vuc'],
+    'tc6e':['tche','tupe'],// use p esc  7c6be for tupe
+    '2c6e':['rche','rupe'],// e.g. skrupellos  5b2c6be1105
+    '7c6b':['tup','tcp'],
+    '7c6':['tch','tuh'],
+
+    // für en and lat 
+    'ec7': ['ect','eut'],
+    'ec74':['eck','euk','eutn'],
+    '017':['oit','eut','olt'],
+    '08': ['ou','oi'],
+    '086':['oup','ouh'],
+    '086b':['oup','oupb','ouhb'],// rule 6b->p
+    '0811':['oill','oull'], /* ill (double l) is more common than ull */
+    'ec4':['eun','ecn'],
+    'ec44':['eum','ecm'],
+    'ecd':['eud','ecd'],
+    'ecd4':['eunn','ecnn'],// rule nd -> nn 
+    'ecd44':['eudm','ecdm'],
+
+    'a4c8':['anci','anui'],
+
 }
 const HexToCharReadableWS = {
      '0000':['\n','  '],
@@ -559,6 +898,7 @@ const hexEl = document.getElementById('hexOutput');
 const copyHexEl = document.getElementById('rawOutput');
 const disambigEsc = document.getElementById('disambigEsc');
 const sameNumCombo = document.getElementById('sameNumCombo');
+const CompactHexOut = document.getElementById('CompactHexOut');
 const reableWSin = document.getElementById('reableWSin');
 
 const bntEncode = document.getElementById('bntEncode');
@@ -566,26 +906,136 @@ const bntDecode = document.getElementById('bntDecode');
 
 const inLen = document.getElementById('inLen');
 const outLen = document.getElementById('outLen');
+const outCharLen = document.getElementById('outCharLen');
 const outCopyLen = document.getElementById('outCopyLen');
 
 let _Select = HTMLSelectElement.prototype;_Select=null;
 const selectEncode = _Select?? document.getElementById('selectEncode');
+const selectDecode = _Select?? document.getElementById('selectDecode');
 
 
 const encodeEx = {
+    "---":"",
     "hello world":`hello world!
 foobar
-abra kadabra ta da
+abra kadabra ta daa!!!
+
+info: letter k is mapped to a b and lost at reverse decode
 
 Try to read the hexspell, You can do it!
 
 Math:
- 2+ 8*5 = 42`,
+ 2 + 8*5 = 42`,
+
+ 'lead I I':`immer im innersten Innen ist es am innig innesten`,
 
     "star wars":`it is a dark time for the rebellion. although the death star has been destroyed, imperial troops have driven the rebel forces from their hidden base and pursued them across the galaxy.
 evading the dreaded imperial starfleet, a group of freedom fighters led by luke skywalker have established a new secret base on the remote ice world of hoth.
 the evil lord darth vader, obsessed with finding young skywalker, has dispatched thousands of remote probes into the far reaches of space  `,
+
+    "-1. Ancient Dark Magic":`mighty ancient roman pain and desintegration spell:
+
+lorem, ipsum dolor sit amet consectetur adipisicing elit. 
+
+dignissimos dolor ullam mollitia, ratione, 
+
+autem excepturi delectus assumenda soluta 
+
+vitae corrupti repellendus temporibus optio 
+
+quisquam hic eligendi facere reiciendis laboriosam tempora.
+
+Dark Magic cast!!`,
+
+'0. Once upon a time':`Once upon a time in a wüstenstadt:
+zu dionys, dem tyrannen, schlich
+damon, den dolch im gewande;
+ihn schlugen die häscher in bande.
+was wolltest du mit dem dolche, sprich!
+entgegnet ihm finster der wüterich.
+die stadt vom tyrannen befreien!
+das sollst du am kreuze bereuen!
+
+Your friend is about to be crucified?!
+Go find the treasure to save him!!!`,
+
+"n nn m ":`mad man A: I made a pact with a demon. niemand kann uns nun trennen!
+-- Nemo;other demon enters scene
+Nemo: Ok; I will make the parting right away!`,
+
+"1. Pyromancy (Fire)": `Ignis Fatuus! 
+Brennende Flammen, burn child burn. 
+Temperature: 451°F.
+Heat level: 9/10!!! 
+[Danger: 3000 degrees of pure flame]`,
+
+    "2. Cryomancy (Ice)": `Eternal Winter falls...
+Stille Nacht, eiskaltes Grab. 
+Illumination of the aurora borealis.
+Status: chilled. 
+Let it go, let it flow!`,
+
+    "3. Electromancy (Thunder)": `Fulgor Strike!
+Donnerschlag & Lightning Bolt.
+Energy: 1.21 Gigawatts! 
+Shocking results: zap, zap, zap.
+Katchow!`,
+
+    "4. Abyssal Ritual (Dark)": `In the shadows, du findest nichts. 
+Absolute darkness (0000).
+Shadows follow: you are lost in the void.
+3... 2... 1... Begone!`,
+
+    "5. Aether Shift (Light)": `Lux Aeterna.
+Das Licht bricht den Fluch (the curse).
+Precision: 100.0%
+Magic is just science we don't understand yet.`,
+
+"Ambiguity: The 1-Problem": `illuminate the million illusions.
+In Illinois, lilies like light.
+(Testing: 11 for ll, li, il or ii?)
+111 1s the number of the spell.`,
+
+    "Ambiguity: The C-Cluster": `vacuum the succubus.
+curse the clever voodoo.
+uvuvwevwevwe... who is calling?
+(Testing: c vs u vs v in successor context)`,
+
+    "Escape & Syntax Check": `Manual Override [3d]:
+Hex: 3d41 3d42 3d43 (ABC)
+Semicolon test; colon test:
+Question? Exclamation! 
+New line test:
+0000
+Did it break?`,
+
+    "Mixed Language Magic": `Der Zauberer castet a spell.
+Wüstenstadt desert vibes.
+Hinter dem Sumpf (swamp) liegt das Ziel.
+Is it 'c' for 'ch' or 'c' for 'u'? 
+Check it out!`,
+
+    "Numeric Alchemy": `The recipe requires:
+30 grams of lead (b),
+39 grams of gold (y),
+42 is the answer to everything.
+Date: 31.03.2026`,
 };
+inputEl.innerText = encodeEx['hello world'];
+
+const decodeEx = {
+    "---":"",
+    'geheim':`9 e 6 e 1 44 344C 344C 344C   6b a 5 5 cc 0 2 7 3A 31 32 33 34`,
+    'illis':`d1ffe2e47 00 56be118495 00 e5c0f 00 111 00 cc02d5 3a 0000 111 00 811 00 8e5c1e5c1 00 3d6911 00  83d6c3d6c 00 3b 00 b811149 00 b811849 00 3b 00 8118a5 00 3d6913d6C1a5 `,
+    'many ou':`a1760c9600100a4400fde29004e2fd0c53b00100a4400f14e3bb7cc3b0060cc00a2e0090c3f`,
+    'a110044a919':`01100c1100a110011100e11bb7abbdaaa3b0110c110a1101110e110bbd1afd010`
+}
+const decodeExTest = {
+    'many ou':`although l am very nervous, i am fine.btw. how are you?`,
+
+    'a110044a919': `ollullallillell-ta-daaaolloulloallollioello-diavolo`
+}
+
 
 function buildOpts(selectElm,optObj, changeCallback){
     for(const key in optObj){
@@ -598,13 +1048,14 @@ function buildOpts(selectElm,optObj, changeCallback){
     } 
 }
 buildOpts(selectEncode,encodeEx,fullSyncFromText);
+buildOpts(selectDecode,decodeEx,fullSyncFromHex);
 
 
 
 /**
  * Initialisiert oder Re-Generiert beide Editoren komplett
  */
-function fullSyncFromText(text="",{useEscpaces = disambigEsc.checked,useSameNumCombo = sameNumCombo.checked, reableWS= reableWSin.checked }={}) {
+function fullSyncFromText(text="",{useEscpaces = disambigEsc.checked,useSameNumCombo = sameNumCombo.checked, reableWS= reableWSin.checked,useCompactHexOut=CompactHexOut.checked}={}) {
     if(blockFullUpdate) return;
     text  ||= inputEl.innerText;
     text = text.toLowerCase();
@@ -612,6 +1063,7 @@ function fullSyncFromText(text="",{useEscpaces = disambigEsc.checked,useSameNumC
     let textHTML = "";
     let hexHTML = "";
     let rawHex = "";
+    let outDelim = useCompactHexOut? "":" ";
 
     for (let i=0, char=""; char=text[i];i++) {
         const id = `c-${charCounter++}`;
@@ -622,30 +1074,25 @@ function fullSyncFromText(text="",{useEscpaces = disambigEsc.checked,useSameNumC
             code = charToHexReadableWS[char];
             title = `'${char}' via readable White Space extra rule`;
         } else
-        if(useEscpaces && !( char=="o"&& !(['o',' '].includes(nextChar))  ) ){
-            code = charToHexEsc[char]||code;
-            title = `'${char}' via disambiguation Esc`;
-        } else
 
         if(useSameNumCombo){
-            let biChar = text.slice(i,i+2);
-            let triChar = text.slice(i,i+3);
-            if(charComboToHex[biChar]){
-                code = charComboToHex[biChar];
-                char = biChar;
-                title = `'${biChar}'`;
-                i+=1;
-            } else if( charComboToHex[triChar]){
-                code = charComboToHex[triChar];
-                char = triChar;
-                title = `'${triChar}'`;
-                i+=2;
+            for(let n=4,nChars; nChars=text.slice(i,i+n), n>1;n--) 
+            if(charComboToHex[nChars]){
+                code = charComboToHex[nChars];
+                char = nChars;
+                i+=n-1; 
+                 title = `'${nChars}'`;
+                break;
             }
+        }
+        if(useEscpaces && charToHexEsc[char] ){
+            code = charToHexEsc[char];
+            title = `'${char}' via disambiguation Esc`;
         }
         if (code) {
             let alts = hexToAlts[code] || [char];
             textHTML += `<span id="${id}-txt" data-ref="${id}">${char}</span>`;
-            hexHTML += `<span id="${id}-hex" title="${title||alts.map(a=>"'"+a+"'"+(a==" "?`(Space)`:"")).join(' | ')}" data-ref="${id}" class="${testCodeType(code,char)}" data-alts="${alts.join(';')}" data-idx="0">${code}</span> `;
+            hexHTML += `<span id="${id}-hex" title="${title||alts.map(a=>"'"+a+"'"+(a==" "?`(Space)`:"")).join(' | ')}" data-ref="${id}" class="${testCodeType(code,char)}" data-alts="${alts.join(';')}" data-idx="0">${code}${outDelim}</span>`;
             rawHex += code;
         }
     }
@@ -687,15 +1134,16 @@ function testCodeType(code,char=""){
 function syncLen(textLen,hexByteCount){
     inLen.innerText = textLen;
     outLen.innerText = hexByteCount;
+    outCharLen.innerText = hexByteCount*2;
     outCopyLen.innerText = hexByteCount;
 }
 
-const vokals = { a:1,e:1,i:1,o:1,u:1, y:1,'ei':1 };
-const isVokal = (s)=>s && s in vokals
-const isKonsonant = (s)=>s && !(s in vokals)
+const vokals = { a:1,e:1,i:1,o:1,u:1, 'ei':1 };
+const isVokal = (s)=>/\w/iu.test(s) && s in vokals
+const isKonsonant = (s)=>/\w/iu.test(s) && !(s in vokals)
 
 /**  Tries to insert a vokal after a konsonat if there are multiple option like with `1 => l,i`  */
-function fullSyncFromHex(hex="",{useEscpaces = disambigEsc.checked, useSameNumCombo = sameNumCombo.checked, reableWS= reableWSin.checked, vokalAlteration=true}={}){
+function fullSyncFromHex(hex="",{useEscpaces = disambigEsc.checked, useSameNumCombo = sameNumCombo.checked, reableWS= reableWSin.checked, vokalAlteration=true,useCompactHexOut=CompactHexOut.checked}={}){
     if(blockFullUpdate) return
     let text = hex|| hexEl.innerText;
     text = text.toLowerCase();
@@ -704,8 +1152,11 @@ function fullSyncFromHex(hex="",{useEscpaces = disambigEsc.checked, useSameNumCo
     let hexHTML = "";
     let rawHex = "";
     let rawText = "";
+    let outDelim = useCompactHexOut? "":" ";
     
     let lastIsVokal = true;
+    let lastIsSpace = true;
+    let isInLangSpaceBlock = false;
 
     const textStream = text.replace(/\s+/g,""); 
     for (let i=0, code=""; code=textStream[i];i++) {
@@ -715,9 +1166,24 @@ function fullSyncFromHex(hex="",{useEscpaces = disambigEsc.checked, useSameNumCo
         let triCode = textStream.slice(i,i+3);
         let quadCode = textStream.slice(i,i+4);
         
-        let alts = hexToAlts[code]??[];
+        let alts = null;
+
+        // special ending "o" rule,  could be extended that odd amount of 0 mplies either leading or ending o for word between
+         if( !isInLangSpaceBlock && triCode=="000"&& quadCode.at(-1)!==0){
+            let count0 = 3;
+            
+            for(let nr=count0+i;  textStream[nr]=="0";nr++,count0++);
+            if(count0%2==1){
+                alts = ['o'];            
+            }  else {
+                isInLangSpaceBlock=true;
+            }
+        }
+
+        if(alts==null){
+
         
-        if(reableWS && HexToCharReadableWS[quadCode]){
+        if( reableWS && HexToCharReadableWS[quadCode]){
             code = quadCode;
             alts = HexToCharReadableWS[quadCode];
             title = `'${alts[0]}' via readable White Space extra rule`;
@@ -726,39 +1192,64 @@ function fullSyncFromHex(hex="",{useEscpaces = disambigEsc.checked, useSameNumCo
             code = quadCode
             alts = [String.fromCharCode( parseInt( quadCode.slice(2),16))]; i+=3;
         } else if(triCode=="e5c"){ // escape uses the first hexToAlts entry, it allows to 
-        //  1. differenciate between space '00' and double o   0e5c0 ->"oo"
+        //  1. differenciate between space '00' and double o  e5c00 -> " "   0e5c0 ->"oo"  (may also use combo 88->oo)
         //  2. circumvent the vokal/konsonant alteration for ambigious letters like   -able -> -abie ,cause b kons and pick from l,i the i
             code = quadCode;
-            const escChar = hexToAlts[code.at(-1)]?.[0 ];
-            alts = [ escChar, 'ESC'+escChar,'esc'+escChar]; i+=3;
+            if(textStream.slice(i,i+5)=="e5c00"){
+                // special case use WS
+                code = textStream.slice(i,i+5);
+                alts = [ " ",/* 'ESC ','esc ','ESCo ','esco ',*/]; 
+                i+=4;
+            } else {
+                const escChar = hexToAlts[code.at(-1)]?.[0 ];
+                alts = [ escChar, /*'ESC'+escChar,'esc'+escChar*/]; 
+                i+=3;
+            }
         } 
-        else if(hexToAlts[quadCode]){
-            alts = hexToAlts[quadCode]; code = quadCode; i+=3;
-        } else if(hexToAlts[triCode]){
-            alts = hexToAlts[triCode]; code = triCode; i+=2;
-        } else if(hexToAlts[biCode]){
-            alts = hexToAlts[biCode]; code = biCode; i+=1;
-        }
-
-        if(useSameNumCombo){
-            for(let n=4,nCode; nCode=textStream.slice(i,i+n), n>1;n--) 
+        else if(useSameNumCombo && alts==null){
+            for(let n=5,nCode; nCode=textStream.slice(i,i+n), n>1;n--) 
             if(HexCombosTochar[nCode]){
                 alts = HexCombosTochar[nCode];
                 code = nCode;
                 i+=n-1; 
                 break;
+            } else if(lastIsSpace && HexCombosTochar["00"+nCode]){
+                alts = HexCombosTochar["00"+nCode].map(x=>x.trimStart());
+                code = nCode;
+                i+=n-1; 
+                break;
+
             } 
         }
+    }
+        if(alts==null){
+            if( hexToAlts[quadCode]){
+                alts = hexToAlts[quadCode]; code = quadCode; i+=3;
+            } else if( hexToAlts[triCode]){
+                alts = hexToAlts[triCode]; code = triCode; i+=2;
+            } else if( hexToAlts[biCode]){
+                alts = hexToAlts[biCode]; code = biCode; i+=1;
+            }
+        }
 
-        let char = !vokalAlteration ||  alts?.length<=1? alts[0] : 
+        alts ??= hexToAlts[code]??[];
+        let type = "";
+        if(alts.length==0){// no hex error
+            alts = [code];
+            type = "error";
+            title = "Error this is no hex digit!!!";
+        }
+        let char = !vokalAlteration || alts?.[0].length>1||/\W/.test(alts[0])  ||  alts?.length<=1? alts[0] : 
             alts.filter(  lastIsVokal? isKonsonant : isVokal)[0]??alts[0];// "smart"-guess switch between vokal-konsonant  1->l,i  c->c,u 
 
         if (char) {
             const lastChar = char.at(-1);
             lastIsVokal = !/[a-z]/i.test(lastChar) || !!vokals[lastChar];
+            lastIsSpace = /\s/.test( lastChar);
+            isInLangSpaceBlock = lastIsSpace;
 
-            textHTML += `<span id="${id}-txt" data-ref="${id}">${char}</span>`;
-            hexHTML += `<span id="${id}-hex" title="${title||alts.map(a=>"'"+a+"'"+(a==" "?`(Space)`:"")).join(' | ')}" data-ref="${id}" class="${testCodeType(code,char)}" data-alts="${alts.join(';')}" data-idx="0">${code}</span> `;
+            textHTML += `<span id="${id}-txt" data-ref="${id}" ${type?"class='"+type+"'":""}>${char}</span>`;
+            hexHTML += `<span id="${id}-hex" title="${title||alts.map(a=>"'"+a+"'"+(a==" "?`(Space)`:"")).join(' | ')}" data-ref="${id}" class="${type|| testCodeType(code,char)}" data-alts="${alts.join(';')}" data-idx="0">${code}${outDelim}</span>`;
             rawHex += code;
             rawText += char;
         }
@@ -870,7 +1361,7 @@ function closePopover() {
     }
     editor.onbeforeinput = (e)=>{ 
         const type = e.inputType.toLowerCase();
-        if(e.data|| type.includes("delete")|| type.includes("paste")|| type.includes("undo")|| type.inlcudes("redo")) e.target._dirty = true;
+        if(e.data|| type.includes("delete")|| type.includes("paste")|| type.includes("undo")|| type.includes("redo")) e.target._dirty = true;
     };
 
     const syncSameChar = (useNextSib)=>{
@@ -909,24 +1400,22 @@ inputEl.addEventListener('blur',()=> {  if(inputEl._dirty){ fullSyncFromText();i
 hexEl.addEventListener('blur',()=> {  if(hexEl._dirty){ fullSyncFromHex();hexEl._dirty=0}}); 
 
 
-function readURLParams(){
+const parseQueryStrBool = str=>( str=="false" || !+str)? false:true;
 
+function readURLParams(){
     const query = new URLSearchParams(location.search);
-    
+   
     if(query.has("esc")){
-        let esc = query.get("esc"); 
-        esc= (esc=="false" || !+esc)? false:true;
-        disambigEsc.checked = esc;
+        disambigEsc.checked = parseQueryStrBool(query.get("esc"));
     }
     if(query.has("sameNum")){
-        let sameNum = query.get("sameNum") 
-        sameNum= (sameNum=="false" || !+sameNum)? false:true;
-        sameNumCombo.checked = sameNum;
+        sameNumCombo.checked = parseQueryStrBool(query.get("sameNum")) 
     }
-    if(query.has("reabdableWS")){
-        let reableWS= query.get("reabdableWS") 
-        reableWS= (reableWS=="false" || !+reableWS)? false:true;
-        reableWSin.checked = reableWS;
+    if(query.has("readableWS")){
+        reableWSin.checked = parseQueryStrBool(query.get("reabdableWS"));
+    }
+    if(query.has("compact")){
+        CompactHexOut.checked = parseQueryStrBool(query.get("compact"));
     }
 
     let out = "";
@@ -934,10 +1423,11 @@ function readURLParams(){
         resText = query.get("text");
         out =  fullSyncFromText(resText);
     }
-    if(query.has("hex")){
+    else if(query.has("hex")){
         resText = query.get("hex");
         out =  fullSyncFromHex(resText);
-    }
+    } else fullSyncFromText();
+
     if(query.has("api")){
         // make the html minimal
         document.head.remove();
@@ -954,7 +1444,7 @@ function readURLParams(){
         // document.close();
 
         document.documentElement.innerText = out; 
-        setTimeout( ()=>window.close(),20);
+        setTimeout( ()=>window.close(),200);
         return
         
         // logging does not work is for security reasons not piped to the console
@@ -962,10 +1452,6 @@ function readURLParams(){
         // setTimeout( ()=>window.close(),20);
     }
 }
-
-fullSyncFromText();
-
-window.onload = readURLParams;
 
 function copy(text, button){
     navigator.clipboard.writeText(text);
@@ -1022,6 +1508,10 @@ function triggerDownload(blob, filename) {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
     }, 0);
+}
+window.onload = ()=> {
+    
+    readURLParams();
 }
 
 </script>
