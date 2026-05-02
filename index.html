@@ -80,7 +80,7 @@
         legend::before{ content: "✕"; font-size: 1.4em; margin-inline: 0.3em; display: inline-block;  rotate: 45deg; transition: rotate 300ms, color 300ms; }
         fieldset:focus-within,fieldset:has(>:active){  
             padding-bottom: 1rem;  border-style: outset;  
-            pointer-events: none;
+            /* pointer-events: none; */
             >:not(legend){ pointer-events: all;}
             >*{ height: auto;};
             >legend::before{ rotate: 0deg; transition: rotate 300ms, color 300ms; color: indianred;  } 
@@ -109,6 +109,7 @@
             overflow-y: auto;
             /* span { margin-right: 1ch; } */
         }
+        #hexToWords{  margin-block: 2rem;  min-height: 2rem;  }
         #inputText {
             padding: 0.5rem;
             background-color: #eee;
@@ -164,7 +165,7 @@
             font-weight: bold;
             color: var(--highlight-escape);
         }
-        [float]{  position: absolute; top:1rem; right: 0; width: fit-content;}
+        [float]{  position: absolute; top:1rem; right: 0; width: fit-content;  margin-bottom: 1rem; }
         :has(>[float]){ position: relative; }
         .done::after { content: "✓";}
         .outline { text-decoration: underline dotted var(--highlight-math-op);  }
@@ -221,6 +222,11 @@
             }
         }
         pre code {color: var(--highlight-escape)}
+        @media (width<700px) {
+            /* for the table  */
+            figure { float: unset }
+            [float] { position: relative; }
+        }
     </style>
 </head>
 <body>
@@ -288,6 +294,15 @@ from the decoder.</aside
         <textarea id="rawOutput" style="min-height: 60px;"></textarea>
     </section>
 
+    <fieldset  tabindex="0"> 
+        <legend title="Click Encode or Decode bnt to reaplly" >Options</legend>
+        <label title="by Inserting special Escape markers (hex: e5c =>'esc' ) this allows better disambiguation of character&#10; but output looks less clean and readable;&#10; query param:  esc=1 | esc=0">For better decoding, but less readability use longer Escapes (e.g.  k=>74, x=>bf, )<input id="disambigEsc" type="checkbox"></label>
+        <label title="Better for subsequent characters mapping to the same number like g and y&#10;query param:  sameNum=1 | sameNum=0">Use Same Num Combos <input id="sameNumCombo" checked type="checkbox"></label>
+        <label title="Conflicts if you want to use more than one ' '(space) in your text;&#10;  query param:  readableWS=1 | readableWS=0">Use <code>"\n"&lt;=>"0000"</code> for better readable text <input id="reableWSin" checked type="checkbox"></label>
+        <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
+        <p callout><strong>Note:</strong><br> If <i>reverse decoding</i> should work check both <code>`Disambiguation Escape`</code> and <code>`Same Num Combos`</code>. Is still <b>not 100% reversable</b>.</p>
+        <footer> <small>you can set them via query param and use over the api, hover field for more</small></footer>
+    </fieldset>
     <section >
         <details>
             <summary>
@@ -397,14 +412,22 @@ read it as Esc like <code>3c7</code> Esc t -> <code>\t</code> (tab)</aside>
 </table>
         </details>  
     </section>
-     <fieldset> 
-        <legend tabindex="0" title="Click Encode or Decode bnt to reaplly" >Advanced Options</legend>
-        <label title="by Inserting special Escape markers (hex: e5c =>'esc' ) this allows better disambiguation of character&#10; but output looks less clean and readable;&#10; query param:  esc=1 | esc=0">Use Disambiguation Escape<input id="disambigEsc" type="checkbox"></label>
-        <label title="Better for subsequent characters mapping to the same number like g and y&#10;query param:  sameNum=1 | sameNum=0">Use Same Num Combos <input id="sameNumCombo" checked type="checkbox"></label>
-        <label title="Conflicts if you want to use more than one ' '(space) in your text;&#10;  query param:  readableWS=1 | readableWS=0">Use <code>"\n"&lt;=>"0000"</code> for better readable text <input id="reableWSin" checked type="checkbox"></label>
-        <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
-        <p callout><strong>Note:</strong><br> If <i>reverse decoding</i> should work check both <code>`Disambiguation Escape`</code> and <code>`Same Num Combos`</code>. Is still <b>not 100% reversable</b>.</p>
-        <footer> <small>you can set them via query param and use over the api, hover field for more</small></footer>
+     
+
+    <details > 
+        <summary ><h3 style="display: inline-block;" >Words to Color (try your Name!)</h3></summary>
+        <p>Enter a text to convert it to colors</p>
+        <div float>
+            <button  onclick="textToColors()">Text to Colors</button>
+        </div>
+        <div contenteditable id="hexToWords" class="preview editor">Enter your name here: dragon - 17</div>
+        <output  for="hexToWords" id="hexToWordsOut" class="editor"></output>
+
+        <hr>
+        <section>
+
+            <label >TO DO Select a color to see its closest hexspell: <input id="colorIn" value="crimson" type="color"></label>
+        </section>
     </fieldset>
 </main>
 
@@ -467,7 +490,7 @@ const charToHexEsc = {
     // c:'6c',// hc and hp are ultra rare in EN and very rare inDE
     
     // disable c with the esc option, but still allow backtransform
-    // c:'fb',// fb, fk is rare the visually better fc/6c are ambgigious due to c also -> u so fc->? fu,c;  or  6c as  c,pu,pc ; 
+    c:'fb',// fb, fk is rare the visually better fc/6c are ambgigious due to c also -> u so fc->? fu,c;  or  6c as  c,pu,pc ; 
     
     z:"7b",//  tb ist selten
     p:"6b",//  hb and pb are rare, so use b as marker that 6 means p and not default h
@@ -486,7 +509,9 @@ const charComboToHex = {
     ' o':'00e5c0',
     // 'oo':'0e5c0', // keeps oo and does not emit space from 00
     'oo': '88', // ii is rare and no more problem with double O, also better to emit this than a e5c secquence
-    
+    'uu':'ce5cc',
+    'cc':'fbfb',
+
     // 44 get m   cause nx is rare !! may colide with other use of 3
     // 'nn': '43',
     'nn': 'd4',// dn is in DE rare
@@ -495,9 +520,11 @@ const charComboToHex = {
     'li':'18',
     'il':'81',
     'ill':'811', // prevent due to vokal alteration  will -> cc 1 1 1  
-    'll':'12', // lr and lz are super rare in en, but lz is common in DE  Salz Pelz Stolz
+    // 'll':'12', // lr and lz are super rare in en, but lz is common in DE  Salz Pelz Stolz
     'lz':'17b',  // ltb is rare(not used) in DE
-    'ri': '28', // using 8 instead of 1 for all ri allows making 21 to rl, which is more common 
+    // 'ri': '21',  
+    // 'ril': '281', 
+    // 'rill': '2811', 
     'ili':'818',
     'yl':'81',// opt collison with il, but less confusion what  91 means  gl yl jl ql 
     'gly ':'91800', // common ending  -> use different for  better than 919 or 911 (with gy combo)
@@ -660,6 +687,8 @@ const HexCombosTochar = {
     '91':['gy','gl','yl','gi','ji'/* arabishe word use this a lot*/,'yi','qui','qul'],
     '91c':[ 'gic','glu','jic','yiu' ],
     '19': ['ig','lg','ij','yj'],
+    '197': ['iy',],// rule 97=>y
+    '19d': ['ij',],// rule 9d=>j
     '918':['gli','gly','yli'], 
     '49e': ['nge','nje','nye'],
     
@@ -674,7 +703,7 @@ const HexCombosTochar = {
     '111':['ill','iii'],
     'b15':['bis','kis','bls','kls'],
 
-    '12':['ll','lr','lz','ir','iz'], // cursive  lr is rare  lz is common in DE, i uses the 8 for decodabillity anyway
+    // '12':['ll','lr','lz','ir','iz'], // cursive  lr is rare  lz is common in DE, i uses the 8 for decodabillity anyway
     'f12':['fir','fiz'],
 
     // 'e12':['eir','eiz','elz'],
@@ -730,7 +759,7 @@ const HexCombosTochar = {
     '2ce':['rce','rue'],
 
     'c11':['ull','cll','cil','uil'],
-    'c12':['ull','cir',  'ciz', 'ulz','clr'],// handled lz   iz via  82
+    'c12':['cir','ulr', 'ciz', 'ulz','clr'],// handled lz   iz via  82
 
     'c5e':['use','cse'],
     // 'c00':['u ','c ','v '],// end of word rarely c or v
@@ -765,6 +794,7 @@ const HexCombosTochar = {
 
     
     '06':['op','oh'],
+    '06b':['op','ohb'],
     '064':['ohn','opn'],
     '0644':['ohm','opm'],
     
@@ -835,6 +865,8 @@ const HexCombosTochar = {
 
     'b1':['bl','bi','kl','ki'],// use b8 for bi and 748 for ki 
     '748':['kl','tni'],
+    '6e0':['peo','heo'],
+    '74811':['kill','tnill'],
 
     
     // may cause trouble with new lines and multi WS
@@ -933,13 +965,12 @@ Try to read the hexspell, You can do it!
 Math:
  2 + 8*5 = 42`,
 
- 'lead I I':`immer im innersten Innen ist es am innig innesten`,
 
-    "star wars":`it is a dark time for the rebellion. although the death star has been destroyed, imperial troops have driven the rebel forces from their hidden base and pursued them across the galaxy.
+    "A long time a ago far away":`it is a dark time for the rebellion. although the death star has been destroyed, imperial troops have driven the rebel forces from their hidden base and pursued them across the galaxy.
 evading the dreaded imperial starfleet, a group of freedom fighters led by luke skywalker have established a new secret base on the remote ice world of hoth.
 the evil lord darth vader, obsessed with finding young skywalker, has dispatched thousands of remote probes into the far reaches of space  `,
 
-    "-1. Ancient Dark Magic":`mighty ancient roman pain and desintegration spell:
+    "-1. Ancient Dark Magic":`I a temple is chisled a mighty ancient roman pain and desintegration spell:
 
 lorem, ipsum dolor sit amet consectetur adipisicing elit. 
 
@@ -965,6 +996,23 @@ das sollst du am kreuze bereuen!
 Your friend is about to be crucified?!
 Go find the treasure to save him!!!`,
 
+
+"Spinx at Wegrand":`At the way to the next city is a Spinx.
+Spinx: Spell out loud following sentence correctly and give a solution in hexspell! 
+
+I may eat you.
+
+Was is immer im innersten Innen am innig innesten?
+
+`,
+
+
+'protection spell':`a ancient protection spell:
+i must not fear. 
+fear is the mind-killer. 
+fear is the little-death that brings total obliteration. 
+i will face my fear. 
+i will permit it to pass over me and through me. and when it has gone past i will turn the inner eye to see its path. where the fear has gone there will be nothing. only i will remain.`,
 "n nn m ":`mad man A: I made a pact with a demon. niemand kann uns nun trennen!
 -- Nemo;other demon enters scene
 Nemo: Ok; I will make the parting right away!`,
@@ -975,11 +1023,23 @@ Temperature: 451°F.
 Heat level: 9/10!!! 
 [Danger: 3000 degrees of pure flame]`,
 
+"Equipment Aquisition":`You pass a item-shop. 
+You are to poor to buy any gear or magic items.
+A old man that you dont need an expansiv equipment; once you find a single legendary ring.
+old man:
+
+3 Rings for the Elven-kings under the sky,
+7 for the Dwarf-lords in their halls of stone,
+9 for Mortal Men doomed to die,
+1 for the Dark Lord on his dark throne.
+In the Land of Mordor where the Shadows lie.
+One Ring to rule them all, 1 Ring to find them, One Ring to bring them all and in the darkness bind them.`,
+
     "2. Cryomancy (Ice)": `Eternal Winter falls...
 Stille Nacht, eiskaltes Grab. 
 Illumination of the aurora borealis.
 Status: chilled. 
-Let it go, let it flow!`,
+Let it go, let it flow, let it snow!`,
 
     "3. Electromancy (Thunder)": `Fulgor Strike!
 Donnerschlag & Lightning Bolt.
@@ -989,13 +1049,15 @@ Katchow!`,
 
     "4. Abyssal Ritual (Dark)": `In the shadows, du findest nichts. 
 Absolute darkness (0000).
-Shadows follow: you are lost in the void.
+Shadows follow: your enemy (and or you) are lost in the void.
 3... 2... 1... Begone!`,
 
     "5. Aether Shift (Light)": `Lux Aeterna.
-Das Licht bricht den Fluch (the curse).
-Precision: 100.0%
-Magic is just science we don't understand yet.`,
+Das erscheinende Licht bricht alle Exsecrationes (lat curses).
+Precision: 100.0%*
+
+*Only against undead and Vampire. If used against humans or especially animals you lose yor divine favor and you may face divine retribution`,
+
 
 "Ambiguity: The 1-Problem": `illuminate the million illusions.
 In Illinois, lilies like light.
@@ -1016,7 +1078,8 @@ New line test:
 Did it break?`,
 
     "Mixed Language Magic": `Der Zauberer castet a spell.
-Wüstenstadt desert vibes.
+Oracles say go to Wüstenstadt desert.
+Du needs a magic Trank and 40 alchemy skill to survie this.
 Hinter dem Sumpf (swamp) liegt das Ziel.
 Is it 'c' for 'ch' or 'c' for 'u'? 
 Check it out!`,
@@ -1026,6 +1089,8 @@ Check it out!`,
 39 grams of gold (y),
 42 is the answer to everything.
 Date: 31.03.2026`,
+
+"Epilog":`I've seen things you people wouldn't believe. Attack ships on fire off the shoulder of Orion. I watched C-beams glitter in the dark near the Tannhäuser Gate. All those moments will be lost in time, like tears in rain. Time to die.`,
 };
 inputEl.innerText = encodeEx['hello world'];
 
@@ -1061,7 +1126,9 @@ buildOpts(selectDecode,decodeEx,fullSyncFromHex);
 /**
  * Initialisiert oder Re-Generiert beide Editoren komplett
  */
-function fullSyncFromText(text="",{useEscpaces = disambigEsc.checked,useSameNumCombo = sameNumCombo.checked, reableWS= reableWSin.checked,useCompactHexOut=CompactHexOut.checked}={}) {
+function fullSyncFromText(text="",{useEscpaces = disambigEsc.checked,useSameNumCombo = sameNumCombo.checked, reableWS= reableWSin.checked,useCompactHexOut=CompactHexOut.checked,
+    encElm=inputEl, decodeElm=hexEl,
+}={}) {
     if(blockFullUpdate) return;
     text  ||= inputEl.innerText;
     text = text.toLowerCase();
@@ -1102,6 +1169,8 @@ function fullSyncFromText(text="",{useEscpaces = disambigEsc.checked,useSameNumC
             rawHex += code;
         }
     }
+    if(!encElm && ! decodeElm) return rawHex;
+
     // Wir nutzen RequestAnimationFrame um Cursor-Sprünge zu minimieren
     requestAnimationFrame(() => {
         inputEl.innerHTML = textHTML;
@@ -1521,6 +1590,31 @@ window.onload = ()=> {
     readURLParams();
 }
 
+const hexToWords =  document.getElementById("hexToWords");
+const hexToWordsOut =  document.getElementById("hexToWordsOut");
+const colorIn = document.getElementById("colorIn");
+hexToWords.onblur = textToColors;
+
+function textToColors({ justColorsReturn=false}={}, text = hexToWords.innerText ){
+    const words = text.split(/\s+/);
+    
+    const wordColors = [];
+    for(const word of words){
+        let hexspl = fullSyncFromText(word,{useEscpaces : disambigEsc.checked,useSameNumCombo : sameNumCombo.checked, reableWS: reableWSin.checked,useCompactHexOut: CompactHexOut.checked,decodeElm:null,encElm:null,});
+        const chunk = 3; 
+        let colors = [ ];
+        wordColors.push({word,colors});
+
+        for(let i=0;i<hexspl.length;i+=chunk){
+            colors.push( '#'+hexspl.slice(i,i+chunk));
+        }
+        const padding =   (hexspl.length%chunk);
+        colors[colors.length-1] += "0".repeat( padding>0? chunk - padding : 0) 
+    }
+    if(justColorsReturn) return colors;
+
+    hexToWordsOut.innerHTML = wordColors.reduce((html,wc,i)=>html+' '.repeat(i>0)+`<span title=${wc.word}>${wc.colors.map(c=>`<span style="background-color:${c};">${c}</span>`).join("")}<span>` ,"")
+}
 </script>
 
 </body>

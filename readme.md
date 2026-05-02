@@ -13,11 +13,16 @@ Taking a input text you can convert it into a readable hexadecimal stream:
 
 Readable hex output (spaces are only for formating, only hex digit determine the content, the 00 encode message space and 0000 encode new lines):
     
-    6 e 12 0 00 cc 0 2 1 d 3E 0000 
+    6 e 1 1 0 00 cc 0 2 1 d 3E 0000 
     f 88 b a 2 0000 
     0000 
-    7 2 9 00 7 0 00 2 e a d 00 7 6 e 00 6 e 3 5 6 e 12 3b 00 90c 00 c a 4 00 d 0 00 1 7 3E 0000 
+    7 2 9 00 7 0 00 2 e a d 00 7 6 e 00 6 e 3 5 6 e 1 1 3b 00 90c 00 c a 4 00 d 0 00 1 7 3E 0000 
     0000 a b 2 a 00 b a d a b 2 a 00 7 a 00 d a a 3E 3E 3E
+
+You can also map words to colors:
+
+
+<code style="margin-left: 1rem">fire Iwater earth   wind<div><br></div><div><span style="color: rgb(51, 51, 51); font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif; font-size: medium; background-color: rgb(255, 17, 34);">#f12</span><span style="color: rgb(51, 51, 51); font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif; font-size: medium; background-color: rgb(238, 0, 0);">#e00</span><span style="color: rgb(51, 51, 51); font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif; font-size: medium; background-color: rgb(255, 255, 255);"> <span title="Iwater"><span style="background-color: rgb(17, 204, 204);">#1cc</span><span style="background-color: rgb(170, 119, 238);">#a7e</span><span style="background-color: rgb(34, 0, 0);">#200</span> <span title="earth"><span style="background-color: rgb(238, 170, 34);">#ea2</span><span style="background-color: rgb(119, 102, 0);">#760</span> <span title="wind"><span style="background-color: rgb(204, 204, 17);">#cc1</span><span style="background-color: rgb(68, 221, 0);">#4d0</span></span></span></span></span></div></code>
 
 Best you try out the [live demo](https://dragon-17.github.io/hexspell/) or you can use the no install CLI described below.
 
@@ -30,6 +35,7 @@ Hexspell is a creative take on hexadecimal encoding, inspired by concepts like [
 - Compact representation - shorter than ASCII when saved as binary
 - Bidirectional conversion - encode text to hex and decode hex back to text
 - Secret language application - obfuscate text in a playful way
+- Map a hex color to a word or vice versa
 
 
 ## Encoding System
@@ -185,7 +191,7 @@ chrome --headless --dump-dom "%HEX_API%?api&text=Your+Text+Here" > output.txt
 
 **Example no install via githubpages (just execute this in a terminal with internet):**
 ```bash
-chrome --headless --dump-dom "https://dragon-17.github.io/hexspell/?api&hex=40cc0090c00ca400c5e0076e006e356e1200a6100f204400efde29cc6e2e3E" | more
+chrome --headless --dump-dom "https://dragon-17.github.io/hexspell/?api&hex=40cc0090c00ca400c5e0076e006ebf56e1100a6100f204400efde29cc6e2e3E" | more
 ```
 You can also open this in a browser (but you may need a `keep` parameter to avoid window auto close).
 ## Examples
