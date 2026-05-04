@@ -1,0 +1,25 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <font id="HexSpell" horiz-adv-x="600"> <!-- Monospace width -->
+      <font-face font-family="HexSpell" units-per-em="1000" ascent="800" descent="200" />
+      
+      <!-- Missing Glyph (the '?' box) -->
+      <missing-glyph d="M50,0 L50,700 L550,700 L550,0 Z M100,50 L500,50 L500,650 L100,650 Z" />
+
+      <!-- Example: The number '0' (Square/Blocky look) -->
+      <glyph unicode="0" glyph-name="zero" d="M100,0 L100,700 L500,700 L500,0 Z M200,100 L400,100 L400,600 L200,600 Z" />
+      
+      <!-- Example: The number '4' -->
+      <glyph unicode="4" glyph-name="four" d="M100,700 L100,300 L400,300 L400,700 L500,700 L500,0 L400,0 L400,200 L100,200 L100,0 L0,0 L0,700 Z" />
+
+      <!-- Example: Decoded Ligature placeholder (mapped to PUA) -->
+      <!-- This glyph would visually represent "ON" in one block -->
+      <glyph unicode="&#xe000;" glyph-name="zero_four_ligature" d="M50,50 L550,50 L550,650 L50,650 Z" />
+    </font>
+  </defs>
+
+
+  <path name="zero" d="M100,0 L100,700 L500,700 L500,0 Z M200,100 L400,100 L400,600 L200,600 Z" />
+  <path name="four" d="M100,700 L100,300 L400,300 L400,700 L500,700 L500,0 L400,0 L400,200 L100,200 L100,0 L0,0 L0,700 Z" />
+</svg>

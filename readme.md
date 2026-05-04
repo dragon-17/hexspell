@@ -45,7 +45,13 @@ Here is the same text in hexspell. You can try read it now or, if you have troub
 Hexspell is a creative take on hexadecimal encoding, inspired by concepts like [hexspeak](https://en.wikipedia.org/wiki/Hexspeak) (e.g., `0xcoffee`, `0xdeadbeef`) or leetspeak (prev. §) but extended to encode all characters. It uses a 4-bit encoding system combined with special combos and escape sequences for complete character coverage.
 
 **Key Benefits:**
-- Human-readable hex encoding - easier to work with than binary
+- Human-readable hex encoding - easier to work with/read in hex editor than binary:
+
+        TXT:      test?! abc 1 2 3
+        ASCII:    74 65 73 74 3f 21 61 62 63 20 31 20 32 20 33 
+        Hexspell: 7e 57 3f 3e 00 ab c0 03 10 03 20 03 3
+        (*Note:* hexspell is a 4bit format with some 8bit combos, so a display of 4bits instead of common 1byte display is more readable)
+
 - Compact representation - shorter than ASCII when saved as binary
 - Bidirectional conversion - Web-App/API can both encode text to hex and decode hex back to text
 - Secret language application - obfuscate text in a playful way
@@ -290,5 +296,13 @@ any Opensource lic
 
 Inspired by:
 - [Hexspeak](https://en.wikipedia.org/wiki/Hexspeak) - Hexadecimal code that looks like words
-- Leetspeak - Creative character substitution
-- Esoteric programming languages
+- [Leetspeak](https://en.wikipedia.org/wiki/Leet) - Creative character substitution
+- Esoteric programming language [JSFuck](https://jsfuck.com/). If I *( | you)* have time I create `JSHexFuck`-stenographic-JS-obfuscator where all text must be writen in hexspell, variables and strings are written as hexadecimal and can only contain 0-9a-f:
+        
+        // 14 18b f81e 
+        c04501e3b109 = console.log
+        
+        // 14 f81e 7e57 3b 0d5
+        \u441572149 = [ 0xa11, 5721495, 0x44c57, 0xc5e, 0x6e3, 0xd16175, 0xc419 ]
+        \u184417ed572 = `020076e900a2e184417e70070303132343536373839abcdef` 
+        c04501e3b109(  \u441572149, \u184417ed572 )

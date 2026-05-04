@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Build helper</title>
+</head>
+
+<body>
+    <header>
+        <h1>Font Build helper</h1>
+    </header>
+    <article>
+        Use discrete grids to reduce options and acidental differences.
+        Recommended size is 16*16 or 24*24 cells. This allows you to get inner rings    
+    </article>
+    <pre name="zero" contenteditable>
+..1...~...2..
+.8.........3.
+.~.........~.
+.7.........4.
+..6...~...5..</pre>
+
+    <script>
+        const $attrs = (elm = document.body, attrs, val) => {
+            attrs && typeof attrs !== "object" ? attrs = { [attrs]: val } : 0;
+            if (attrs) for (let a in attrs) elm[attrs[a] == undefined ? 'removeAttribute' : 'setAttribute'](a, attrs[a]);
+        }
+        const $New = (tag = "", attrs = {}, childs = [], parent) => {
+            let e = document.createElement(tag);
+            $attrs(e, attrs);
+            childs && e.append(...childs);
+            parent?.appendChild?.(e);
+            return e;
+        }
+        const $SVG = (tag = "", attrs = {}, childs = [], parent) => {
+            let e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+            $attrs(e, attrs);
+            childs && e.append(...childs);
+            parent?.appendChild?.(e);
+            return e;
+        }
+
+        let fontW = 1000;
+        let fontH = 1000;
+
+        document.body.addEventListener(
+            "blur",
+            (ev) => {
+                const el = ev?.target?.closest?.("pre[name]");
+                if (!el) return;
+                const W =  (el.dataset.w ?? fontW);
+                const H =  (el.dataset.h ?? fontH);
+
+                let previewSvg = el.lastElementChild;
+                if(previewSvg?.localName!=="svg"){
+                    previewSvg = $SVG( "svg",{ "viewBox":`0 0 ${W} ${H}` },0,el );
+                } 
+
+                const dStr = gridToSvgPath(  el.innerText, W,H  );
+                
+                const pathEl = previewSvg.querySelector(`path[data-gly]`) || $SVG("path",{"data-gly":""},0,previewSvg);
+                $attrs(pathEl,"d",dStr);
+            }
+            , true,
+        );
+
+        const trimTrail0 = (str)=>str.replace(/(?<=\.\d*[1-9])0+$|\.0*$/,"");
+
+        ////   THK Gemini    << 🍪🍪🍪
+
+        function gridToSvgPath(gridString = "", targetWidth = 1000, targetHeight = 1000,fixed=3) {
+            // ignore first and last \n  -> better for strings and <pre> display
+            gridString = gridString.slice(gridString[0] == "\n" ? 1 : 0, gridString.endsWith("\n") ? -1 : undefined)
+
+            const lines = gridString.trim().split('\n');
+            const gridH = lines.length;
+            const gridW = lines[0].length;
+
+            const points = [];
+            const curves = {}; // Speichert Kontrollpunkte für Verbindungen
+
+            // 1. Grid scannen
+            lines.forEach((line, y) => {
+                line.split('').forEach((char, x) => {
+                    if (/[0-9a-zA-Z]/.test(char)) {
+                        // Punkt speichern (alphanumerisch sortiert die Reihenfolge)
+                        points.push({ id: char, x, y });
+                    } else if (char === '~') {
+                        // Wir finden später heraus, zu welcher Verbindung dieses ~ gehört
+                        // Einfachheitshalber nehmen wir das nächstgelegene Punkt-Paar
+                        (curves._all ??= []).push({ x, y });
+                    }
+                });
+            });
+
+            // Punkte sortieren (0-9, dann A-Z)
+            points.sort((a, b) => a.id.localeCompare(b.id));
+
+            
+            // Koordinaten-Mapping Funktion
+            const mapX = (x) => trimTrail0( (+((x / (gridW - 1)) * targetWidth).toPrecision(fixed)).toFixed(fixed));
+            const mapY = (y) => trimTrail0( (+((y / (gridH - 1)) * targetHeight).toPrecision(fixed)).toFixed(fixed));
+
+            if (points.length === 0) return "";
+
+            let pathData = `M ${mapX(points[0].x)} ${mapY(points[0].y)}`;
+
+            // find closest mid point for all curve segments
+            const mids = points.map( (p,i,pns,p1=pns[(i-1+pns.length)%pns.length])=> 
+                ({endPnt: p.id, endPntI:i,  x: (p.x+p1.x)/2, y:(p.y+p1.y)/2  })   );
+
+            let dMaxEps = gridW* 0.2;
+            for(const c of curves._all){
+                let dMin = Infinity;
+                let pI = 0;
+                for(let iMid=0,mid; mid=mids[iMid]; iMid++ ){
+                    let dist = Math.hypot(c.x - mid.x, c.y - mid.y);
+                    if(dist < dMaxEps && dist<dMin){ 
+                        dMin = c.dMin = dist;
+                        pI = mid.endPntI; 
+                    }
+                }
+                points[pI].curve = c;
+            }
+
+            for (let i = 0; i < points.length; i++) {
+                let p1 = points[i];
+                let p2 = points[(i + 1) % points.length]; // Loop zurück zum Anfang für geschlossene Pfade
+
+                // Suche nach einem '~' im Grid, das räumlich zwischen p1 und p2 liegt
+                // (Einfache Heuristik: War ein ~ in der Zeile/Spalte dazwischen?)
+                let controlPoint = p2.curve;
+
+                if (controlPoint) {
+                    pathData += ` Q ${mapX(controlPoint.x)} ${mapY(controlPoint.y)} ${mapX(p2.x)} ${mapY(p2.y)}`;
+                } else {
+                    pathData += ` L ${mapX(p2.x)} ${mapY(p2.y)}`;
+                }
+            }
+
+            return pathData + " Z"; // Pfad schließen
+        }
+    </script>
+
+    <style>
+
+        pre[name] {
+            width: fit-content;
+            position: relative;
+            padding: 1rem;
+
+            &>svg {
+                position: absolute;
+                inset: 0;
+                border: inset 2px oklch(from cornflowerblue 0.95 c h);
+                padding: inherit;
+                user-select: none;
+                z-index: -2;
+
+                opacity: 0.5;
+            }
+        }
+
+        /* 08815 style */
+        h1,h2,h3,h4{
+            display: inline-block;
+        }
+    </style>
+</body>
+
+</html>
