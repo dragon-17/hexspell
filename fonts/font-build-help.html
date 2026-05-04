@@ -15,12 +15,54 @@
         Use discrete grids to reduce options and acidental differences.
         Recommended size is 16*16 or 24*24 cells. This allows you to get inner rings    
     </article>
-    <pre name="zero" contenteditable>
-..1...~...2..
-.8.........3.
-.~.........~.
-.7.........4.
-..6...~...5..</pre>
+    <pre name="P" contenteditable>
+....................
+  .                ........
+  1~                 
+..G        3~        
+      b a~       
+         g~      
+      e~   4
+      6 5        
+               
+  A   
+     9
+. .   .    . </pre>
+    <pre name="rounded-box" contenteditable>
+....................
+  .                .
+.a&       d
+
+
+
+.z        h&
+.
+.
+</pre>
+<pre name="simple-D" contenteditable>
+..  ...............
+ &               .
+ A     
+   ~     
+  dc   D  &
+  ab  
+ Z  H &
+.
+.
+</pre>
+<pre name="axe" contenteditable="">
+ .. ..|; ............  .
+  . a&     A&           
+.      b
+.    g    L
+
+.   J&             C   &
+
+      f    H
+         c 
+            F&
+       e  d
+</pre>
 
     <script>
         const $attrs = (elm = document.body, attrs, val) => {
@@ -66,82 +108,130 @@
             , true,
         );
 
-        const trimTrail0 = (str)=>str.replace(/(?<=\.\d*[1-9])0+$|\.0*$/,"");
+        // just toPrecision might return scientific notation  e.g. 1000 -> 1.00e3, which BREAKs svg paths
+        const trimNum = (num=0,fix)=>(+num.toPrecision(fix)).toFixed(3).replace(/(?<=\.\d*[1-9])0+$|\.0*$/,"");
 
         ////   THK Gemini    << 🍪🍪🍪
 
-        function gridToSvgPath(gridString = "", targetWidth = 1000, targetHeight = 1000,fixed=3) {
-            // ignore first and last \n  -> better for strings and <pre> display
-            gridString = gridString.slice(gridString[0] == "\n" ? 1 : 0, gridString.endsWith("\n") ? -1 : undefined)
+        function gridToSvgPath(gridString, targetW, targetH) {
+    const lines = gridString.trim().split('\n');
+    const gridH = lines.length;
+    const gridW =  lines.map(l=>l.length).reduce((max,ll)=>Math.max(max,ll));
 
-            const lines = gridString.trim().split('\n');
-            const gridH = lines.length;
-            const gridW = lines[0].length;
+    const allPoints = [];
+    const markers = []; // Speichert ~ und &
 
-            const points = [];
-            const curves = {}; // Speichert Kontrollpunkte für Verbindungen
-
-            // 1. Grid scannen
-            lines.forEach((line, y) => {
-                line.split('').forEach((char, x) => {
-                    if (/[0-9a-zA-Z]/.test(char)) {
-                        // Punkt speichern (alphanumerisch sortiert die Reihenfolge)
-                        points.push({ id: char, x, y });
-                    } else if (char === '~') {
-                        // Wir finden später heraus, zu welcher Verbindung dieses ~ gehört
-                        // Einfachheitshalber nehmen wir das nächstgelegene Punkt-Paar
-                        (curves._all ??= []).push({ x, y });
-                    }
-                });
-            });
-
-            // Punkte sortieren (0-9, dann A-Z)
-            points.sort((a, b) => a.id.localeCompare(b.id));
-
+    // 1. Grid parsen
+    lines.forEach((line, yCell) => {
+        const y = yCell;
+        line.split('').forEach((char, x) => {
             
-            // Koordinaten-Mapping Funktion
-            const mapX = (x) => trimTrail0( (+((x / (gridW - 1)) * targetWidth).toPrecision(fixed)).toFixed(fixed));
-            const mapY = (y) => trimTrail0( (+((y / (gridH - 1)) * targetHeight).toPrecision(fixed)).toFixed(fixed));
-
-            if (points.length === 0) return "";
-
-            let pathData = `M ${mapX(points[0].x)} ${mapY(points[0].y)}`;
-
-            // find closest mid point for all curve segments
-            const mids = points.map( (p,i,pns,p1=pns[(i-1+pns.length)%pns.length])=> 
-                ({endPnt: p.id, endPntI:i,  x: (p.x+p1.x)/2, y:(p.y+p1.y)/2  })   );
-
-            let dMaxEps = gridW* 0.2;
-            for(const c of curves._all){
-                let dMin = Infinity;
-                let pI = 0;
-                for(let iMid=0,mid; mid=mids[iMid]; iMid++ ){
-                    let dist = Math.hypot(c.x - mid.x, c.y - mid.y);
-                    if(dist < dMaxEps && dist<dMin){ 
-                        dMin = c.dMin = dist;
-                        pI = mid.endPntI; 
-                    }
-                }
-                points[pI].curve = c;
+            if (/[0-9A-Za-z]/.test(char)) {
+                allPoints.push({ id: char, x, y, isLower: char === char.toLowerCase() && !/[0-9]/.test(char) });
+            } else if (char === '~' || char === '&'||char ==="-") {
+                markers.push({ type: char, x, y });
             }
+        });
+    });
 
-            for (let i = 0; i < points.length; i++) {
-                let p1 = points[i];
-                let p2 = points[(i + 1) % points.length]; // Loop zurück zum Anfang für geschlossene Pfade
+    // 2. Gruppieren nach Gehäuse (Upper/Digits) und Löchern (Lower)
+    const groups = {
+        outer: allPoints.filter(p => !p.isLower).sort((a, b) => a.id.localeCompare(b.id)),
+        inner: allPoints.filter(p => p.isLower).sort((a, b) => a.id.localeCompare(b.id))
+    };
 
-                // Suche nach einem '~' im Grid, das räumlich zwischen p1 und p2 liegt
-                // (Einfache Heuristik: War ein ~ in der Zeile/Spalte dazwischen?)
-                let controlPoint = p2.curve;
-
-                if (controlPoint) {
-                    pathData += ` Q ${mapX(controlPoint.x)} ${mapY(controlPoint.y)} ${mapX(p2.x)} ${mapY(p2.y)}`;
-                } else {
-                    pathData += ` L ${mapX(p2.x)} ${mapY(p2.y)}`;
-                }
+    // find closest point for each marker
+    for(const m of markers){
+        let dMin = Infinity;
+        let closestPnt = null;
+        for(const pnt of allPoints){
+            let d = Math.hypot(m.x - pnt.x, m.y - pnt.y);
+            if (d < dMin ) {
+                dMin = d;
+                closestPnt = pnt;
+                m.dist = d;
             }
-
-            return pathData + " Z"; // Pfad schließen
         }
+        if (closestPnt) closestPnt.marker = m;
+    }
+    let fullPath = "";
+    
+    [groups.outer, groups.inner].forEach(points => {
+        if (points.length === 0) return;
+       
+        fullPath += buildSmartPath(points,gridW,gridH, targetW,targetH) + " ";
+    });
+    return fullPath.trim();
+}
+
+function lerp(a,b,t){return  {x: (a.x+ t*(b.x-a.x)), y: (a.y+ t*(b.y-a.y)) }}
+function add(a,b){ return {x:a.x+(b.x??b),y:a.y+(b.y??b)} }
+function sub(a,b){ return {x:a.x-(b.x??b),y:a.y-(b.y??b)} }
+function mul(a,b){ return {x:a.x*(b.x??b),y:a.y*(b.y??b)} }
+function div(a,b){ return {x:a.x/(b.x??b),y:a.y/(b.y??b)} }
+
+function calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, type='start',tension=0.8){
+    if(type=="start"){ return add( pCurr ,   div(  sub(pNext, pPrev ) , 6*tension )   ) } 
+    return sub( pNext ,   div(  sub(pNextNext, pCurr ) , 6*tension )   ) 
+}
+
+function buildSmartPath(points,gridW,gridH, targetW, targetH,fixed=3) {
+    const map = (x,y)=>  trimNum((x / (gridW - 1)) * targetW,fixed) + " " + trimNum((y / (gridH - 1)) * targetH,fixed);
+    
+    let d = `M ${map(points[0].x, points[0].y)}`;
+    
+    // calc all entries and exits
+    for (let i = 0; i < points.length; i++) {
+        if(points[i]?.marker?.type=="&"){
+            let pPrev = points[(i - 1 + points.length) % points.length];
+            if(pPrev.quadCP) pPrev=pPrev.quadCP;
+            let pNext = points[(i + 1) % points.length];
+            if(pNext.quadCP) pNext=pNext.quadCP;
+            const pnt = points[i];
+            
+            const roundFac  = Math.max(0.2, Math.min( 1,  points[i]?.marker.dist/5));
+            pnt.entry =  lerp(pPrev, pnt, 1-roundFac); 
+
+            pnt.exit = lerp(pnt, pNext, roundFac);
+            pnt.quadCP = {x:pnt.x,y:pnt.y};
+            pnt.x= pnt.entry.x;
+            pnt.y= pnt.entry.y;
+        }
+    }
+
+    for (let i = 0; i < points.length; i++) {
+        let pPrev = points[(i - 1 + points.length) % points.length];
+        if(pPrev.exit) pPrev = pPrev.exit; 
+        const pCurr = points[i];
+        const pNext = points[(i + 1) % points.length];
+        let pNextNext =   points[(i + 2) % points.length];
+        if(pNext.exit) pNextNext = pNext.exit;
+        
+
+        const markerT = pCurr.marker?.type;
+
+        if (markerT === '&') {
+            const entry = pCurr.entry 
+            const exit =  pCurr.exit 
+            
+            if(i==0) d = "";
+
+            d += `${i==0?'M'+ map(entry.x, entry.y):''} Q ${map(pCurr.quadCP.x, pCurr.quadCP.y)} ${map(exit.x, exit.y)} L ${map(pNext.x,pNext.y)}`;
+        } 
+        else if (markerT === '~') {
+            // Catmull-Rom zu Cubic Bezier
+            const tens = 1 -  Math.max(0.2, Math.min( 1,  points[i]?.marker.dist/5));
+            const cp1 = calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, 'start',tens);
+            const cp2 = calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, 'end',tens);
+            d += ` C ${map(cp1.x, cp1.y)} ${map(cp2.x, cp2.y)} ${map(pNext.x, pNext.y)}`;
+        } 
+        else {
+            // Scharfe Kante
+            d += ` L ${map(pNext.x, pNext.y)}`;
+        }
+    }
+    return d + " Z";
+}
     </script>
 
     <style>
@@ -161,6 +251,7 @@
 
                 opacity: 0.5;
             }
+            path{ stroke: darkmagenta; fill: lightcoral; stroke-width: 10; }
         }
 
         /* 08815 style */
