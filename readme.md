@@ -1,6 +1,56 @@
 # Hexspell
 
-A human-readable hexadecimal encoding system for text that creates a good secret language while maintaining readability.
+A human-readable hexadecimal encoding system for text that creates a good secret language while maintaining readability (even in otherwise unreadable binary data displayed as hexadecimal stream).
+
+Best is, you just try out the [live demo](https://dragon-17.github.io/hexspell/) or you can use the no-install CLI described below.
+Alternativly this `readme.md` contains a rough rundown of hexspell.
+
+
+## Simple Introduction via Leetspeak
+If you now what Leet speak is, you can skip to **# Overview**.
+
+The brain of most humans can still read obfuscate symbols that only vaguley resemble a known letter (e.g. some people handwrittings) with the same speed as normal text.
+There have been various 'encodings' using this effect on the internet to make text look visually more pleasing (especially on old bullet-in board w/o things like emojies/sticker/plain images). It is also used to make text harder to read for outsiders ( `you noob` => `y0u n00b`) or to circumvent automatic content-filter (`idiot => 1d1o7`).
+Such 'encodings' replace for example letter with numbers that look similar (`3 => E` and `5 => S`).
+Here is a famous example of Leet speak from the internet. Try to read it:
+
+    7H15 M3554G3 5ERV35 70 PR0V3        #Help: THIS MESSAGE SERVES
+    H0W 0UR M1ND5 C4N D0 
+    4MaZ1NG 7H1NG5!
+    1MPR3551V3 7H1NG5!
+    1N 7HE B3G1NN1NG 17 W45 H4RD
+    BU7 N0W, 0N 7H15 L1N3,
+    Y0UR M1ND 15 R34D1NG 17 4U7T0M71CLLY
+    W17H0U7 3V3EN 7H1NK1NG 4B0U7 17.
+    B3 H4PPY, 7H47 Y0U C4N R34D 7H15, 
+    1 H4V3 S33N P30PL3 7H47 C4NN07.
+
+Hexspell goes even **further**. It uses only the 16 hexadecimal to encode all characters while still being readable.
+For an overall better mapping it uses only smaller case letters, fitting for the englisch language, which also uses mostly lower-case.
+Also, it does not use the common `3 => E` or `4 => A`, because hexadecimal has the letter a-f already.
+Here is the same text in hexspell. You can try read it now or, if you have trouble, you can first read the mapping tables in **# Encoding System**:
+
+    7615 44e5a9e 5e2ce5 70 620ce        #Help: this message serves
+    60cc 0c2 4414d ca4 d0
+    a44a2149 76149  3E
+    14 76e be914419 17 cca5 6a2d
+    bc7 40cc  3b  04 7615 184e  3b
+    90c2 4414d 15 2ead149 17 ac7044a71c119
+    cc1760c2 efde4 7614b149 ab0c7 17  3b
+    be 6a669  3b  76a7 90c ca4 2ead 7615  3b
+    1 6afd 5ee4 6e061e 76a7 ca4407 3b
+
+## Overview
+
+Hexspell is a creative take on hexadecimal encoding, inspired by concepts like [hexspeak](https://en.wikipedia.org/wiki/Hexspeak) (e.g., `0xcoffee`, `0xdeadbeef`) or leetspeak (prev. §) but extended to encode all characters. It uses a 4-bit encoding system combined with special combos and escape sequences for complete character coverage.
+
+**Key Benefits:**
+- Human-readable hex encoding - easier to work with than binary
+- Compact representation - shorter than ASCII when saved as binary
+- Bidirectional conversion - Web-App/API can both encode text to hex and decode hex back to text
+- Secret language application - obfuscate text in a playful way
+- Map a hex color to a word or vice versa
+
 
 Taking a input text you can convert it into a readable hexadecimal stream:
 
@@ -11,7 +61,7 @@ Taking a input text you can convert it into a readable hexadecimal stream:
 
     abra kadabra ta daa!!!
 
-Readable hex output (spaces are only for formating, only hex digit determine the content, the 00 encode message space and 0000 encode new lines):
+Readable hex output:
     
     6 e 1 1 0 00 cc 0 2 1 d 3E 0000 
     f 88 b a 2 0000 
@@ -19,23 +69,22 @@ Readable hex output (spaces are only for formating, only hex digit determine the
     7 2 9 00 7 0 00 2 e a d 00 7 6 e 00 6 e 3 5 6 e 1 1 3b 00 90c 00 c a 4 00 d 0 00 1 7 3E 0000 
     0000 a b 2 a 00 b a d a b 2 a 00 7 a 00 d a a 3E 3E 3E
 
-You can also map words to colors:
+Spaces are only for formating, only hex digit determine the content, the 00 encode message space and 0000 encode new lines.
+This allows to save a hexspell as a binary data stream without losing any whitespace information.
+The following is the same hexspell in its most compact ASCII form. You could read it in a debugger or binary data file diaplayed with `hexdump -C myHexspell.bin`.
+You **can** still read it (or decode it programatically):
 
+    6e11000cc021d3E0000f88ba200007290070002ead0076e006e356e113b0090c00ca400d000173E00000000ab2a00badab2a007a00daa3E3E3E
 
-<code style="margin-left: 1rem">fire Iwater earth   wind<div><br></div><div><span style="color: rgb(51, 51, 51); font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif; font-size: medium; background-color: rgb(255, 17, 34);">#f12</span><span style="color: rgb(51, 51, 51); font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif; font-size: medium; background-color: rgb(238, 0, 0);">#e00</span><span style="color: rgb(51, 51, 51); font-family: &quot;Segoe UI&quot;, Tahoma, Geneva, Verdana, sans-serif; font-size: medium; background-color: rgb(255, 255, 255);"> <span title="Iwater"><span style="background-color: rgb(17, 204, 204);">#1cc</span><span style="background-color: rgb(170, 119, 238);">#a7e</span><span style="background-color: rgb(34, 0, 0);">#200</span> <span title="earth"><span style="background-color: rgb(238, 170, 34);">#ea2</span><span style="background-color: rgb(119, 102, 0);">#760</span> <span title="wind"><span style="background-color: rgb(204, 204, 17);">#cc1</span><span style="background-color: rgb(68, 221, 0);">#4d0</span></span></span></span></span></div></code>
+Now, when you save this as a binary stram you only need half the storage size.
 
-Best you try out the [live demo](https://dragon-17.github.io/hexspell/) or you can use the no install CLI described below.
+>**Tip**: if you search for '00' in a browser or text editor it will highlight all spaces allowing you to see wordboundary without any extra tooling.
 
-## Overview
+You can also interpret the hexspell output as colors, allowing a general mapping of words to colors:
 
-Hexspell is a creative take on hexadecimal encoding, inspired by concepts like [hexspeak](https://en.wikipedia.org/wiki/Hexspeak) (e.g., `0xcoffee`, `0xdeadbeef`) but extended to encode all characters. It uses a 4-bit encoding system combined with special combos and escape sequences for complete character coverage.
+<img src="./readmeText2ColorEx.png" alt="the text 'fire Iwater earth   wind' converted to the colors ''" height="100"/>
 
-**Key Benefits:**
-- Human-readable hex encoding - easier to work with than binary
-- Compact representation - shorter than ASCII when saved as binary
-- Bidirectional conversion - encode text to hex and decode hex back to text
-- Secret language application - obfuscate text in a playful way
-- Map a hex color to a word or vice versa
+If you can already read hex spell try to read the colors
 
 
 ## Encoding System
@@ -230,6 +279,7 @@ hexspell/
 ├── CMDL_API_INFO.txt       # CLI usage documentation
 ├── readme.md               # This file
 └── dump/                   # Example encoded texts
+└── fonts/                  # Auto d/Encode by using a hexspell-font
 ```
 
 ## License

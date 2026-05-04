@@ -252,7 +252,12 @@
 </template>
 
 <main class="container">
-    <h1>Hexspell Converter <a href="#rules-reference"><sup info>?</sup></a></h1>
+    <h1>Hexspell Converter 
+        <a href="#rules-reference"><sup info>?</sup></a>
+        <a href="https://github.com/dragon-17/hexspell" style="float: inline-end;">
+            <sup info>  git-Repo  </sup>
+        </a>
+    </h1>
     <section>
         <label for="inputEl">Normal Text (Input):<sup chip> <span id="inLen"></span> char </sup></label>
         <div float>
@@ -318,7 +323,7 @@ from the decoder.</aside
         <label title="Conflicts if you want to use more than one ' '(space) in your text;&#10;  query param:  readableWS=1 | readableWS=0">Use <code>"\n"&lt;=>"0000"</code> for better readable text <input id="reableWSin" checked type="checkbox"></label>
         <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
         <div>
-            <label >Change input text font to mimic hexspell <input id="usehexspellTXT" type="checkbox"></label>
+            <label  title="query paramenter  ?hexfont  | ?hexfont=1  | ?hexfont=0">Change input text font to mimic hexspell <input id="usehexspellTXT" type="checkbox"></label>
             (<a title="Must be served by a server, may not work if opened locally in a browser via the file:// protocol" download href="fonts/hexspellTXTv1.ttf" >Download font <code>hexspellTXTv1.tff</code>
             </a>
             <sup i>i</sup>
