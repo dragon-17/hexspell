@@ -34,6 +34,14 @@
             align-items: center;
             counter-reset: figTbl 0  /* otherCntr 3 */ ;
         }
+        @font-face {
+            font-family: 'hexspellTXT';
+            src: url('./fonts/hexspellTXTv1.ttf') format('truetype');
+        }
+        /* this displays normal text as hexspell */
+        .hexspellTXT {
+            font-family: "hexspellTXT";
+        }
         figure { float: inline-end;  counter-increment: figTbl; }
         figure:has(table) figcaption { 
             &::before {content: "Table "counter(figTbl)". "; font-weight: bold; }  
@@ -76,12 +84,14 @@
         section,fieldset { margin-bottom: 30px; }
         
         fieldset { padding-bottom: 0; border-style: inset; }
-        fieldset>:not(legend){ height: 0; transition: height 300ms; interpolate-size: allow-keywords; overflow: hidden; display: block; }
+        fieldset>:not(legend){ 
+            height: 0; transition: height 300ms; interpolate-size: allow-keywords; overflow: hidden; display: block;
+        }
         legend::before{ content: "✕"; font-size: 1.4em; margin-inline: 0.3em; display: inline-block;  rotate: 45deg; transition: rotate 300ms, color 300ms; }
-        fieldset:focus-within,fieldset:has(>:active){  
+        fieldset:focus,fieldset:focus-within,fieldset:has(>:active){  
             padding-bottom: 1rem;  border-style: outset;  
             /* pointer-events: none; */
-            >:not(legend){ pointer-events: all;}
+            >:not(legend){ pointer-events: all; overflow: unset; }
             >*{ height: auto;};
             >legend::before{ rotate: 0deg; transition: rotate 300ms, color 300ms; color: indianred;  } 
         }
@@ -110,11 +120,15 @@
             /* span { margin-right: 1ch; } */
         }
         #hexToWords{  margin-block: 2rem;  min-height: 2rem;  }
-        #inputText {
+        #inputEl {
             padding: 0.5rem;
             background-color: #eee;
             word-break: break-all;
             overflow-y: auto;
+        }
+        body:has(#usehexspellTXT:checked){
+            font-family: "hexspellTXT";
+            &::selection, ::selection {  color: orange; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         }
         /* button style text color reversed + border */
         button, select, aside,sup+aside,:is(h2,h3)>label, :where(sup:has(i:only-child),[info],[chip],sup[i])
@@ -227,6 +241,9 @@
             figure { float: unset }
             [float] { position: relative; }
         }
+        a { color: var(--highlight-hex); }
+        details { clear: both; }
+        summary>:is(h2,h3,h4){ display: inline-block;}
     </style>
 </head>
 <body>
@@ -237,12 +254,12 @@
 <main class="container">
     <h1>Hexspell Converter <a href="#rules-reference"><sup info>?</sup></a></h1>
     <section>
-        <label for="inputText">Normal Text (Input):<sup chip> <span id="inLen"></span> char </sup></label>
+        <label for="inputEl">Normal Text (Input):<sup chip> <span id="inLen"></span> char </sup></label>
         <div float>
             <b><i>Ex: </i></b><select id="selectEncode"></select>
             <button id="bntEncode" onclick="fullSyncFromText()">Encode</button>
         </div>
-        <div contenteditable id="inputText" class="editor">hello world!
+        <div contenteditable id="inputEl" class="editor">hello world!
 foobar
 abra kadabra ta da
 
@@ -253,7 +270,7 @@ Math:
     </section>
 
     <section>
-        <label for="hexOutput">Hexspell Output (Highlighting+Hover-Hint):
+        <label for="hexEl">Hexspell Output (Highlighting+Hover-Hint):
             <sup chip >  <span id="outLen"></span> bytes <span id="outCharLen"></span> chars <i>?</i><aside 
 >If you save the hex spell as a binary, you will save some bytes 
 (<code>-30%</code> decode-save via escape / <code>-40%</code> no escape 
@@ -269,11 +286,11 @@ from the decoder.</aside
             <b><i>Ex: </i></b><select id="selectDecode"></select>
             <button  id="bntDecode" onclick="fullSyncFromHex()">Decode</button>
         </div>
-        <div contenteditable id="hexOutput" class="preview editor"></div>
+        <div contenteditable id="hexEl" class="preview editor"></div>
         
         <aside pop bottom tabindex><h3
 >Info: <label><input type="checkbox"></label> <button vanish-ctrl></button></h3
->  You can <b>edit</b> text the output and it will update the <kbd for="inputText">Input</kbd> field 
+>  You can <b>edit</b> text the output and it will update the <kbd for="inputEl">Input</kbd> field 
   once you leave it. You can also press the <kbd for="bntDecode">Decode</kbd> button.
   
   The reverse mapping is <b>ambigious</b>, so it may not produce your input text.
@@ -285,23 +302,48 @@ from the decoder.</aside
 
     
     <section>
-        <label for="rawOutput">Raw space-less Hex String (for Code):<sup chip > <span id="outCopyLen"></span> bytes </sup></label>
+        <label for="copyHexEl">Raw space-less Hex String (for Code):<sup chip > <span id="outCopyLen"></span> bytes </sup></label>
         <div float>
-            <button  onclick="downloadBinary(copyHexEl.value)">Donwload.bin</button>
+            <button  onclick="downloadBinary(copyHexEl.value)">Download.bin</button>
             <button  onclick="download(copyHexEl.value)">Download</button>
             <button  onclick="copy(copyHexEl.value,this)">Copy</button>
         </div>
-        <textarea id="rawOutput" style="min-height: 60px;"></textarea>
+        <textarea id="copyHexEl" style="min-height: 60px;"></textarea>
     </section>
 
-    <fieldset  tabindex="0"> 
+    <fieldset  tabindex="0" class="options"> 
         <legend title="Click Encode or Decode bnt to reaplly" >Options</legend>
         <label title="by Inserting special Escape markers (hex: e5c =>'esc' ) this allows better disambiguation of character&#10; but output looks less clean and readable;&#10; query param:  esc=1 | esc=0">For better decoding, but less readability use longer Escapes (e.g.  k=>74, x=>bf, )<input id="disambigEsc" type="checkbox"></label>
         <label title="Better for subsequent characters mapping to the same number like g and y&#10;query param:  sameNum=1 | sameNum=0">Use Same Num Combos <input id="sameNumCombo" checked type="checkbox"></label>
         <label title="Conflicts if you want to use more than one ' '(space) in your text;&#10;  query param:  readableWS=1 | readableWS=0">Use <code>"\n"&lt;=>"0000"</code> for better readable text <input id="reableWSin" checked type="checkbox"></label>
         <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
+        <div>
+            <label >Change input text font to mimic hexspell <input id="usehexspellTXT" type="checkbox"></label>
+            (<a title="Must be served by a server, may not work if opened locally in a browser via the file:// protocol" download href="fonts/hexspellTXTv1.ttf" >Download font <code>hexspellTXTv1.tff</code>
+            </a>
+            <sup i>i</sup>
+            <aside>Currently there exists only a handwritten proportional variant
+Created via the <a href="https://www.makeyourownfont.com/studio"><code>MakeYourOwnFont.com</code></a></aside>)
+        </div>
+        <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
         <p callout><strong>Note:</strong><br> If <i>reverse decoding</i> should work check both <code>`Disambiguation Escape`</code> and <code>`Same Num Combos`</code>. Is still <b>not 100% reversable</b>.</p>
-        <footer> <small>you can set them via query param and use over the api, hover field for more</small></footer>
+        
+        <footer>You can set options via query param. Hover input field for more info. Examples 
+            (<a href="?esc=1&text=a text via query-param">"?esc=1&text=a text via query-param"</a>, 
+            <a href="?hex=6ebf56be1100fd1a009be29bb6ba2a44e7e2">"?hex=6ebf56be1100fd1a009be29bb6ba2a44e7e2"</a>, 
+            for programmatic parasble results (also via <code>cmd
+                <sup i>i</sup>
+                <aside style="max-width: 60ch; word-break: break-all;"
+>Try to execute this page localy or from guthub in a headless chrome:
+<samp>path/to/chrome.exe --headless --dom-dump <a href="https://dragon-17.github.io/hexspell?api&text=here text"
+    title="You can also try out the 'api' param in the browser"
+    >https://dragon-17.github.io/hexspell?api&text=here text</a> </samp>
+</aside>
+            </code>) use <code>?api&</code> query-param
+            <a href="?hex=6ebf56be1100fd1a009be29bb6ba2a44e7e2">"?hex=6ebf56be1100fd1a009be29bb6ba2a44e7e2"</a>
+            ) 
+        
+        </footer>
     </fieldset>
     <section >
         <details>
@@ -415,20 +457,29 @@ read it as Esc like <code>3c7</code> Esc t -> <code>\t</code> (tab)</aside>
      
 
     <details > 
-        <summary ><h3 style="display: inline-block;" >Words to Color (try your Name!)</h3></summary>
+        <summary ><h3  >Words to Color (try your Name!)</h3></summary>
         <p>Enter a text to convert it to colors</p>
         <div float>
             <button  onclick="textToColors()">Text to Colors</button>
         </div>
         <div contenteditable id="hexToWords" class="preview editor">Enter your name here: dragon - 17</div>
         <output  for="hexToWords" id="hexToWordsOut" class="editor"></output>
-
+        
         <hr>
-        <section>
+    </details>
+    <details > 
+        <summary ><h3>Color to Words</h3></summary>
+        <p>Select a color and from the hexadecimal color-value the closest pronuncable word is found.</p>
+        <div float>
+            <button  onclick="textToColors()">Color To Text</button>
+        </div>
+        <label class="preview editor">TO DO Select a color to see its closest hexspell: <input id="colorToWords" value="#dc143c" type="color"></label>
+        <output  for="colorToWords" id="colorToWordsOut" class="editor"></output>
 
-            <label >TO DO Select a color to see its closest hexspell: <input id="colorIn" value="crimson" type="color"></label>
-        </section>
-    </fieldset>
+        
+        <hr>
+    </details>
+    
 </main>
 
 <script>/**
@@ -931,13 +982,18 @@ let currentSelectedIdx = 0;
 let charCounter = 0;
 let blockFullUpdate = false;
 
-const inputEl = document.getElementById('inputText');
-const hexEl = document.getElementById('hexOutput');
-const copyHexEl = document.getElementById('rawOutput');
-const disambigEsc = document.getElementById('disambigEsc');
-const sameNumCombo = document.getElementById('sameNumCombo');
-const CompactHexOut = document.getElementById('CompactHexOut');
-const reableWSin = document.getElementById('reableWSin');
+const $A = (sel="",elm=document)=>[...elm.querySelectorAll(sel)];
+Object.defineProperty(Array.prototype,'to',{value(...fns){return fns.reduce((ret,fn)=>fn(ret),this)}});
+
+const inputEl = document.getElementById('inputEl');
+const hexEl = document.getElementById('hexEl');
+const copyHexEl = document.getElementById('copyHexEl');
+
+const optsObj =  $A(".options input[id]")  
+    .map(inEl=>[inEl.id, inEl])
+    .to(Object.fromEntries);
+
+const { disambigEsc, sameNumCombo,CompactHexOut,useCompactHexOut, reableWSin }= optsObj;
 
 const bntEncode = document.getElementById('bntEncode');
 const bntDecode = document.getElementById('bntDecode');
@@ -1453,7 +1509,7 @@ function closePopover() {
         // CTRL + TAB für Popover auf dem aktuellen Zeichen
         if(e.ctrlKey && e.key=="Enter"){
             e.preventDefault();
-            e.target.id=="inputText"?  fullSyncFromText() : fullSyncFromHex();
+            e.target.id=="inputEl"?  fullSyncFromText() : fullSyncFromHex();
         }
         if (e.ctrlKey && e.key === ' ') {
             e.preventDefault();
@@ -1479,7 +1535,6 @@ const parseQueryStrBool = str=>( str=="false" || !+str)? false:true;
 
 function readURLParams(){
     const query = new URLSearchParams(location.search);
-   
     if(query.has("esc")){
         disambigEsc.checked = parseQueryStrBool(query.get("esc"));
     }
@@ -1491,6 +1546,9 @@ function readURLParams(){
     }
     if(query.has("compact")){
         CompactHexOut.checked = parseQueryStrBool(query.get("compact"));
+    }
+    if(query.has("hexfont")){
+        usehexspellTXT.checked = parseQueryStrBool(query.get("hexfont")||true);
     }
     const keep = query.has("keep")
 
@@ -1588,6 +1646,7 @@ function triggerDownload(blob, filename) {
 window.onload = ()=> {
     
     readURLParams();
+
 }
 
 const hexToWords =  document.getElementById("hexToWords");
