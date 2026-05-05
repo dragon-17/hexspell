@@ -36,7 +36,7 @@
         }
         @font-face {
             font-family: 'hexspellTXT';
-            src: url('./fonts/hexspellTXTv1.ttf') format('truetype');
+            src: url('./fonts/hexSpellVxExport.ttf') format('truetype');
         }
         /* this displays normal text as hexspell */
         .hexspellTXT {
@@ -324,11 +324,11 @@ from the decoder.</aside
         <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
         <div>
             <label  title="query paramenter  ?hexfont  | ?hexfont=1  | ?hexfont=0">Change input text font to mimic hexspell <input id="usehexspellTXT" type="checkbox"></label>
-            (<a title="Must be served by a server, may not work if opened locally in a browser via the file:// protocol" download href="fonts/hexspellTXTv1.ttf" >Download font <code>hexspellTXTv1.tff</code>
+            (<a title="Must be served by a server, may not work if opened locally in a browser via the file:// protocol" download="hexspellTXTv1.ttf" href="fonts/hexspellTXTv1.ttf" >Download font <code>hexspellTXTv1.tff</code>
             </a>
             <sup i>i</sup>
-            <aside>Currently there exists only a handwritten proportional variant
-Created via the <a href="https://www.makeyourownfont.com/studio"><code>MakeYourOwnFont.com</code></a></aside>)
+            <aside>Custom Hexspell fonts are highly experimental and may not work correctly.
+The cursive font was created via the <a href="https://www.makeyourownfont.com/studio"><code>MakeYourOwnFont.com</code></a></aside>)
         </div>
         <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
         <p callout><strong>Note:</strong><br> If <i>reverse decoding</i> should work check both <code>`Disambiguation Escape`</code> and <code>`Same Num Combos`</code>. Is still <b>not 100% reversable</b>.</p>

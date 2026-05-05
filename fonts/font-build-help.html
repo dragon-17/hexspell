@@ -15,18 +15,21 @@
         Use discrete grids to reduce options and acidental differences.
         Recommended size is 16*16 or 24*24 cells. This allows you to get inner rings    
     </article>
+  <details name="samples">
+    <summary>Demo Samples</summary>
+  
     <pre name="P" contenteditable>
 ....................
   .                ........
-  1~                 
-..G        3~        
+  A~                 
+..P        C~        
       b a~       
          g~      
-      e~   4
-      6 5        
+      e~   D
+      F E        
                
-  A   
-     9
+  L   
+     K
 . .   .    . </pre>
     <pre name="rounded-box" contenteditable>
 ....................
@@ -39,16 +42,44 @@
 .
 .
 </pre>
+<pre char-schema hidden>
+.....+.....+.....+.....+
+                 .
+                 .
+                 .
+.....+.....+.....+.....+
+                 .
+                 .
+                 .
+.....+.....+.....+.....+
+                 .
+                 .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="simple-D-1" contenteditable>
+....................
+  .                .
+.a&       b§
+   2   1§
+
+   3   4Z§
+&dZ       c   §
+.
+.
+</pre>
 <pre name="simple-D" contenteditable>
-..  ...............
- &               .
- A     
-   ~     
-  dc   D  &
-  ab  
- Z  H &
-.
-.
+.............. .....
+  .                 
+.a&        d&7
+    C&0.05   
+        B&3 
+         A&4
+.z           h &4
+.        Z&4 
+.   F&       
+         i&5
+ k &
 </pre>
 <pre name="axe" contenteditable="">
  .. ..|; ............  .
@@ -63,6 +94,267 @@
             F&
        e  d
 </pre>
+</details>
+<details name="samples" class="font" open>
+    <summary>Font Hex Digits</summary>
+
+    <div fill>Here you can edit the outlines of the font <button onclick="buildWebFont({},true)">Build Font</button></div>
+<pre name="zero" data-unicode="0" contenteditable="">
+.....+.....+.....+.....+
+                 .
+      A§        B§
+         c§  a§
+.....+..   .       ....+
+                .   
+                  .
+                .
+.....+           ......+
+         d§  z§
+      Z§        C§    .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="zero-stroke" ignore contenteditable="">
+.....+.....+.....+.....+
+                 .
+            &    .
+       A&5   F B&5
+.....+..c&5. Ga&5  ....+
+                .   
+         E&5      .
+                .
+.....+  d&5  z&5.......+
+       D&4    C&5
+     &5Z       .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="one" data-unicode="1"  contenteditable="">
+.....+.....+.....+. ...+
+                 
+       *   C  C   .
+       B        
+.....+. A  Z    .+.....+
+              .
+                .
+                . 
+.....+..H  I. D. E.....+
+       *G        F
+                 .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="two" data-unicode="2" contenteditable="">
+.....+.....+.....+. ...+
+             D§    .
+       C§  Z§ 
+              N§ F§   
+..... B A      .+
+                     .
+                .
+ 
+.....+L& H    . I .....+
+      K         J
+                 .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="three" data-unicode="3" contenteditable="">
+.....+.....+.....+.....+
+       &5         .
+       A2    A3&    .
+         Q&5   A4&
+.....+AUZ  P& ...+.....+
+         L& A6~   .
+         K  . A7
+      EF    J& B&3
+.....+...G H ....+.....+
+     & B3& &  B2&9
+                 .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="four"  data-unicode="4" contenteditable="">
+.....+.....+.....+. ...+
+                 .
+       *   G  F  .
+           a  
+.....+.         .+.....+
+            .
+     H z   b  E .D
+     I     J  B .C
+..... ..       .  .....+
+       *   Z  A    
+                 .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="five"  data-unicode="5" contenteditable="">
+.....+.....+.....+. ...+
+                  .
+      A2        A&
+        E6      Z&
+.....+.         .+.....+
+        E5   E4&
+      A3   A4   E3&. 
+               B&5    
+..... D .  C    E2&  ..+
+      D8     E1&    
+                 .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="six" data-unicode="6" contenteditable="">
+.....+.....+.....+. ...+
+        &5        .
+         A1    A&
+     &5   B&5 Z&
+..... A2        .+.....+
+        A9 A8&5
+     A3c&5  z A7&5
+    &4     &5           
+.....   b&5 a&5      ..+
+      A4      A5&7   
+      &5          .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="seven" data-unicode="7" contenteditable="">
+.....+.....+.....+. ....+
+     &           &     
+      A6A5     A4A3  
+.....+A7A8   A9 A2......+
+      &        .
+                .
+                    
+       &5        . 
+.....+.B  A1~5 .  ......+
+       Z&A&      
+                .
+                 .
+.....+.....+.....+......+
+</pre>
+<pre name="eight" data-unicode="8" contenteditable="">
+.....+.....+.....+.....+
+         &   &   
+         A1  A 
+    &8 A2 z§a§ Z&7
+.... .    d§b§+....+
+         B c§C8 
+       C 3§  4ZC7§
+     &5      §       
+.....    2§  1§    ...+
+       C4      C5&5   
+      &5          .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="nine" data-unicode="9" contenteditable="">
+.....+.....+.....+. ...+
+      &5        .
+       C       A§
+         dZ§ a§
+.....       §  UZ&....+
+      &E c§ bJ 
+        G& H&   
+            &K T&    
+.....    &      ..+
+      &N   M     
+      &P     Q&     .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="a" data-unicode="&#x61;" contenteditable="">
+.....+.....+.....+. ...+
+               .
+                
+        &4  &4
+.....    F   EC B+.....+
+       G§a§  bD  
+             &4
+      H&5   &4   
+.....   z§  c K +......+
+       §I   J Z A
+            &5    .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="b" data-unicode="&#x62;" contenteditable="">
+.....+.....+.....+. ...+
+      B C&       .
+                
+             
+.....   CE§§a F§ +.....+
+        D     
+        b§     G§
+         c§ §
+.....   L   z H§.+.....+
+      A ZK J I  
+        &§   &5    .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="c" data-unicode="&#x63;" contenteditable="">
+.....+.....+.....+. ...+
+               .
+                
+        &4  &4
+.....    F  ZE    .....+
+       G§O§   D§ 
+             &4
+      H&5     K§ 
+.....   N§  M&4  ......+
+       §I   J    
+            &5    .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="d" data-unicode="&#x64;" contenteditable="">
+.....+.....+.....+. ...+
+              C B&
+                
+        &4  &4
+.....    F   E   .....+
+       G§a§  bD  
+             &4
+      H&5   &4   
+.....   z§  c K +......+
+       §I   J Z A
+            &5    .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="e" data-unicode="&#x65;" contenteditable="">
+.....+.....+.....+. ...+
+               .
+                
+         &4  &4
+.....    F   E§   .....+
+      §G O§ZA§  
+       C~   §BD3§     
+     §H D  §D2K
+.....   N§  M&4  ......+
+       §I   J    
+            &5    .
+                 .
+.....+.....+.....+.....+
+</pre>
+<pre name="f" data-unicode="&#x66;" contenteditable="">
+.....+.....+.....+. ...+
+                 
+       *   D   C~ .
+            ~N Z B~
+.....+.  ~      A~.....+
+         F E M L 
+         G H J K~
+                . 
+.....+..    .  .  .....+
+       *   I I&  
+                 .
+                 .
+.....+.....+.....+.....+
+</pre>
+</details>
 
     <script>
         const $attrs = (elm = document.body, attrs, val) => {
@@ -87,82 +379,133 @@
         let fontW = 1000;
         let fontH = 1000;
 
-        document.body.addEventListener(
-            "blur",
-            (ev) => {
-                const el = ev?.target?.closest?.("pre[name]");
-                if (!el) return;
-                const W =  (el.dataset.w ?? fontW);
-                const H =  (el.dataset.h ?? fontH);
+        const blurEv = (ev) => {
+            const el = ev?.target?.closest?.("pre[name]");
+            if (!el) return;
+            const W =  (el.dataset.w ?? fontW);
+            const H =  (el.dataset.h ?? fontH);
 
-                let previewSvg = el.lastElementChild;
-                if(previewSvg?.localName!=="svg"){
-                    previewSvg = $SVG( "svg",{ "viewBox":`0 0 ${W} ${H}` },0,el );
-                } 
+            let previewSvg = el.lastElementChild;
+            if(previewSvg?.localName!=="svg"){
+                previewSvg = $SVG( "svg",{ "viewBox":`0 0 ${W} ${H}`,'tabindex':0, },0,el );
+            } 
 
-                const dStr = gridToSvgPath(  el.innerText, W,H  );
-                
-                const pathEl = previewSvg.querySelector(`path[data-gly]`) || $SVG("path",{"data-gly":""},0,previewSvg);
-                $attrs(pathEl,"d",dStr);
-            }
-            , true,
-        );
+            // use innerText, cause it deals intelegently with <br> of contenteditable, 
+            // but innerText returns nothing if elm hidden in <details>, so for init use textContent as follback, you should use <br> in the static HTML anyway
+            const dStr = gridToSvgPath(  el.innerText || el.textContent, W,H , previewSvg );
+            
+            const pathEl = previewSvg.querySelector(`path[data-gly]`) || $SVG("path",{"data-gly":""},0,previewSvg);
 
+            const minMax = bbox(dStr);
+            el.title = JSON.stringify(minMax);
+            $attrs(pathEl,"d",dStr);
+        }
+        document.body.addEventListener( "blur", blurEv , true, );
+        
+        // init the pre icons in the html
+
+
+        document.body.onload = ()=> {
+            for(const pre of document.querySelectorAll("pre[name]")){
+                blurEv({target:pre});
+        }}
+        
+
+        function gridStats(gridString){
+            const lines = gridString.trim().split('\n');
+            const gridH = lines.length;
+            const gridW =  lines.map(l=>l.length).reduce((max,ll)=>Math.max(max,ll));
+            return [lines,gridW,gridH,];
+        }
         // just toPrecision might return scientific notation  e.g. 1000 -> 1.00e3, which BREAKs svg paths
         const trimNum = (num=0,fix)=>(+num.toPrecision(fix)).toFixed(3).replace(/(?<=\.\d*[1-9])0+$|\.0*$/,"");
 
         ////   THK Gemini    << 🍪🍪🍪
 
-        function gridToSvgPath(gridString, targetW, targetH) {
-    const lines = gridString.trim().split('\n');
-    const gridH = lines.length;
-    const gridW =  lines.map(l=>l.length).reduce((max,ll)=>Math.max(max,ll));
-
-    const allPoints = [];
-    const markers = []; // Speichert ~ und &
-
-    // 1. Grid parsen
-    lines.forEach((line, yCell) => {
-        const y = yCell;
-        line.split('').forEach((char, x) => {
-            
-            if (/[0-9A-Za-z]/.test(char)) {
-                allPoints.push({ id: char, x, y, isLower: char === char.toLowerCase() && !/[0-9]/.test(char) });
-            } else if (char === '~' || char === '&'||char ==="-") {
-                markers.push({ type: char, x, y });
+        function gridToSvgPath(gridString, targetW, targetH,svg,flipH) {
+            let [lines,gridW,gridH] = gridStats(gridString);
+            if(svg){
+                //           v~~ monospace chars have aspect of 1:2
+                const AR =  (2*gridH) / gridW;
+                const vb = svg.viewBox.baseVal;
+                const W = vb.width;
+                targetW ??= W;
+                if(!targetH){
+                    targetH ??=vb.height;
+                    vb.height =   W * AR;
+                    svg.setAttribute( "viewBox", vb.x+" "+vb.y+" " +vb.width+ " "+vb.height)
+                }
             }
-        });
-    });
 
-    // 2. Gruppieren nach Gehäuse (Upper/Digits) und Löchern (Lower)
-    const groups = {
-        outer: allPoints.filter(p => !p.isLower).sort((a, b) => a.id.localeCompare(b.id)),
-        inner: allPoints.filter(p => p.isLower).sort((a, b) => a.id.localeCompare(b.id))
-    };
+            const allPoints = [];
+            const markers = []; // Speichert ~ und &,  § means 50% round -> &5
+            const markerChars = {'~':1,'&':1, '§':1,  '-':1};
 
-    // find closest point for each marker
-    for(const m of markers){
-        let dMin = Infinity;
-        let closestPnt = null;
-        for(const pnt of allPoints){
-            let d = Math.hypot(m.x - pnt.x, m.y - pnt.y);
-            if (d < dMin ) {
-                dMin = d;
-                closestPnt = pnt;
-                m.dist = d;
+            // 1. Grid parsen
+            for(let yCell=0,line; line=lines[yCell],line!==undefined; yCell++){
+                const y = yCell;
+                for(let x=0,char; char=line[x]; x++){
+                    const isNum = /[0-9]/.test(char);
+                    if (isNum || /[A-Za-z]/.test(char)) {
+                        const pnt = { id: char,char, x, y, grp: isNum?"num":  /[a-z]/.test(char)?"lower":"upper" };
+                        while( /[0-9Z]/.test(line[x+1]) ){// allow continuation with numbers like  42 or  A2 B3  and a ending Z to close a path 
+                            x++; pnt.id+=line[x];
+                            if(line[x]=="Z")break;
+                        }
+                        allPoints.push(pnt);
+
+                    } else if ( markerChars[char] ) {
+                        const marker = { type: char, x, y, data: "" };
+
+                        while( char!=="§" && /[0-9]/.test(line[x+1]) || (line[x+1]=="."&&/\d/.test( line[x+2]) )  ){// allow continuation with numbers like  42 or  A2 B3 
+                            x++; marker.data+=line[x];
+                        }
+                        if( (char=="&"|| char=="~") && marker.data){
+                            // use as lerp radius or for catmull as tension
+                            if(marker.data.includes(".")) marker.data = Number(marker.data);
+                            else marker.data = (Number(marker.data))/ 10**(marker.data.length);
+                        }
+                        if(char=="§"){
+                           marker.type="&";
+                           marker.char="§";
+                           marker.data=0.5;
+                        }
+                        markers.push(marker);
+                    }
+                }        
             }
+
+            // 2. Gruppieren nach Gehäuse (Upper/Digits) und Löchern (Lower)
+            let groups = Object.groupBy( allPoints , p=>p.grp  );
+
+            for(const grp in groups){
+                groups[grp] = groups[grp].sort( (a, b) => a.id.localeCompare(b.id)  ); 
+            }
+            // for the enumeration order
+            groups = {  upper:groups.upper, lower:groups.lower,num:groups.num,...groups }
+
+            // find closest point for each marker
+            for(const m of markers){
+                let dMin = Infinity;
+                let closestPnt = null;
+                for(const pnt of allPoints){
+                    let d = Math.hypot( (m.x - pnt.x), (m.y - pnt.y)*2);
+                    if (d < dMin ) {
+                        dMin = d;
+                        closestPnt = pnt;
+                        m.dist = d;
+                    }
+                }
+                if (closestPnt) closestPnt.marker = m;
+            }
+            let fullPath = "";
+
+            for(const grpName in groups) 
+            if(groups?.[grpName]?.length){
+                fullPath += buildSmartPath(groups[grpName],gridW,gridH, targetW,targetH,flipH) + " ";
+            }  
+            return fullPath.trim();
         }
-        if (closestPnt) closestPnt.marker = m;
-    }
-    let fullPath = "";
-    
-    [groups.outer, groups.inner].forEach(points => {
-        if (points.length === 0) return;
-       
-        fullPath += buildSmartPath(points,gridW,gridH, targetW,targetH) + " ";
-    });
-    return fullPath.trim();
-}
 
 function lerp(a,b,t){return  {x: (a.x+ t*(b.x-a.x)), y: (a.y+ t*(b.y-a.y)) }}
 function add(a,b){ return {x:a.x+(b.x??b),y:a.y+(b.y??b)} }
@@ -175,8 +518,14 @@ function calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, type='start',tension
     return sub( pNext ,   div(  sub(pNextNext, pCurr ) , 6*tension )   ) 
 }
 
-function buildSmartPath(points,gridW,gridH, targetW, targetH,fixed=3) {
-    const map = (x,y)=>  trimNum((x / (gridW - 1)) * targetW,fixed) + " " + trimNum((y / (gridH - 1)) * targetH,fixed);
+/** further away marker like rund & or catrom ~, the higher the radius or tension, but if a number after marker use this as data value */
+function markerDistToPercent(pnt){
+    return pnt?.marker?.data!==""? pnt.marker.data: Math.round( 2 * pnt?.marker.dist)  /10  - 0.1 ;
+}
+function buildSmartPath(points,gridW,gridH, targetW, targetH,flipH=false, fixed=3) {
+    const flipHSub = (flipH?targetH:0);
+    const flipMul = (flipH?-1:1);
+    const map = (x,y)=>  trimNum((x / (gridW - 1)) * targetW,fixed) + " " + trimNum( flipHSub + flipMul*(y / (gridH - 1)) * targetH,fixed);
     
     let d = `M ${map(points[0].x, points[0].y)}`;
     
@@ -184,15 +533,23 @@ function buildSmartPath(points,gridW,gridH, targetW, targetH,fixed=3) {
     for (let i = 0; i < points.length; i++) {
         if(points[i]?.marker?.type=="&"){
             let pPrev = points[(i - 1 + points.length) % points.length];
+            let maxPrevDist = 1 - (  pPrev.dist || 0);
             if(pPrev.quadCP) pPrev=pPrev.quadCP;
+          
             let pNext = points[(i + 1) % points.length];
-            if(pNext.quadCP) pNext=pNext.quadCP;
+            if(pNext.quadCP) pNext=pNext.quadCP;// only for last point
+            
             const pnt = points[i];
             
-            const roundFac  = Math.max(0.2, Math.min( 1,  points[i]?.marker.dist/5));
-            pnt.entry =  lerp(pPrev, pnt, 1-roundFac); 
-
-            pnt.exit = lerp(pnt, pNext, roundFac);
+            let dist = markerDistToPercent(pnt);
+            // do not go more radius, than the previous had
+            let pdist = 1 - Math.max(0, Math.min(  maxPrevDist  , dist));
+            pnt.entry =  lerp(pPrev, pnt, pdist); 
+            
+            let ndist = Math.max(0, Math.min(  1  , dist ));
+            pnt.dist = ndist;
+            pnt.exit = lerp(pnt, pNext, ndist);
+            
             pnt.quadCP = {x:pnt.x,y:pnt.y};
             pnt.x= pnt.entry.x;
             pnt.y= pnt.entry.y;
@@ -207,6 +564,10 @@ function buildSmartPath(points,gridW,gridH, targetW, targetH,fixed=3) {
         let pNextNext =   points[(i + 2) % points.length];
         if(pNext.exit) pNextNext = pNext.exit;
         
+        const lastIdChar = pCurr.id.at(-1).toLowerCase();
+        const isEnd =  i+1==points.length ;
+        if(isEnd && lastIdChar!=="z") continue;
+        
 
         const markerT = pCurr.marker?.type;
 
@@ -215,23 +576,152 @@ function buildSmartPath(points,gridW,gridH, targetW, targetH,fixed=3) {
             const exit =  pCurr.exit 
             
             if(i==0) d = "";
-
-            d += `${i==0?'M'+ map(entry.x, entry.y):''} Q ${map(pCurr.quadCP.x, pCurr.quadCP.y)} ${map(exit.x, exit.y)} L ${map(pNext.x,pNext.y)}`;
+            let nextLine = isEnd? 'Z': 'L'+map(pNext.x,pNext.y); 
+            
+            // if rounded to 50% the Q may ladn already on the next point -> skip L directiv
+            if( Math.abs(exit.x - pNext.x)<0.1 &&  Math.abs(exit.y - pNext.y)<0.1 ) nextLine=""
+            
+            d += `${i==0?'M'+ map(entry.x, entry.y):''}Q${map(pCurr.quadCP.x, pCurr.quadCP.y)} ${map(exit.x, exit.y)}${nextLine}`;
         } 
         else if (markerT === '~') {
             // Catmull-Rom zu Cubic Bezier
-            const tens = 1 -  Math.max(0.2, Math.min( 1,  points[i]?.marker.dist/5));
+            const percent = markerDistToPercent(pCurr);
+            const tens = pCurr.marker?.data ||   1 - Math.max(-0.5, Math.min( 1.5, percent));
             const cp1 = calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, 'start',tens);
             const cp2 = calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, 'end',tens);
-            d += ` C ${map(cp1.x, cp1.y)} ${map(cp2.x, cp2.y)} ${map(pNext.x, pNext.y)}`;
+            d += ` C${map(cp1.x, cp1.y)} ${map(cp2.x, cp2.y)} ${map(pNext.x, pNext.y)}`;
         } 
-        else {
+        else if(isEnd){
+            d += 'Z'
+        } else{
             // Scharfe Kante
-            d += ` L ${map(pNext.x, pNext.y)}`;
+            d += `L${map(pNext.x, pNext.y)}`;
         }
     }
-    return d + " Z";
+    return d;
 }
+
+function bbox(string=""){
+    const d =  string || string?.getAttribute?.("d");
+    const cors = d.match(/\d+(\.\d*)?/g);// uses no H or V so simple algo enough
+    const grps = Object.groupBy(cors,(c,i)=>i%2==0?"x":"y");
+    for(const grp in grps ){
+        const cors = grps[grp];
+        const min = Math.min.apply( null,cors );
+        const max = Math.max.apply( null,cors );
+        grps[grp] = {min,max};
+    }
+    return grps;
+}
+
+/** build an svg web font to download and then use a online converter */
+    function buildWebFont({name="hexSpellVxExport",hAdv=500}={},download){
+        
+        let glypsSVG = "";
+        
+        const hexGlyps = {};
+
+        const glyphsPres = document.querySelectorAll(".font pre[name]");
+        for(const pre of glyphsPres){
+            if(pre.hasAttribute("ignore")) continue;
+            const unicode = pre.dataset.unicode;
+            if(!unicode) continue
+
+            // you must recalculate fliped path, cause fonts/postscript corrdinate system starts in lower left corner, not svg top-left.
+            const dFlipped =  gridToSvgPath(  pre.innerText || el.textContent, fontW,fontH , 0, true );
+            let evenCntr = 0;
+            // parse parst of all paths
+            let data = [];
+            dFlipped.replace(/(\d+(?:\.\d+)?)|([^\d\s]+)/g,(_m,num,cmd,)=>{
+                data.push (num!==undefined?  (evenCntr++%2==0?{x:num}:{y:num}): {cmd}) 
+                return "";
+            } );
+            
+            hexGlyps[unicode] = {str: dFlipped, data };
+
+            // glypsSVG += `<glyph unicode="${unicode}" d="${dFlipped}" />\n`;
+        }
+        const asciiToHex = {
+            a:'a',b:'b',c:'c',d:'d',e:'e',f:'f',
+            g: '9', h:'6',i:'1',j:'9', k:'b',l:'1',m:'44',
+            n:'4',o:'0',p:'6',q:'9b',r:'2',s:'5',t:'7',u:'c',v:'c',w:'cc',
+            x:'3',y:'9',z:'2', 
+            '&#x20;':'00','&#x0a;':'0000',
+            ':':'3a','=':'3a',';':'3b','.':'3b',',':'3b' ,  
+            
+            '1':'31','2':'32','3':'33','4':'34','5':'35',
+            '6':'36','7':'37','8':'38','8':'38','0':'30',
+
+            '!':'3e','?':'3f',
+
+            '+':'dd', '-':'bb','*':'344c', '/':'3d1f', 
+            
+            // experimental
+            "{":'aaa','}':'fff',
+            "[":'bbb',']':'ddd',
+            "(":'aaa',')':'fff',
+            "&#x27;":'660','&#x22;':"099",
+            // "&#xb4;":'660','&#x60;':'099',
+
+            '&#x26;':'e7',  '$':'3c5d',// ESC USD -> us-dollar
+            '€':'3ec2',
+            
+            // just escapes
+            '=':'3d3d',
+
+            '&#xe4;':'ae',
+            '&#xf6;':'0e',
+            '&#xfc;':'ce',
+
+        }
+        
+        for(const uni in asciiToHex){
+            // multiply the x of n-glyps with the hAdvment
+            const out = [...asciiToHex[uni]].map(  
+                (c,i)=> hexGlyps[c].data.reduce( (agg,p)=> agg + (p.cmd?? (p.y   ?? +p.x + i*hAdv)+" ") ,"") 
+            ).join("\n");
+
+            const hori =  ` horiz-adv-x="${ hAdv*asciiToHex[uni].length }" `;
+            
+            glypsSVG += `<glyph unicode="${uni}" d="${out}"${hori}/>\n`;
+            
+            if(uni.length==1 && uni.toUpperCase()!==uni){
+                glypsSVG += `<glyph unicode="${uni.toUpperCase()}" d="${out}"${hori}/>\n`;
+            }
+        }
+
+        // list of symbols you wish to escape via emiting 3d<ASCII>
+        const toEscape = [];
+
+
+
+        const svgBase = `<?xml version="1.0" standalone="yes"?>
+<svg width="100%" height="100%"
+ xmlns = 'http://www.w3.org/2000/svg'>
+  <defs>
+    <font id="Font2">
+      <font-face font-family="${name}" font-weight="normal" font-style="italic"
+          units-per-em="1000" cap-height="600" x-height="400"
+          ascent="700" descent="300" horiz-adv-x="${hAdv}"
+          alphabetic="0" mathematical="350" ideographic="400" hanging="500">
+      </font-face>
+      <missing-glyph><path d="M0,0h200v200h-200z"/></missing-glyph>
+      ${`<!--
+        <glyph unicode="!" horiz-adv-x="300">  < !-- Outline of exclam. pt. glyph -- >  </glyph>
+        -->`,''}
+${ glypsSVG }
+    </font>
+  </defs>
+</svg>`;
+
+        if(download){
+            const urlObj = URL.createObjectURL( new Blob([svgBase],{type:"text/plain"}));
+            const a =   $New("a",{ href:urlObj,download: name+".svg"   },0, document.body);
+            a.click();
+            setTimeout(  ()=> a.remove()||URL.revokeObjectURL(urlObj) , 0 );
+        }
+        return svgBase;
+    }
     </script>
 
     <style>
@@ -241,23 +731,39 @@ function buildSmartPath(points,gridW,gridH, targetW, targetH,fixed=3) {
             position: relative;
             padding: 1rem;
 
-            &>svg {
+            &>svg{
                 position: absolute;
                 inset: 0;
                 border: inset 2px oklch(from cornflowerblue 0.95 c h);
                 padding: inherit;
                 user-select: none;
                 z-index: -2;
-
-                opacity: 0.5;
+                opacity: 0.35;
+                path{ stroke: olive; fill: slategrey; stroke-width: 10; }
             }
-            path{ stroke: darkmagenta; fill: lightcoral; stroke-width: 10; }
+            svg:focus{
+                width: 255px;
+                max-width: 255px;
+                z-index: 1;
+                opacity: 1;
+                padding: 0;
+                margin: 0;
+                border: inset 2px oklch(from cornflowerblue 0.4 c h);
+                background-color: white;
+                path{ stroke: cornflowerblue; fill: black; stroke-width: 3; }
+            }
+        }
+        details:open::details-content{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         /* 08815 style */
         h1,h2,h3,h4{
             display: inline-block;
         }
+        [fill] { flex-basis: 100%; }
     </style>
 </body>
 
