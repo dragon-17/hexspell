@@ -525,6 +525,8 @@ const charToHexMap = {
     '-':'bb',
     '*':'344c', // esc mu
     '/':'3d1f', // esc dif(ide) (I now its spelled divide)
+
+    '#':'ee',// only valid as first character of a word
 };
 // alternativ mapping for less ambiguities
 const charToHexEsc = {
@@ -744,6 +746,18 @@ const hexToAlts = {
 
     // '3fac':['/','xfac'], factor instead of mu for multiply
     // '32ec':['/','xrec'], reciprocial instead of dif for divide -> solves 3d esc ambiguity
+
+
+    'aaa':['(','aaa'],
+    'aaa0':['(','aaao'],
+    'fff':[')','fff'],
+    'fff0':[')','fffo'],
+
+    'bbb':['[','bbb'],
+    'bbb0':['[','bbbo'],
+    'ddd':[']','ddd'],
+    'ddd0':[']','dddo'],
+    '00ee':['#',' ee','ooee'],
 };
 
 const HexCombosTochar = {

@@ -52,6 +52,25 @@ document.body.onload = () => {
         blurEv({ target: pre });
     }
 }
+
+const fontBaseIn = document.querySelector("#fontBaseIn");
+const svgIframe = $New('iframe',{hidden:1,},0,document.body);
+
+let svgFontElm = null;
+
+fontBaseIn.onchange =async (ev)=>{
+    const file = ev.target.files[0];
+    let svg  = $SVG("svg");
+    const svgStr =  await ev.target.files[0].text();
+    svgIframe.contentDocument.innerHTML = svgStr;
+    
+    svgFontElm= doc.querySelector("svg");  
+
+    // 4. Jetzt kannst du mit querySelector auf die Glyphen zugreifen
+    const glyphs = doc.querySelectorAll('glyph');
+    console.log(`Geisterbeschwörung erfolgreich: ${glyphs.length} Glyphen gefunden.`);
+}
+
 let _Cache = { grps: null, params: null };
 
 
@@ -371,34 +390,6 @@ function bbox(string = "") {
     }
     return grps;
 }
-
-/** build an svg web font to download and then use a online converter */
-function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5 } = {}, download) {
-
-    let glypsSVG = "";
-
-    const hexGlyps = {};
-
-    const glyphsPres = document.querySelectorAll(".font pre[name]");
-    for (const pre of glyphsPres) {
-        if (pre.hasAttribute("ignore")) continue;
-        const unicode = pre.dataset.unicode;
-        if (!unicode) continue
-
-        // you must recalculate fliped path, cause fonts/postscript corrdinate system starts in lower left corner, not svg top-left.
-        const dFlipped = gridToSvgPath(pre.innerText || el.textContent, fontW, fontH, 0, true);
-        let evenCntr = 0;
-        // parse parst of all paths
-        let data = [];
-        dFlipped.replace(/(\d+(?:\.\d+)?)|([^\d\s]+)/g, (_m, num, cmd,) => {
-            data.push(num !== undefined ? (evenCntr++ % 2 == 0 ? { x: num } : { y: num }) : { cmd })
-            return "";
-        });
-
-        hexGlyps[unicode] = { str: dFlipped, data };
-
-        // glypsSVG += `<glyph unicode="${unicode}" d="${dFlipped}" />\n`;
-    }
     const asciiToHex = {
         a: 'a', b: 'b', c: 'c', d: 'd', e: 'e', f: 'f',
         g: '9', h: '6', i: '1', j: '9', k: 'b', l: '1', m: '44',
@@ -414,11 +405,13 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5 } = 
 
         '+': 'dd', '-': 'bb', '*': '344c', '/': '3d1f',
 
+        
         // experimental
         "{": 'aaa', '}': 'fff',
         "[": 'bbb', ']': 'ddd',
         "(": 'aaa', ')': 'fff',
         "&#x27;": '660', '&#x22;': "099",
+        '#': 'ee',
         // "&#xb4;":'660','&#x60;':'099',
 
         '&#x26;': 'e7', '$': '3c5d',// ESC USD -> us-dollar
@@ -432,14 +425,48 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5 } = 
         '&#xfc;': 'ce',
 
     }
+/** build an svg web font to download and then use a online converter */
+function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
+        mapping= asciiToHex, baseFontElm=null, glypPathQuery=".font pre[name]",
+        fillUnmapped=false,maxFillCode= 4096,
+    } = {}, download) {
 
-    for (const uni in asciiToHex) {
+    let glypsSVG = "";
+
+    const hexGlyps = {};
+
+    const glyphsPres = document.querySelectorAll(glypPathQuery);
+
+    const filledMap = {...mapping};
+
+    for (const elm of glyphsPres) {
+        if (elm.hasAttribute("ignore")) continue;
+        const unicode = elm.dataset.unicode;
+        if (!unicode) continue
+
+        // you must recalculate fliped path, cause fonts/postscript corrdinate system starts in lower left corner, not svg top-left.
+        let dFlipped =  elm.hasAttribute("d")? elm.getAttribute("d")  
+                : gridToSvgPath(elm.innerText || el.textContent, fontW, fontH, 0, true);
+        let evenCntr = 0;
+        // parse parst of all paths
+        let data = [];
+        dFlipped.replace(/(\d+(?:\.\d+)?)|([^\d\s]+)/g, (_m, num, cmd,) => {
+            data.push(num !== undefined ? (evenCntr++ % 2 == 0 ? { x: num } : { y: num }) : { cmd })
+            return "";
+        });
+
+        hexGlyps[unicode] = { str: dFlipped, data };
+
+        if(fillUnmapped && !filledMap[unicode]  && unicode[0].charCodeAt()<maxFillCode) filledMap[unicode] = unicode;
+    }
+
+    for (const uni in filledMap) {
         // multiply the x of n-glyps with the hAdvment
-        const out = [...asciiToHex[uni]].map(
+        const out = [...filledMap[uni]].map(
             (c, i) => hexGlyps[c].data.reduce((agg, p) => agg + (p.cmd ?? (p.y ?? +p.x + (i+adjtX) * hAdv) + " "), "")
         ).join("\n");
 
-        const hori = ` horiz-adv-x="${hAdv * asciiToHex[uni].length}" `;
+        const hori = ` horiz-adv-x="${hAdv * filledMap[uni].length}" `;
 
         glypsSVG += `<glyph unicode="${uni}" d="${out}"${hori}/>\n`;
 
@@ -448,24 +475,26 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5 } = 
         }
     }
 
-    // list of symbols you wish to escape via emiting 3d<ASCII>
-    const toEscape = [];
+    
+    const copiedBaseFontFace = baseFontElm?.querySelector?.("font-face")?.outerHTML;
 
     const svgBase = `<?xml version="1.0" standalone="yes"?>
 <svg width="100%" height="100%"
  xmlns = 'http://www.w3.org/2000/svg'>
   <defs>
-    <font id="Font2">
-    <font-face 
-  font-family="${name}" 
-  units-per-em="1000" 
-  ascent="800" 
-  descent="-100" 
-  cap-height="700"
-  x-height="450"
-  alphabetic="0"
-  horiz-adv-x="${hAdv}"
-   />
+    <font id="Font2">${
+        copiedBaseFontFace ||
+        `<font-face 
+      font-family="${name}" 
+      units-per-em="1000" 
+      ascent="800" 
+      descent="-100" 
+      cap-height="700"
+      x-height="450"
+      alphabetic="0"
+      horiz-adv-x="${hAdv}"
+       />`
+    }
       <missing-glyph><path d="M 261 750L261 83.3L696 83.3L696 750Z M 652 125L304 125L304 708L652 708Z"/></missing-glyph>
       <!-- liga test -->
       <glyph unicode="[]" horiz-adv-x="${2*hAdv}" d="M 261 750L261 83.3L696 83.3L696 750Z M 652 125L304 125L304 708L652 708Z" />
@@ -484,4 +513,277 @@ ${glypsSVG}
         setTimeout(() => a.remove() || URL.revokeObjectURL(urlObj), 0);
     }
     return svgBase;
+}
+
+
+// a simpler version may not be the one used by decoder
+const hexToASCIIMap = {
+    0: 'o', 1: 'l', 2: 'r',
+    3: 'x', 4: 'n', 5: 's',
+    6: 'h', 7: 't',
+    8: 'i',
+    9: 'g',
+    '00': ' ',
+
+    30: '0', 31: '1', 32: '2', 33: '3', 34: '4',
+    35: '5', 36: '6', 37: '7', 38: '8', 39: '9',
+    a: 'a', b: 'b', c: 'u',
+    d: 'd', e: 'e', f: 'f',
+
+    44: 'm',
+    cc: 'w',
+    fd: 'v',
+
+    '74': 'k',
+    'fb': 'c',
+    '7b': 'z',
+    'fd': 'v',
+    '9f': 'h',
+    '6b': 'p',
+    '97': 'y',
+
+    '3add': "+",
+    '35cb': "-",
+    '344c': "*",
+    '3d1f': "/",
+
+    'aaa': '(',
+    'aaa0': '(',
+    'fff': ')',
+    'fff0': ')',
+
+    'bbb': '[',
+    'bbb0': '[',
+    'ddd': ']',
+    'ddd0': ']',
+    '00ee': '#',
+    '9b': 'qu',
+    '9d': 'j',
+    '97': 'y',
+    'bf': 'x',
+
+    '3a': ':',
+    '3b': ';',
+    '3c': 'c',
+    '3d': '@',
+    '3e': '!',
+    '3f': '?',
+    'bb': '-',
+
+    '5b': 'sk',
+    '5bb': 's-',
+    '2b': 'rk',
+    '5b9': 'sky',
+    '2b9': 'rky',
+    'b9': 'by',
+
+    'b97': 'by',
+    'b97e': 'byte',
+    'b9e': 'bye',
+    '5b97': 'sky',
+    '2b97': 'rky',
+
+    '91': 'gy',
+    '91c': 'gic',
+    '19': 'ig',
+    '197': 'iy',
+    '19d': 'ij',
+    '918': 'gli',
+    '49e': 'nge',
+
+    '81': 'il',
+    '21': 'rl',
+    '18': 'li',
+
+    'a11': 'all',
+    'e11': 'ell',
+    '011': 'oll',
+    'c11': 'ull',
+    '111': 'ill',
+    'b15': 'bis',
+
+    'f12': 'fir',
+    '811': 'ill',
+    'f1a': 'fla',
+
+    '88': 'oo',
+    '886': 'oop',
+    '886b': 'oop',
+    '1ee': 'lee',
+    '1eee': 'ieee',
+    'd4': 'nn',
+    'd44': 'dm',
+
+    '66b': 'pp',
+
+    '16': 'lp',
+    '16b': 'lp',
+    '1446': 'imp',
+    'e446': 'emp',
+    'e446b': 'emp',
+
+    '90c': 'you',
+    '0017': ' it',
+    '0015': ' is',
+
+    '14400': 'im ',
+    '2c00': 'zu ',
+    'e2c': 'erc',
+    'e2c9': 'ercy',
+    '2c9': 'zug',
+    '1446': 'imp',
+    '1446b': 'imp',
+    '1c9': 'lug',
+    '04ce': 'once',
+    '1400': 'in ',
+    'c08': 'cou',
+
+    '1ce': 'ice',
+
+    '0c9': 'oug',
+    '0c5': 'ous',
+    'o67': 'opt',
+    'u67': 'upt',
+    '2ce': 'rce',
+
+    'c11': 'ull',
+    'c12': 'cir',
+
+    'c5e': 'use',
+
+    'e14': 'ein',
+    'a14': 'ain',
+    'e114': 'elln',
+    'e1c1': 'eici',
+
+    '9b14': 'quin',
+    '9b15': 'quis',
+    '9bb': 'g-',
+
+    '5c1': 'sci',
+    '4c1': 'nci',
+    'c7': 'ut',
+    'c74': 'uk',
+
+    'a6': 'ap', 'e6': 'ep', '16': 'ip',
+    '86': 'ip',
+    'c6b': 'up',
+
+    '00c600': ' up ',
+    '446': 'mp',
+    '446b': 'mp',
+    '86b': 'ip',
+    '16b': 'ip',
+
+
+    '06': 'op',
+    '06b': 'op',
+    '064': 'ohn',
+    '0644': 'ohm',
+
+    '26': 'rp',
+    '067': 'opt',
+    '2067': 'roht',
+
+    '0062': ' pr',
+
+    '66': 'pp',
+
+
+
+
+    'a66': 'app',
+    'e66': 'epp',
+    '166': 'ipp',
+    '066': 'opp',
+    'c66': 'upp',
+
+    'c66b': 'chp',
+    'a66b': 'app',
+    'e66b': 'epp',
+    '166b': 'ipp',
+
+    'e6e': 'ehe',
+    'e6b': 'ep',
+    'e6e1': 'ehei',
+    'e6e12': 'epell',
+    'ee6': 'eep',
+    'ee6b': 'eep',
+    'bfce': 'xce',
+
+    '6d': 'ph',
+    '6df': 'pdf',
+    'c6d': 'chd',
+    '4466': 'mph',
+    '466': 'nph',
+
+    '69': 'hy',
+    'a69': 'apy', 'e69': 'epy', '169': 'ipy', 'c69': 'chy', '069': 'opy',
+    '269': 'rpy',
+    '29': 'ry',
+    '297': 'ry',
+    '2976': 'ryth',
+
+    '449': 'my',
+    '59': 'sy',
+    '79': 'ty',
+    '4497': 'my',
+    '59b': 'squ',
+    '79b': 'tqu',
+
+    '61': 'hi',
+    '61a': 'pla',
+    '61e': 'ple',
+    '610': 'plo',
+    '61c': 'hic',
+    '16b': 'ick',
+
+    'b1': 'bl',
+    '748': 'kl',
+    '6e0': 'peo',
+    '74811': 'kill',
+
+    '562': 'spr',
+    '5c6': 'sch',
+    'ac6': 'ach',
+    '1c6': 'ich',
+    '164': 'ihn',
+
+    'e5b6': 'esch',
+    'b14': 'bin',
+    '1644': 'ihm',
+    'ece': 'eue',
+    'e4ce': 'ence',
+    'f1cfb': 'fluc',
+    'c4d': 'und',
+    '5c8': 'sci',
+    'cfb': 'uc',
+    'fbc': 'cu',
+    'fd08d': 'void',
+    '8ece': 'iece',
+    '01c6': 'olch',
+    '01c6b': 'olup',
+    'ec6': 'ech',
+    'oc6': 'och',
+    'ccc': 'wu',
+    'tc6e': 'tche',
+    '2c6e': 'rche',
+    '7c6b': 'tup',
+    '7c6': 'tch',
+
+
+    'ec7': 'ect',
+    'ec74': 'eck',
+    '017': 'oit',
+    '08': 'ou',
+    '086': 'oup',
+    '086b': 'oup',
+    '0811': 'oill', /* ill (double l) is more common than ull */
+    'ec4': 'eun',
+    'ec44': 'eum',
+    'ecd': 'eud',
+    'ecd4': 'eunn',
+    'ecd44': 'eudm',
+
+    'a4c8': 'anci',
 }
