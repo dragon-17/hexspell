@@ -384,7 +384,7 @@ fd=v
 </pre>
 
 <figure>
-<figcaption>Baisc Hex-to-Ascii mapping</figcaption>
+<figcaption>Basic Hex-to-Ascii mapping</figcaption>
 <table
 ><thead
 ><tr><td>0<td>1<td>2<td>3<td>4<td>5<td>6<td>7<td>8<td>9<td>a<td>b<td>c<td>d<td>e<td>f</tr></thead
@@ -620,14 +620,21 @@ const charComboToHex = {
 
 
 // special rule to use '0000' as new line -> is very readable
+// to do !! add multi char encode
 const charToHexReadableWS = {
     '\n':'0000',
+    
     // '.': '00d', // -> expect a space after the dot then 00d00 is unlikely to be a word
-};
-// more readble punctuation syntax for space sorounded characters
-const charCombineReadableWSToHex = {
     '. ':'d00',
-}
+    '\t ':'700',
+
+
+    'aaa':'(',
+    'fff':')',
+    'bbb':'[',
+    'ddd':']',
+
+};
 
 /* idea is to emit for 3c no 'x', but a 3ch or 4ch controle character  
     pro: 

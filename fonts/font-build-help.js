@@ -109,14 +109,14 @@ function parseCompactNums(str = "", formats = ['xy', 'xyW', 'xxyy'], dataObj={})
     
     const addUnit = (n,i)=> !isNaN(n) &&  (dataObj[units[i]] =  +n);
 
-    if(/[+,.-]/.test(str)){// normal cors
+    if(/[+,.-]/.test(str)){// fallback to noraml cors seperated via ,
         str.split(",").map( n=> [...n].reduce( (numStr,d)=>compactCombine(numStr,d),"")).forEach(addUnit); 
         return dataObj;
     } 
     let unitI = 0;
     let formatI = 0;
     for (let wrd = "", i = 0, ch; ch = str[i]; i++) {
-        wrd = compactCombine(wrd,compactNums[ch]);
+        wrd = compactCombine(wrd,ch);
         if(i == str.length-1 || (format[formatI+1] && format[formatI+1]!==format[formatI])){
             addUnit(+wrd,unitI++);
             wrd="";
@@ -125,9 +125,10 @@ function parseCompactNums(str = "", formats = ['xy', 'xyW', 'xxyy'], dataObj={})
     return dataObj;
 }
 function compactCombine(wrd,digit){
-    if(digit<0 && wrd!=="") wrd="-"+wrd+ Math.abs(digit);
-    else if(wrd!=="" && digit> 0 && digit<1 )  wrd+=  (""+digit).slice(1); //   5W 5 0.3  ->  '5'+'.3' 5.3 
-    else wrd+= digit ?? ch;
+    const mapped = compactNums[digit];
+    if(mapped<0 && wrd!=="") wrd="-"+wrd+ Math.abs(mapped);
+    else if(wrd!=="" && mapped> 0 && mapped<1 )  wrd+=  (""+mapped).slice(1); //   5W 5 0.3  ->  '5'+'.3' 5.3 
+    else wrd+= mapped ?? digit;
     return wrd;
 }
 
@@ -175,8 +176,11 @@ function gridToSvgPath(gridString, targetW, targetH, svg, flipH) {
                 }
                 const dataBlockRE =  markerT.format ?  compactNumsRE : /[0-9]/ ;
                 // allow continuation with numbers like  42 or  A2 B3 
-                if (!markerT.noData) while (  (line[x + 1]&&dataBlockRE.test(line[x + 1])) || 
-                    /^,?\+?\-?\.?\d/.test(line.slice(x+1))  || (marker.data && line[x+1]=="."&&/\s/.test(line[x+2])   )  
+                if (!markerT.noData) while (  
+                    (line[x + 1]&&dataBlockRE.test(line[x + 1])) || 
+                    /^,?\+?\-?\.?\d/.test(line.slice(x+1))  || 
+                    (marker.data && line[x+1]=="."&&/\s/.test(line[x+2])   )  ||
+                    (  "+-.,".includes(line[x+1])&&line[x + 2]&&dataBlockRE.test(line[x + 2]) )
                 ) {
                     x++;
                     marker.data += line[x];
@@ -369,7 +373,7 @@ function bbox(string = "") {
 }
 
 /** build an svg web font to download and then use a online converter */
-function buildWebFont({ name = "hexSpellVxExport", hAdv = 500 } = {}, download) {
+function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5 } = {}, download) {
 
     let glypsSVG = "";
 
@@ -432,7 +436,7 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500 } = {}, download) 
     for (const uni in asciiToHex) {
         // multiply the x of n-glyps with the hAdvment
         const out = [...asciiToHex[uni]].map(
-            (c, i) => hexGlyps[c].data.reduce((agg, p) => agg + (p.cmd ?? (p.y ?? +p.x + i * hAdv) + " "), "")
+            (c, i) => hexGlyps[c].data.reduce((agg, p) => agg + (p.cmd ?? (p.y ?? +p.x + (i+adjtX) * hAdv) + " "), "")
         ).join("\n");
 
         const hori = ` horiz-adv-x="${hAdv * asciiToHex[uni].length}" `;
@@ -452,14 +456,21 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500 } = {}, download) 
  xmlns = 'http://www.w3.org/2000/svg'>
   <defs>
     <font id="Font2">
-      <font-face font-family="${name}" font-weight="normal" font-style="italic"
-          units-per-em="1000" cap-height="600" x-height="400"
-          ascent="700" descent="300" horiz-adv-x="${hAdv}"
-          alphabetic="0" mathematical="350" ideographic="400" hanging="500">
-      </font-face>
-      <missing-glyph><path d="M0,0h200v200h-200z"/></missing-glyph>
+    <font-face 
+  font-family="${name}" 
+  units-per-em="1000" 
+  ascent="800" 
+  descent="-100" 
+  cap-height="700"
+  x-height="450"
+  alphabetic="0"
+  horiz-adv-x="${hAdv}"
+   />
+      <missing-glyph><path d="M 261 750L261 83.3L696 83.3L696 750Z M 652 125L304 125L304 708L652 708Z"/></missing-glyph>
+      <!-- liga test -->
+      <glyph unicode="[]" horiz-adv-x="${2*hAdv}" d="M 261 750L261 83.3L696 83.3L696 750Z M 652 125L304 125L304 708L652 708Z" />
       ${`<!--
-        <glyph unicode="!" horiz-adv-x="300">  < !-- Outline of exclam. pt. glyph -- >  </glyph>
+        <glyph unicode="!" horiz-adv-x="XY00">  < !-- Outline of exclam. pt. glyph -- >  </glyph>
         -->`, ''}
 ${glypsSVG}
     </font>
