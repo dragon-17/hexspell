@@ -1,0 +1,28 @@
+
+
+ways circumvent font install
+
+https://cdn.jsdelivr.net/gh/dragon-17/hexspell/main/fonts/hexSpellVxExport.ttf
+
+
+
+<style>
+@font-face {
+  font-family: 'HexSpellCustom';
+  src: url('https://cdn.jsdelivr.net/gh/dragon-17/hexspell/main/fonts/hexSpellVxExport.ttf') format('truetype');
+}
+body { font-family: 'HexSpellCustom', monospace; }
+</style>
+
+
+For website with cors use l bookmark
+
+javascript:(function(){
+  const fontUrl = 'https://cdn.jsdelivr.net/gh/dragon-17/hexspell/main/fonts/hexSpellVxExport.ttf';
+  const style = document.createElement('style');
+  style.innerHTML = `
+    @font-face { font-family: 'InjectFont'; src: url('${fontUrl}'); }
+    * { font-family: 'InjectFont', monospace !important; }
+  `;
+  document.head.appendChild(style);
+})();
