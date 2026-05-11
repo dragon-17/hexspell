@@ -36,7 +36,9 @@
         }
         @font-face {
             font-family: 'hexspellTXT';
-            src: url('./fonts/hexSpellVxExport.ttf') format('truetype');
+            /* src: url('./fonts/Font2.ttf') format('truetype'); */
+            /* src: url('./fonts/hexSpellVxExport.ttf') format('truetype'); */
+            src: url('./fonts/hexspellHexBg.ttf') format('truetype');
         }
         /* this displays normal text as hexspell */
         .hexspellTXT {
@@ -125,6 +127,7 @@
             background-color: #eee;
             word-break: break-all;
             overflow-y: auto;
+            line-height: 1;/*to better see font changes*/
         }
         body:has(#usehexspellTXT:checked){
             font-family: "hexspellTXT";

@@ -1,3 +1,59 @@
+/**
+ * Different hex spell fonts 
+ * 
+ * HexHex  ->  text to hexspell              Hello -> 6e110
+ *     - uses own designed font-glyphs for 0-9a-f
+ * HexTxt  ->  hex ASCII to normal ASCII     6e110 -> Hello  
+ *     - 
+ * HexBin  ->  hex binary to normal ASCII    0x5e  0x11 0x00  -> Hello 
+ *     !- problem alignment     hexspell 4bit  normal ASCII 7bit  
+ *     !- UTF-8 problem   << use old 255 win codepage 
+ * 
+ * Maybee in future
+ * a cursive writing with own 16 symbol alphapeth (look notes on my physical note block)
+ *      - has esc 3 and other ctrl glyphs as smaller glyph at start of stroke to differentiate from normal hex values
+ *      - monospace for monospace obj
+ * 
+ * font for:
+special spell encryption language  (looks kryptic, can be read out loud, maps to colors/?elements, save as compact binary)
+in spell txt desc:  fireball cast 5 meter go!
+to hexspell:        f12eba1100ca5700350044e7e200903E       ( short letter map explain:  0:o 1:il 2:rz 3:x 4:n 44:m 5:s 6:hp 7:t 8:i' ' 88:ii,ou,oo 9:gyj a:a b:bk c:cuv cc:w d:dj e:e f:f fd:v 74:k 7b:z 6b:p 3x:0-9 3a-b: : .,; ESC <hexData> ! ?)
+                       ^magic writing notation, you can still read it; also mostly reversable
+
+How to pronounce it:
+use a number spellout based mapping table (best in a foreign language, for me (DE) english, use latin etc.):
+    1-> on(e)  2-> two/du  3-> (th)ree/thee  4-> four/fu/fur   5-> (f)iv(e)
+    6-> (s)ix  7->(se)v(e)n   8->eig(ht)  9->(n)ine
+    0->(o)h/(n)ull  # to speak out explicit space between words   
+
+                    f-one-two-eba-one-one  null-null ... nine-null three-e
+
+your spell in a magic language: 
+                     1 2     1  1   0 0     5 7  3   5  4 4    7   2  9  0    3   e(3e is hexspell '!')
+                    fonwoeba-on-on ('o'o) caivee hreeiv urfure-vne-wo ineull  THEEE
+pronounce options:      ö(DE)      ohhhh(Space) h're-I(DE)ve       du   oi(DE)
+                                   ^cast/charge time 
+
+Spelling easily decipherable on paper. Write Number letter over/under replaced word and you can read original message again.  
+                            
+You can map the hexspelled words to CSS #rgb/#rrggbb colors, which in turn can represent elements. 
+Use grayscales for less than 3-components #g/#gg, use transparency for 4 #rgba, and split words (during incantation) at achive different colors/elemnts
+                           f12eba11                   ca57            35      44e7e2                         903E
+ Valid CSS colors:         #f12 #eba         #11(1)     #ca57       #35(3535) #44e #7e2                     #903E
+ Color Cube Region Names:  red light.purple  black   yellowTrsprt   grey     blue  light.green/green-yellow   #purple.lightTransparent
+                               aka violet
+
+ *              
+ * Generall Fonts
+ * binHex  ->  open bin file in texteditor and see byte as hex pairs (similar HexBin)
+ * binTxt  ->  advanced binHex plus mix as subscript the glyph with the actual symbol and its hex code
+ * 
+ * 
+ * 
+ */
+
+
+
 ///// HTML/SVG util
 const $attrs = (elm = document.body, attrs, val) => {
     attrs && typeof attrs !== "object" ? attrs = { [attrs]: val } : 0;
@@ -429,6 +485,7 @@ function bbox(string = "") {
 function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
         mapping= asciiToHex, baseFontElm=null, glypPathQuery=".font pre[name]",
         fillUnmapped=false,maxFillCode= 4096,
+        useBgHelper=true,
     } = {}, download) {
 
     let glypsSVG = "";
@@ -437,7 +494,12 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
 
     const glyphsPres = document.querySelectorAll(glypPathQuery);
 
-    const filledMap = {...mapping};
+    const filledMap = { ...mapping};
+    if(useBgHelper){
+        const mappedFromKey= k=> [...k].map( ch=>mapping[ch]??ch ).join("");
+        for(const k in backgroundHelper.isGrid) filledMap[k]= mappedFromKey(k);
+        for(const k in backgroundHelper.isBox) filledMap[k]= mappedFromKey(k);
+    }
 
     for (const elm of glyphsPres) {
         if (elm.hasAttribute("ignore")) continue;
@@ -462,9 +524,17 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
 
     for (const uni in filledMap) {
         // multiply the x of n-glyps with the hAdvment
-        const out = [...filledMap[uni]].map(
+        let out = [...filledMap[uni]].map(
             (c, i) => hexGlyps[c].data.reduce((agg, p) => agg + (p.cmd ?? (p.y ?? +p.x + (i+adjtX) * hAdv) + " "), "")
         ).join("\n");
+
+        // just append background ligiture path
+        if(useBgHelper && backgroundHelper.isGrid[uni]){
+            out +='\n'+ backgroundHelper.grid.apply(null,backgroundHelper.isGrid[uni]);
+        }
+        if(useBgHelper && backgroundHelper.isBox[uni]){
+            out +='\n'+ backgroundHelper.box.apply(null,backgroundHelper.isBox[uni]);
+        }
 
         const hori = ` horiz-adv-x="${hAdv * filledMap[uni].length}" `;
 
@@ -487,20 +557,16 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
         `<font-face 
       font-family="${name}" 
       units-per-em="1000" 
-      ascent="800" 
-      descent="-100" 
+      ascent="900" 
+      descent="0" 
       cap-height="700"
       x-height="450"
       alphabetic="0"
+      line-gap="0"
       horiz-adv-x="${hAdv}"
        />`
     }
       <missing-glyph><path d="M 261 750L261 83.3L696 83.3L696 750Z M 652 125L304 125L304 708L652 708Z"/></missing-glyph>
-      <!-- liga test -->
-      <glyph unicode="[]" horiz-adv-x="${2*hAdv}" d="M 261 750L261 83.3L696 83.3L696 750Z M 652 125L304 125L304 708L652 708Z" />
-      ${`<!--
-        <glyph unicode="!" horiz-adv-x="XY00">  < !-- Outline of exclam. pt. glyph -- >  </glyph>
-        -->`, ''}
 ${glypsSVG}
     </font>
   </defs>
@@ -514,7 +580,57 @@ ${glypsSVG}
     }
     return svgBase;
 }
+const U = 1000; // Standard unit (2 glyph widths or 1 glyph height)
+const backgroundHelper = {
+    isGrid: {
+        '##':[8,8],
+        '###':[16,8],
+        '##2':[8,2],
+    },
+    isBox:{
+        '[]1':[1,1],
+        '[**]':[2,2],
+        '[**]1':[2,1],
+        '[****]':[6,6],
+        '[****]1':[6,1],
+        '[****]3':[6,3],
+        '[****]12':[6,12],
+        '[******]':[8,8],
+        '[******]1':[8,1],
+        '[******]3':[8,3],
+        '[******]4':[8,4],
+        '[******]12':[8,12],
+        
+        '[********]':[16,16],
+        '[********]1':[16,1],
+        '[********]8':[16,8],
+    },
+    grid: (cellW, cellH,thick=10) => {
+        let path = `M 0 ${U-thick/2} `;
+        const width = cellW * U;
+        const height = cellH * U;
+        // Horizontal lines
+        for (let i = 0; i <= cellH; i++) {
+            path += `m 0 ${ (i === 0 ? 0 : -U+thick/2)} h ${width} v ${thick} h ${-width} `;
+        }
+        // Vertical lines
+        path += `M 0 ${U-thick/2} `; // Reset to top-left
+        for (let i = 0; i <= cellW; i++) {
+            path += `m ${(i === 0 ? 0 : U-thick)} 0 v ${-height} h ${thick} v ${height} `;
+        }
+        return path.trim();
+    },
+    box(cellW, cellH,thick=50){
+        const width = cellW * U;
+        const height = cellH * U;
+        const thick2 = thick/2;
+        return `M${-thick2} ${U+thick2} h${width+thick}v${-height-thick}h${-width-thick}z M ${thick2} ${U-thick2} v ${-height+thick} h${width-thick} v${height-thick}z`
+    },
+};
 
+function buildFontHexHex(){
+
+}
 
 // a simpler version may not be the one used by decoder
 const hexToASCIIMap = {
@@ -532,8 +648,6 @@ const hexToASCIIMap = {
 
     44: 'm',
     cc: 'w',
-    fd: 'v',
-
     '74': 'k',
     'fb': 'c',
     '7b': 'z',

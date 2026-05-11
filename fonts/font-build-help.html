@@ -21,9 +21,13 @@
             Create a new Webfont from a existing one (less work than designing all glyps)
 
             <p>
-                <b>Note:</b> You can use a online converter e.g. from <code>.ttf</code> to <code>.svg</code> 
+                <b>Note:</b> You can use a online converter e.g. from <code>.ttf</code> to <code>.svg</code> or install fontforge locally
             </p>
             <label>Select Webfont <input type="file" id="fontBaseIn" ></label>
+
+            <p>
+                <button id="btnHexspellTXT">build hexspellTXT</button>
+            </p>
         </article>
         
     </details>
@@ -111,7 +115,7 @@
 <details name="samples" class="font" open>
     <summary>Font Hex Digits</summary>
 
-    <div fill>Here you can edit the outlines of the font <button onclick="buildWebFont({},true)">Build Font</button></div>
+    <div fill>Here you can edit the outlines of the font <button onclick="buildWebFont({name:'hexspellHex'},true)">Build Font</button></div>
 <pre name="zero" data-unicode="0" contenteditable="">
 .....+.....+.....+.....+
                  .
@@ -369,7 +373,7 @@ X7       L& A6~   .
 </pre>
 
 <!-- maybee for missing glyphs-->
-<pre name="block" data-unicode="[]" contenteditable="">
+<pre name="block" data-unicode="[]" contenteditable="" ignore >
 .....+.....+.....+. ...+
       Bby.5    aC  
                y.5

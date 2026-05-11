@@ -1,6 +1,6 @@
 # Hexspell
 
-A human-readable hexadecimal encoding system for text that creates a good secret language while maintaining readability (even in otherwise unreadable binary data displayed as hexadecimal stream).
+A human-readable hexadecimal encoding system for text. It was invented to give hexacdeimal/numeric (CSS colors, divice MAC-Adresses, memory addresses or telephonenumbers) data a human readable mnonic. It can also create a good secret language while maintaining readability (even in otherwise unreadable binary data displayed as hexadecimal stream).
 
 Best is, you just try out the [live demo](https://dragon-17.github.io/hexspell/) or you can use the no-install CLI described below.
 Alternativly this `readme.md` contains a rough rundown of hexspell.
@@ -38,24 +38,11 @@ Here is the same text in hexspell. You can try read it now or, if you have troub
     90c2 4414d 15 2ead149 17 ac7044a71c119
     cc1760c2 efde4 7614b149 ab0c7 17  3b
     be 6a669  3b  76a7 90c ca4 2ead 7615  3b
-    1 6afd 5ee4 6e061e 76a7 ca4407 3b
+    1 6afde 5ee4 6e061e 76a7 ca4407 3b
 
 ## Overview
 
 Hexspell is a creative take on hexadecimal encoding, inspired by concepts like [hexspeak](https://en.wikipedia.org/wiki/Hexspeak) (e.g., `0xcoffee`, `0xdeadbeef`) or leetspeak (prev. §) but extended to encode all characters. It uses a 4-bit encoding system combined with special combos and escape sequences for complete character coverage.
-
-**Key Benefits:**
-- Human-readable hex encoding - easier to work with/read in hex editor than binary:
-
-        TXT:      test?! abc 1 2 3
-        ASCII:    74 65 73 74 3f 21 61 62 63 20 31 20 32 20 33 
-        Hexspell: 7e 57 3f 3e 00 ab c0 03 10 03 20 03 3
-        (*Note:* hexspell is a 4bit format with some 8bit combos, so a display of 4bits instead of common 1byte display is more readable)
-
-- Compact representation - shorter than ASCII when saved as binary
-- Bidirectional conversion - Web-App/API can both encode text to hex and decode hex back to text
-- Secret language application - obfuscate text in a playful way
-- Map a hex color to a word or vice versa
 
 
 Taking a input text you can convert it into a readable hexadecimal stream:
@@ -93,7 +80,27 @@ You can also interpret the hexspell output as colors, allowing a general mapping
 If you can already read hex spell try to read the colors
 
 
-## Encoding System
+### Use cases
+- Human-readable hex encoding - easier to work with/read in hex editor than binary:
+
+        TXT:      test?! abc 1 2 3
+        ASCII:    74 65 73 74 3f 21 61 62 63 20 31 20 32 20 33 
+        Hexspell: 7e 57 3f 3e 00 ab c0 03 10 03 20 03 3
+        (*Note:* hexspell is a 4bit format with some 8bit combos, so a display of 4bits instead of common 1byte display is more readable)
+
+- Compact representation - shorter than ASCII when saved as binary
+- Bidirectional conversion - Web-App/API can both encode text to hex and decode hex back to text
+- Secret language application - obfuscate text in a playful way
+- Map a hex color to a word or vice versa. 
+       -  `fireball `  -> ` #f12 #eba #1100`  (red, skin-white, transparent-grey (use `" "->00`))
+- Map a hexadecimal uid (e.g. IP/MAC-Addresses) to a name. You can give your technical decives (Smartphone/Laptop) a readable name. You can also do this with phonenumbers, but they will lack the letters `a-f`. You can interpret hexspell numbers via their englsih name or your nativ language (`37 -> 7 -> seven -> ven`). Look at following examples and try to decode the numbers by reading the hexspell (use table): 
+       
+       - ip `192.168.2.1` ->  `lyr.ihi.r.l` -> `lyri hirl`
+       - tel. `49 30 1234567` -> `ny 0 ir4sht` ->  `ny(nu)ll ir(f)oursh(e)t` (just ignore hex a-f for decode back to tel.)
+  Unreadable consonants can be read as stenographic/shorthand abbreviation of the word and insert a `e`, as that is the most common letter. A written stenographic system could interpret superscript as the next commmon letter `a` (442441d).
+
+
+## Detailed Encoding System
 
 ### Overview
 - **Base Unit:** 4-bit encoding per character (hex digits 0-f)
@@ -114,7 +121,6 @@ Example:
     This " " is " " a " " secret " "  message ;
 
     
-    
 **Mappings Explained:**
 - **0** = 'o' (zero looks like o)
 - **1** = 'l' or 'i' (1 looks like lowercase l; use 8 for 'i')
@@ -132,6 +138,16 @@ Example:
 - **d** = 'd'
 - **e** = 'e'
 - **f** = 'f' (or 'fb' for alternate)
+
+
+### Disambiguation 8
+The 8 is special. It serves as a disambiguation marker. Words that have for example both a i and l, it is advised to replace the i with an 8 to make reading easier:
+    
+    Silly Bill will mill all pillows
+    51119 b111 cc111 44111 a11 6b1110cc5  # naive encoding, hard to read
+    58119 b811 cc811 44811 a11 6b8220cc5 # you see the pattern of word better
+
+A 8 may also be used when the c -> c,u,v mapping is confusing. And you could also use the 8 to differentiate between 00 -> oo," ". If you don't use the 8 for disambiuation or you think it is clear that a 8 does not mean disambiguation, it can be used as a compact whitespace (60cc8a2e890c -> How are you) or vertical seperation bar, reducing binary file sizes. 
 
 ### Table 2: Special Escape & Combo Sequences
 
