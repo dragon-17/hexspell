@@ -23,11 +23,56 @@
             <p>
                 <b>Note:</b> You can use a online converter e.g. from <code>.ttf</code> to <code>.svg</code> or install fontforge locally
             </p>
-            <label>Select Webfont <input type="file" id="fontBaseIn" ></label>
+            <label>Select Webfont <input type="file" id="fontBaseIn" > N/A </label>
 
-            <p>
-                <button id="btnHexspellTXT">build hexspellTXT</button>
+            <p pre>
+                <label><input type="checkbox" id="inHexBg" checked> Use Bg drawings</label
+                >          <button disabled id="btnHexspellHex">build hexspellHex</button
+                >          <button disabled id="btnHexspellBin">build hexspellBin</button
+                >
             </p>
+            <style>
+                @font-face {
+                    font-family: "hexspellHex";
+                    src: url("./hexspellHex.ttf") format("truetype");
+                }
+                @font-face {
+                    font-family: "hexspellTxt";
+                    src: url("./hexspellTxt.ttf") format("truetype");
+                }
+                @font-face {
+                    font-family: "hexspellBin";
+                    src: url("./hexspellBin.ttf") format("truetype");
+                }
+              
+                [pre] { white-space: pre-wrap; }
+                body:has(#hex:checked) { --hexFont: "hexspellHex";  }
+                body:has(#hexBg:checked) { --hexFont:"hexspellHex Bg";  }
+                body:has(#txt:checked) { --hexFont:"hexspellTxt";  }
+                body:has(#bin:checked) { --hexFont:"hexspellBin";  }
+                body:has(#hexTest:checked) { --hexFont:"hexspellTxtTest";  }
+                /* browser behave wiredly with number ligatures */
+                .txt {
+                    font-family: var(--hexFont);
+                    font-variant-ligatures: contextual;
+                    font-feature-settings: "liga" 1, "clig" 1;
+                }
+            </style>
+            <fieldset pre><legend>Hexspell Font</legend>
+                <label><input type="radio" name="hexFont" id="hex"> Hex <small>(ascii -> hexspell)</small></label>
+                <label><input type="radio" name="hexFont" id="hexBg"> Hex Bg <small>(use <kbd>##</kbd> or <kbd>[]</kbd> for drawings)</small></label>
+                <label><input type="radio" name="hexFont" id="txt" checked> Txt <small>(ascii-hexspell -> ascii; number ligature problems)</small></label>
+                <label><input type="radio" name="hexFont" id="bin"> Bin <strong>TO DO!!</strong> <small>(binary-hexspell -> ascii; UTF problems)</small></label>
+                <!-- &nbsp;      <label><input type="radio" name="hexFont" id="hexTest"> Hex Test Font</label> -->
+            </fieldset>
+            <textarea class="txt">
+                Some text...
+            </textarea>
+            <pre class="txt" contenteditable="">
+                Some pre text...
+            </pre>
+            <pre class="txt" contenteditable="">DèLJDì|ÚHá?ÌâË|?1:23=</pre>
+
         </article>
         
     </details>

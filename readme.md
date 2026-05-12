@@ -1,6 +1,6 @@
 # Hexspell
 
-A human-readable hexadecimal encoding system for text. It was invented to give hexacdeimal/numeric (CSS colors, divice MAC-Adresses, memory addresses or telephonenumbers) data a human readable mnonic. It can also create a good secret language while maintaining readability (even in otherwise unreadable binary data displayed as hexadecimal stream).
+A human-readable hexadecimal encoding system for text. It was invented to give hexacdeimal/numeric (CSS colors, divice MAC-Adresses, memory addresses or telephonenumbers) data a human readable mnonic. It can also create a good secret language while maintaining readability (even in otherwise unreadable binary data displayed as hexadecimal stream) and has fonts for auto encode/decode of files to/from hexspell (even a binary non-UTF-8 256bit font).
 
 Best is, you just try out the [live demo](https://dragon-17.github.io/hexspell/) or you can use the no-install CLI described below.
 Alternativly this `readme.md` contains a rough rundown of hexspell.
@@ -192,6 +192,25 @@ A 8 may also be used when the c -> c,u,v mapping is confusing. And you could als
 - **Bidirectional option** - Handle ambiguous decodings with dropdown selector
 - **Format options** - Various display and encoding formats
 - **Download functionality** - Export results as both hex and ASCII formats
+
+## Fonts
+Different hex spell monospace fonts Just apply them to a text to convert or decode hexspell. The reversal does not work 100%. The hexspell font glyphs are self-designed svg paths (you can see at them that I am no desinger). The fonts that convert hexspell to ASCII use as basis the `Inconsolas` font. You find them in the fonts folder and there is a messy developer testing `.html` you can look at.
+ 
+HexHex  ->  text to hexspell              Hello -> 6e110
+ - uses own designed font-glyphs for 0-9a-f
+HexTxt  ->  hex ASCII to normal ASCII     6e110 -> Hello    
+ - issues with number ligatures mixed with non number
+     
+HexBin  ->  hex binary to normal ASCII    0x5e  0x11 0x00  -> Hello 
+- problem alignment     hexspell 4bit  normal ASCII 7bit  and control characters
+- UTF-8 problem   << use old 255 win codepage 
+
+Maybee in future:
+- a cursive writing with own 16 symbol alphapeth (look notes on my physical note block)
+     - has esc 3 and other ctrl glyphs as smaller glyph at start of stroke to differentiate from normal hex values
+     - monospace for monospace obj
+- A background drawing font where overshoting ligatures allow to draw text. There a some dummy version intergrated in the hexspell fonts. Draw a grid with the liga `##` and `[****]` for a rect. Use more chars to increase the width and trailing numbers to determine the height.
+
 
 ### Command-Line Interface
 - Headless Chrome integration for CLI usage

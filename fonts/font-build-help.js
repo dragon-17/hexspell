@@ -117,21 +117,24 @@ let svgFontElm = null;
 fontBaseIn.onchange =async (ev)=>{
     const file = ev.target.files[0];
     let svg  = $SVG("svg");
-    const svgStr =  await ev.target.files[0].text();
-    svgIframe.contentDocument.innerHTML = svgStr;
+    const svgStr =  (await ev.target.files[0].text())
+    // ?.replace?.(/<\?xml.*?\n(\s*<!DOC.*?\n)/i,"");
+    svgIframe.contentDocument.body.innerHTML = svgStr;
     
-    svgFontElm= doc.querySelector("svg");  
-
-    // 4. Jetzt kannst du mit querySelector auf die Glyphen zugreifen
-    const glyphs = doc.querySelectorAll('glyph');
-    console.log(`Geisterbeschwörung erfolgreich: ${glyphs.length} Glyphen gefunden.`);
+    svgFontElm= svgIframe.contentDocument.querySelector("svg");  
+    const glyphs = svgIframe.contentDocument.querySelectorAll('glyph');
+    const msg =  `${glyphs.length} Glyphs where found in ${file.name}`
+    ev.target.nextSibling.data = msg;
+    console.log(`${glyphs.length} Glyphs wher found in ${file.name}.`);
+    btnHexspellHex.disabled = false;
+    btnHexspellBin.disabled = false;
 }
 
 let _Cache = { grps: null, params: null };
 
 
 function gridStats(gridString) {
-    const lines = gridString.trim().split('\n');
+    const lines = gridString.split('\n');
     const gridH = lines.length;
     const gridW = lines.map(l => l.length).reduce((max, ll) => Math.max(max, ll));
     return [lines, gridW, gridH,];
@@ -481,18 +484,25 @@ function bbox(string = "") {
         '&#xfc;': 'ce',
 
     }
+const esc = x=>x.startsWith("&#")?x:x.replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('&','&amp;');
+const useBg = document.querySelector("#inHexBg");
 /** build an svg web font to download and then use a online converter */
 function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
         mapping= asciiToHex, baseFontElm=null, glypPathQuery=".font pre[name]",
         fillUnmapped=false,maxFillCode= 4096,
-        useBgHelper=true,
+        useBgHelper= useBg.checked ,
     } = {}, download) {
 
     let glypsSVG = "";
 
     const hexGlyps = {};
 
-    const glyphsPres = document.querySelectorAll(glypPathQuery);
+    const glyphsPres = baseFontElm?.querySelectorAll?.("glyph")?? document.querySelectorAll(glypPathQuery);
+    const copiedBaseFontFaceElm = baseFontElm?.querySelector?.("font-face");
+    const copiedBaseFontFace = copiedBaseFontFaceElm?.outerHTML;
+    if(copiedBaseFontFaceElm){
+        hAdv =    +copiedBaseFontFaceElm.getAttribute("horiz-adv-x") || hAdv; 
+    }
 
     const filledMap = { ...mapping};
     if(useBgHelper){
@@ -500,32 +510,39 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
         for(const k in backgroundHelper.isGrid) filledMap[k]= mappedFromKey(k);
         for(const k in backgroundHelper.isBox) filledMap[k]= mappedFromKey(k);
     }
+    let isLoaded = !!baseFontElm;
 
     for (const elm of glyphsPres) {
         if (elm.hasAttribute("ignore")) continue;
-        const unicode = elm.dataset.unicode;
+        const unicode = elm.getAttribute("unicode") || elm.dataset.unicode ;
         if (!unicode) continue
 
         // you must recalculate fliped path, cause fonts/postscript corrdinate system starts in lower left corner, not svg top-left.
-        let dFlipped =  elm.hasAttribute("d")? elm.getAttribute("d")  
-                : gridToSvgPath(elm.innerText || el.textContent, fontW, fontH, 0, true);
-        let evenCntr = 0;
-        // parse parst of all paths
+        let dFlipped = isLoaded||elm.hasAttribute("d")? elm.getAttribute("d") ||"" 
+                : gridToSvgPath(elm.innerText || elm.textContent, fontW, fontH, 0, true);
+        
+        // parse all svg paths
+        let xyAltCntr = 0;  let isVv = 0;
         let data = [];
-        dFlipped.replace(/(\d+(?:\.\d+)?)|([^\d\s]+)/g, (_m, num, cmd,) => {
-            data.push(num !== undefined ? (evenCntr++ % 2 == 0 ? { x: num } : { y: num }) : { cmd })
+        dFlipped.replace(/([+-]?\d+(?:\.\d+)?)|(z|Z|[^\d\s+-]+)/g, (_m, num, cmd,) => {
+            data.push(  num ? ( !isVv && xyAltCntr++ % 2 == 0 ? { x: num } : { y: num }) 
+                : (isVv="vV".includes(cmd), xyAltCntr=0, { cmd }) 
+            )
             return "";
         });
-
         hexGlyps[unicode] = { str: dFlipped, data };
-
         if(fillUnmapped && !filledMap[unicode]  && unicode[0].charCodeAt()<maxFillCode) filledMap[unicode] = unicode;
     }
 
+    const isLowerCase = x=>x.toLowerCase()==x;
+
     for (const uni in filledMap) {
         // multiply the x of n-glyps with the hAdvment
+        let isRel = false;
         let out = [...filledMap[uni]].map(
-            (c, i) => hexGlyps[c].data.reduce((agg, p) => agg + (p.cmd ?? (p.y ?? +p.x + (i+adjtX) * hAdv) + " "), "")
+            (c, i) =>
+                 hexGlyps[c].data.reduce((agg, p) => agg + ( p.cmd?(isRel=isLowerCase(p.cmd),p.cmd)  
+                :  (p.y ??  (isRel? p.x :  +p.x + (i+adjtX) * hAdv )) + " "), "")
         ).join("\n");
 
         // just append background ligiture path
@@ -538,21 +555,21 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
 
         const hori = ` horiz-adv-x="${hAdv * filledMap[uni].length}" `;
 
-        glypsSVG += `<glyph unicode="${uni}" d="${out}"${hori}/>\n`;
+        glypsSVG += `<glyph unicode="${esc(uni)}" d="${out}"${hori}/>\n`;
 
-        if (uni.length == 1 && uni.toUpperCase() !== uni) {
-            glypsSVG += `<glyph unicode="${uni.toUpperCase()}" d="${out}"${hori}/>\n`;
+        if ( !isLoaded && uni.length == 1 && uni.toUpperCase() !== uni) {
+            glypsSVG += `<glyph unicode="${esc(uni.toUpperCase())}" d="${out}"${hori}/>\n`;
         }
     }
 
     
-    const copiedBaseFontFace = baseFontElm?.querySelector?.("font-face")?.outerHTML;
+    
 
     const svgBase = `<?xml version="1.0" standalone="yes"?>
 <svg width="100%" height="100%"
  xmlns = 'http://www.w3.org/2000/svg'>
   <defs>
-    <font id="Font2">${
+    <font id="${name}">${
         copiedBaseFontFace ||
         `<font-face 
       font-family="${name}" 
@@ -628,9 +645,57 @@ const backgroundHelper = {
     },
 };
 
-function buildFontHexHex(){
+const btnHexspellHex = document.querySelector("#btnHexspellHex");
+const btnHexspellBin = document.querySelector("#btnHexspellBin");
 
+btnHexspellHex.onclick = buildFontHexHex; 
+btnHexspellBin.onclick = buildFontHexBin; 
+
+function buildFontHexHex(){
+    if(!svgFontElm) return console.warn("No font file uploaded");
+    buildWebFont({name:"hexspellTxt",  baseFontElm: svgFontElm ,mapping:hexToASCIIMap, adjtX:0,fillUnmapped:true }, true);
 }
+
+
+function buildFontHexBin(){
+    if(!svgFontElm) return console.warn("No font file uploaded");
+    const binMap = buildBinMap();
+    buildWebFont({name:"hexspellBin",  baseFontElm: svgFontElm ,mapping:binMap, adjtX:0, fillUnmapped:false }, true);
+}
+function buildBinMap(includeLigas=true){
+    const binTable = {}; 
+
+    for(let i=0;i<255;i++){
+        let key = i;
+        if(i<32&&i!==9) key = 256 +key;
+        const ashex =  i.toString(16).padStart(  2,"0");
+        const hexCode = "&#x"+key.toString(16).padStart( key<256? 2:4,"0")+";"
+        if(hexToASCIIMap[ashex]){
+            binTable[hexCode] = hexToASCIIMap[ashex]; 
+        } else {
+            let leftNible = hexToASCIIMap[ashex.at(-2)];
+            let rightNible = hexToASCIIMap[ashex.at(-1)];
+            if(leftNible && rightNible){
+                binTable[hexCode] = leftNible + rightNible;
+            }
+        }
+    }
+    if(includeLigas) for(const key in hexToASCIIMap) if(key.length==4){
+        let keyA = parseInt(key.slice(0,2),16);
+        if(keyA<32&&keyA!==9){
+            keyA = ""+1+keyA.toString(16).padStart(  2,"0")
+            // continue;
+        } 
+        let keyB = parseInt(key.slice(2),16);
+        if(keyB<32&&keyB!==9){
+            keyB = ""+1+keyB.toString(16).padStart(  2,"0")
+            // continue
+        } 
+        binTable[ "&#x"+(keyA||99) +";"+ "&#x"+(keyB||99) +";" ] = hexToASCIIMap[key];
+    }
+    return binTable;
+}
+const findInBiMap = (ch,ents)=> ents.filter(x=>x[1].includes(ch)).map( e=>[ parseInt(  e[0].slice(3),16),String.fromCharCode(  parseInt(  e[0].slice(3),16) ) , e[1]] )
 
 // a simpler version may not be the one used by decoder
 const hexToASCIIMap = {
@@ -661,6 +726,7 @@ const hexToASCIIMap = {
     '344c': "*",
     '3d1f': "/",
 
+    '88': ' ',
     'aaa': '(',
     'aaa0': '(',
     'fff': ')',
@@ -683,6 +749,25 @@ const hexToASCIIMap = {
     '3e': '!',
     '3f': '?',
     'bb': '-',
+    'dd': '+',
+    'ee':'#',
+
+    'e5c1':'l',
+    'e5c2':'r',
+    'e5c3':'x',
+    'e5c4':'n',
+    'e5c5':'s',
+    'e5c6':'h',
+    'e5c7':'t',
+    'e5c8':'i',
+    'e5c9':'g',
+    'e5c0':'o',
+    'e5ca':'a',
+    'e5cb':'b',
+    'e5cc':'c',
+    'e5cd':'d',
+    'e5ce':'e',
+    'e5cf':'f',
 
     '5b': 'sk',
     '5bb': 's-',
@@ -719,8 +804,7 @@ const hexToASCIIMap = {
     'f12': 'fir',
     '811': 'ill',
     'f1a': 'fla',
-
-    '88': 'oo',
+   
     '886': 'oop',
     '886b': 'oop',
     '1ee': 'lee',
@@ -730,7 +814,6 @@ const hexToASCIIMap = {
 
     '66b': 'pp',
 
-    '16': 'lp',
     '16b': 'lp',
     '1446': 'imp',
     'e446': 'emp',
@@ -757,7 +840,7 @@ const hexToASCIIMap = {
     '0c9': 'oug',
     '0c5': 'ous',
     'o67': 'opt',
-    'u67': 'upt',
+    'c67': 'upt',
     '2ce': 'rce',
 
     'c11': 'ull',
@@ -787,7 +870,6 @@ const hexToASCIIMap = {
     '446': 'mp',
     '446b': 'mp',
     '86b': 'ip',
-    '16b': 'ip',
 
 
     '06': 'op',
@@ -858,6 +940,7 @@ const hexToASCIIMap = {
     '74811': 'kill',
 
     '562': 'spr',
+    'c6':'ch',
     '5c6': 'sch',
     'ac6': 'ach',
     '1c6': 'ich',

@@ -35,14 +35,14 @@
             counter-reset: figTbl 0  /* otherCntr 3 */ ;
         }
         @font-face {
-            font-family: 'hexspellTXT';
+            font-family: 'hexspellHex';
             /* src: url('./fonts/Font2.ttf') format('truetype'); */
             /* src: url('./fonts/hexSpellVxExport.ttf') format('truetype'); */
             src: url('./fonts/hexspellHexBg.ttf') format('truetype');
         }
         /* this displays normal text as hexspell */
-        .hexspellTXT {
-            font-family: "hexspellTXT";
+        .hexspellHex {
+            font-family: "hexspellHex";
         }
         figure { float: inline-end;  counter-increment: figTbl; }
         figure:has(table) figcaption { 
@@ -129,8 +129,8 @@
             overflow-y: auto;
             line-height: 1;/*to better see font changes*/
         }
-        body:has(#usehexspellTXT:checked){
-            font-family: "hexspellTXT";
+        body:has(#usehexspellHex:checked){
+            font-family: "hexspellHex";
             &::selection, ::selection {  color: orange; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         }
         /* button style text color reversed + border */
@@ -326,8 +326,8 @@ from the decoder.</aside
         <label title="Conflicts if you want to use more than one ' '(space) in your text;&#10;  query param:  readableWS=1 | readableWS=0">Use <code>"\n"&lt;=>"0000"</code> for better readable text <input id="reableWSin" checked type="checkbox"></label>
         <label title="Use ' ' for hex Output&#10;  query param:  compact=1 | compact=0">Compact Output <input id="CompactHexOut" checked type="checkbox"></label>
         <div>
-            <label  title="query paramenter  ?hexfont  | ?hexfont=1  | ?hexfont=0">Change input text font to mimic hexspell <input id="usehexspellTXT" type="checkbox"></label>
-            (<a title="Must be served by a server, may not work if opened locally in a browser via the file:// protocol" download="hexspellTXTv1.ttf" href="fonts/hexspellTXTv1.ttf" >Download font <code>hexspellTXTv1.tff</code>
+            <label  title="query paramenter  ?hexfont  | ?hexfont=1  | ?hexfont=0">Change input text font to mimic hexspell <input id="usehexspellHex" type="checkbox"></label>
+            (<a title="Must be served by a server, may not work if opened locally in a browser via the file:// protocol" download="hexspellHexv1.ttf" href="fonts/hexspellHexv1.ttf" >Download font <code>hexspellHexv1.tff</code>
             </a>
             <sup i>i</sup>
             <aside>Custom Hexspell fonts are highly experimental and may not work correctly.
@@ -569,7 +569,8 @@ const charComboToHex = {
     // 'o ':'3000', // Is a 0, but look good enough on decode and solves the space problem
     ' o':'00e5c0',
     // 'oo':'0e5c0', // keeps oo and does not emit space from 00
-    'oo': '88', // ii is rare and no more problem with double O, also better to emit this than a e5c secquence
+    // 'oo': '88', // ii is rare and no more problem with double O, also better to emit this than a e5c secquence
+        // for bin font its better to use 88 as " " so use e5c for oo
     'uu':'ce5cc',
     'cc':'fbfb',
 
@@ -1577,7 +1578,7 @@ function readURLParams(){
         CompactHexOut.checked = parseQueryStrBool(query.get("compact"));
     }
     if(query.has("hexfont")){
-        usehexspellTXT.checked = parseQueryStrBool(query.get("hexfont")||true);
+        usehexspellHex.checked = parseQueryStrBool(query.get("hexfont")||true);
     }
     const keep = query.has("keep")
 
