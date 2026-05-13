@@ -523,7 +523,8 @@ const charToHexMap = {
     '!':'3E', // 0x3E is NOT '!', but ASCII '>';  but Read out Esc Exclamation(EN/Lat) 
     '?':'3f', // 0x3f is ASCII '?'   Read out: Esc Fragezeichen(DE)
     
-    '+':'3add', // esc add    
+    // '+':'3add', // esc add    
+    '+':'dd', // esc add    
     // '-':'35cb', // esc sub  us for char encode the shorter bb
     '-':'bb',
     '*':'344c', // esc mu
@@ -773,9 +774,12 @@ const HexCombosTochar = {
     '918':['gli','gly','yli'], 
     '49e': ['nge','nje','nye'],
     
+    '1188':['ii '],
     '81':['il','öl'],
     '21': ['rl','ri','zl','zi'],// ri is 10:1 more common than rl, but ri can be done via 28 
     '18':['li','lö','lä'],
+    '188':['l ','li ','l '],
+    '1888':['li ','lö ','lä '],
     // '11':['ll','ii','||','!!'], // prevent  11=>li due to vokal alteration
     'a11':['all','aii'],
     'e11':['ell','eii'],
@@ -793,9 +797,9 @@ const HexCombosTochar = {
 
     'f1a': ['fla','fia'],// use f8a for fia
 
-    '88':['oo','ii','y','yi'],
-    '886':['oop','ooh','iip'],
-    '886b':['oop','oopb','iip','iipb'],//respect 6b->p rule
+    '88':[' ','oo','ii','y','yi'],
+    // '886':[ 'oop','ooh','iip'],
+    // '886b':['oop','oopb','iip','iipb'],//respect 6b->p rule
     '1ee':['lee','iee'],
     '1eee':['ieee','leee'],// the standard
     // '43': ['nn','nx'], // overlap with 3 escape, but 43 makes sense cause 4 and 3 are close, same as  12 for 11 ll
@@ -990,6 +994,7 @@ const HexCombosTochar = {
     'ec74':['eck','euk','eutn'],
     '017':['oit','eut','olt'],
     '08': ['ou','oi'],
+    '088': ['o ','oii'],
     '086':['oup','ouh'],
     '086b':['oup','oupb','ouhb'],// rule 6b->p
     '0811':['oill','oull'], /* ill (double l) is more common than ull */

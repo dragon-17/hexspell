@@ -1,0 +1,7 @@
+
+hallo this is my encoding to read hexadecimal text as latin letters;   you can also use bigramms where the mapping is ambigicos or the esc sequence x;  you have general punuctuation uselng the 3 as a escX : ;;; ! ? dd - * + ( ) [ ]  numbers use their real ascii code: 1 2 3 4 5 6 7i8 9 0  thanbs or thanks for reading this!
+
+uses the 88 instead of 00 cause most editors/fonts/apps don't like control chars
+  note: use for programmatic decoding less readable combos instead:  74=k fd=v bf=x  fb=c 8=i  97=y 9b=qu 6b=p  88=" "
+
+6a11088761588158844988e4c0d1498870882ead886ebfadec844a1887ebf788a5881a714881e77e253b88888890c88ca488a15088c5e88b192a4444588cc6e2e8876e8844a66b149881588a44b91c0500e5c028876e88e5ca6e885e9be4ce88e5c33b888890c886afde889e4e2a1886bc4c7ca710488c5e1498876e883388a588a88e5ca6e883a883b3b3b883e883f88dd88bb88344c883d1f88aaa088fff088bbb88ddd88884c44be2588c5e8876e82882ea188a5c1188c0de3a883188328833883488358836883783888398830888876a4b588028876a474588f02882ead1498876153e

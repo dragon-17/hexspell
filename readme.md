@@ -77,7 +77,7 @@ You can also interpret the hexspell output as colors, allowing a general mapping
 
 <img src="./readmeText2ColorEx.png" alt="the text 'fire Iwater earth   wind' converted to the colors ''" height="100"/>
 
-If you can already read hex spell try to read the colors
+If you can already read hex spell try to read the colors. And hex data may be interpreted as a latin hexspell text. 
 
 
 ### Use cases
@@ -90,7 +90,7 @@ If you can already read hex spell try to read the colors
 
 - Compact representation - shorter than ASCII when saved as binary
 - Bidirectional conversion - Web-App/API can both encode text to hex and decode hex back to text
-- Secret language application - obfuscate text in a playful way
+- Secret language application - obfuscate text in a playful way e.g. with a `hexspell font`
 - Map a hex color to a word or vice versa. 
        -  `fireball `  -> ` #f12 #eba #1100`  (red, skin-white, transparent-grey (use `" "->00`))
 - Map a hexadecimal uid (e.g. IP/MAC-Addresses) to a name. You can give your technical decives (Smartphone/Laptop) a readable name. You can also do this with phonenumbers, but they will lack the letters `a-f`. You can interpret hexspell numbers via their englsih name or your nativ language (`37 -> 7 -> seven -> ven`). Look at following examples and try to decode the numbers by reading the hexspell (use table): 
@@ -98,6 +98,7 @@ If you can already read hex spell try to read the colors
        - ip `192.168.2.1` ->  `lyr.ihi.r.l` -> `lyri hirl`
        - tel. `49 30 1234567` -> `ny 0 ir4sht` ->  `ny(nu)ll ir(f)oursh(e)t` (just ignore hex a-f for decode back to tel.)
   Unreadable consonants can be read as stenographic/shorthand abbreviation of the word and insert a `e`, as that is the most common letter. A written stenographic system could interpret superscript as the next commmon letter `a` (442441d).
+  For only decimal number data such as telephone numbers you can insert letters/vokals that never map to a number from 0-9 and ignore them at decoding. Similar thing works with non 0-9a-f letter for unpronoucable hex data. 
 
 
 ## Detailed Encoding System
@@ -147,7 +148,7 @@ The 8 is special. It serves as a disambiguation marker. Words that have for exam
     51119 b111 cc111 44111 a11 6b1110cc5  # naive encoding, hard to read
     58119 b811 cc811 44811 a11 6b8220cc5 # you see the pattern of word better
 
-A 8 may also be used when the c -> c,u,v mapping is confusing. And you could also use the 8 to differentiate between 00 -> oo," ". If you don't use the 8 for disambiuation or you think it is clear that a 8 does not mean disambiguation, it can be used as a compact whitespace (60cc8a2e890c -> How are you) or vertical seperation bar, reducing binary file sizes. 
+A 8 may also be used when the c -> c,u,v mapping is confusing. And you could also use the 8 to differentiate between 00 -> oo," ". If you don't use the 8 for disambiuation or you think it is clear that a 8 does not mean disambiguation, it can be used as a compact whitespace (60cc8a2e890c -> How are you) or vertical seperation bar, reducing binary file sizes. It is also used in the `hexspellBin font` becasue the `0x00` hexspell white space is the null byte control charater causing may processing problems.
 
 ### Table 2: Special Escape & Combo Sequences
 
@@ -156,14 +157,15 @@ A 8 may also be used when the c -> c,u,v mapping is confusing. And you could als
 | **cc** | w | Double-u (cc = uu, vv rare, low impact) |
 | **fd** | v | f='\' and d='/' → \/ (visual mnemonic) |
 | **74** | k | 7='\|' and 4='<' → \|< (looks like k) |
-| **9b** | qu | - |
-| **6b** | p | Better decodability (pb is rare) |
+| **9b** | qu | shape matches |
+| **6b** | p | pb is rare and b sound close to p |
 | **9f** | h | Looks like capital H (optional, use hex 6 instead) |
 | **9d** | j | gd, jd are rare |
 | **97** | y | gt, jt, yt are rare; '7' matches y's stroke |
-| **7b** | z | - |
-| **bf** | x | - |
+| **7b** | z | shape matches |
+| **bf** | x | shape matches |
 | **00** | (space) | Null byte as space |
+| **88** | (space) | Null byte in font trouble |
 | **3a** | : | ESC Enumeration |
 | **3b** | ;, . , | ESC Break (general delimiter) |
 | **3c** | (control) | Beginning of control code (e.g., 3c7 = tab) |
@@ -198,17 +200,26 @@ Different hex spell monospace fonts Just apply them to a text to convert or deco
  
 HexHex  ->  text to hexspell              Hello -> 6e110
  - uses own designed font-glyphs for 0-9a-f
+ <img src="./fonts/preview/RefquickBrownFox.png" alt="Reference Wikipedia page for dummy test 'quick brown fox'" height="300"/>
+ <img src="./fonts/preview/HexHexquickBrownFox.png" alt="HexHex font applied to Wikipedia page for dummy test 'quick brown fox'. now it displays all characters a hexadicmal number 0-9a-f" height="300"/>
+
+
 HexTxt  ->  hex ASCII to normal ASCII     6e110 -> Hello    
  - issues with number ligatures mixed with non number
      
+<img src="./fonts/preview/RefHexTxtPrototypequickBrownFox.png" alt="VS Code Screenshots with ascii hexspell text for auto decode" height="100"/>
+<img src="./fonts/preview/HexTxtPrototypequickBrownFox.png" alt="VS Code Screenshots with font applied to display auto decoded ascii hexspell text" height="100"/>
 HexBin  ->  hex binary to normal ASCII    0x5e  0x11 0x00  -> Hello 
 - problem alignment     hexspell 4bit  normal ASCII 7bit  and control characters
 - UTF-8 problem   << use old 255 win codepage 
+    <img src="./fonts/preview/RefHexBinPrototype.png" alt="reference text and hexdump of binary file. You can read the binary's hexspell" height="400"  >
+    <img src="./fonts/preview/HexBinPrototype.png" alt="The result of opening the bianry and using the prototype font. YOu can barly read it. Note ii serve as space replacement for the 00 nullbyte" height="400" >
 
 Maybee in future:
 - a cursive writing with own 16 symbol alphapeth (look notes on my physical note block)
      - has esc 3 and other ctrl glyphs as smaller glyph at start of stroke to differentiate from normal hex values
      - monospace for monospace obj
+ <img src="./fonts/preview/HexCursivPrototypequickBrownFox.png" alt="Prototype curive font applied to Wikipedia page for dummy test 'quick brown fox'. Now it displays all characters in a contructed ancient script based on hexadicmal number 0-9a-f, but with more visual/spacing cues to help read its hexspell" height="300"/>
 - A background drawing font where overshoting ligatures allow to draw text. There a some dummy version intergrated in the hexspell fonts. Draw a grid with the liga `##` and `[****]` for a rect. Use more chars to increase the width and trailing numbers to determine the height.
 
 
