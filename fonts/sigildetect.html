@@ -1,0 +1,140 @@
+<meta  charset="utf-8">
+
+<div style="white-space: pre;">
+<button id="clearSigils">Clear</button>        <label><input id="logMask" type="checkbox" > LogSketchTrain</label>  
+<details open><summary>Brush</summary><label> <u title="ALT+P to select">P</u>encil   <select accesskey="P" id="brushFn"><option>square<option>flatStick<option>circle</select></label
+    ><label> <u title="ALT+S to select">S</u>ize <input accesskey="S" id="brushSize" type="range" step="0.01" list="brushSizes">
+                <datalist id="brushSizes"><option>0.01<option>0.03<option>0.06<option>0.10<option>0.12<option>0.18<option>0.24</datalist></label><label
+                >Show Cavas <input id="showCanvas" type="checkbox" ></label></details>
+<label>Save last N Sketches as <input id="saveSketch"></label>
+<div> 
+<pre name="sigilDetect" contenteditable="">
+.....................................................
+Sketch onto this SVG
+Draw over last line to connect path (for K)
+Detected Character are inserted here
+(CTR+Z/Y does work)
+
+
+
+
+
+
+
+
+
+
+
+.
+.
+.
+.
+.
+.
+........
+<svg id="mainSvg" viewBox="0 0 1000 1000"></svg>
+<img src="Sign_Compilation.png">
+<canvas id="mainCanvas" width=1000 height=1000>
+</pre>
+
+
+<script>
+    ///// HTML/SVG util
+const $attrs = (elm = document.body, attrs, val) => {
+    attrs && typeof attrs !== "object" ? attrs = { [attrs]: val } : 0;
+    if (attrs) for (let a in attrs) elm[attrs[a] == undefined ? 'removeAttribute' : 'setAttribute'](a, attrs[a]);
+}
+const $New = (tag = "", attrs = {}, childs = [], parent) => {
+    let e = document.createElement(tag);
+    $attrs(e, attrs);
+    childs && e.append(...childs);
+    parent?.appendChild?.(e);
+    return e;
+}
+const $SVG = (tag = "", attrs = {}, childs = [], parent) => {
+    let e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    $attrs(e, attrs);
+    childs && e.append(...childs);
+    parent?.appendChild?.(e);
+    return e;
+}
+</script>
+<script src="./font-sketch.js"></script>
+<script  src="canvasToSVG.js"></script>
+<script  src="font-path-simplifier.js"></script>
+
+<script>
+    lastSketch.insertFound=1;
+    let clearSigils = window.clearSigils;
+    let mainSvg = window.mainSvg;
+    clearSigils.onclick = ()=>{
+        mainSvg.querySelectorAll("path.sketch").forEach(e=>e.remove());
+        lastSketch.lastMasks.length==0;
+        window?.mainCanvas?.getContext?.("2d")?.clearRect?.(0,0,20000,200000)
+    } 
+
+    window.logMask.onchange= (ev)=>   (lastSketch.logMasks = ev.target.checked ); 
+
+    window.saveSketch.onchange = (ev)=>{
+        const name = ev.target.value;
+        if(sketchBook[name]) {
+            return console.error(`${name} exists already in sketchbook use a number if this is a variant d => d2`);
+        }
+        if(lastSketch.lastMasks.length==0) {return console.error(`No last Combined Sketches`)}
+        console.log('registerd',name,'in this session', sketchBook[name]={grid: lastSketch.lastMaskAnd, subMask: lastSketch.lastMaskFree},
+            '\nIf you dont copy save the current sketchbook the sketch is lost')
+        lastSketch.lastMasks.length==0;
+    }
+
+    lastSketch.brushSize=0.01;
+    lastSketch.brushColor="#da4";
+    initBrushInputs()
+</script>
+<style>
+    pre[name],[sketch]{
+        position: relative;
+        width: fit-content;
+        padding: 1rem;
+        &[data-is-sketching]{user-select: none;}
+        &[data-is-sketching]::selection{background-color: transparent;}
+    }
+    pre>svg,pre>canvas,pre>img {
+        z-index: -2;
+        position: absolute; 
+        inset: 0;
+        box-shadow: -1px -1px 2px #777;
+        path.sketch{
+            fill: none;
+            stroke: crimson;
+            stroke-width: 3;
+            animation: fadeStroke 10s ease-in 1s forwards;
+        }
+        path.brush{
+            fill: none;
+            stroke: forestgreen;
+            stroke-width: 1;
+            /* opacity: 0.5; */
+            animation: fadeStroke 10s ease-in 1s forwards;
+        }
+        path[data-is-sketching]{
+            animation: none;
+        }
+        path[data-char]{ stroke: slategray; }
+    }
+    pre>canvas{
+        width: 100%;
+        height: 100%;
+        opacity: 0.3;
+    }
+    body:has(#showCanvas:checked) pre>canvas{
+        opacity: 1;
+    }
+    pre>img{
+        width: 100%;
+        object-fit: cover;
+        opacity: 0.5;
+    }
+    @keyframes fadeStroke {
+        to { opacity: 0.5; stroke-dasharray: 2 3;}
+    }
+</style>

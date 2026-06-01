@@ -1,0 +1,245 @@
+
+<head>
+    <title>HTML Semantic AST possible microdata structures</title>
+</head>
+
+<style>
+    [open]{  
+        &::before{ content: "▼";float: inline-start; width: 1.2rem; } 
+    }
+    [open="false"]{  
+        &::before{ content: "▶"; }
+        &>:not(h1,h2,h3,h4){display: none;}
+    }
+    dt{ 
+        font-weight: bold;
+        &::after{ content: ":";} 
+        &:has(>b)::after{content: none;} 
+    }
+    dl[data-compact], *:has(>input[name="compact"]:checked) +dl, dl:has(input[name="compact"]:checked){
+        dl,&{  &::before{ content: "{"; } &::after{ content: "}"; } }
+        dt{ display: inline-block; }
+        ul {padding: 0;}
+        dd,ul,li {display: inline-block; margin: 0 1rem; list-style:none;}
+        :is(dd,li)::after{content: ",";}
+        dd:has(>dl)::after{content: none;}
+    }
+    
+    del,ins {color: #555}
+    del {background: #fbb; text-decoration: line-through; } ins {background: #dfb;}
+    blockquote { padding-left: 1rem; border-left: solid 3px #bbb; }
+
+    q{   
+        &:has(>b)  { &::before,&::after{content: none;}  }
+    }
+</style>
+
+<article open tabindex="0">
+    <h1>A Article</h1>
+    <p  id="myAst1" # >The # attr says it should be executable  
+        <input  value="42" type="number" name="" > <!-- inputs are like parameters for function
+            input form names are same as ids, but can be addionally non-unique  -->
+
+        <dnf id="myVarA">42</dnf>
+
+        <dnf id="myVarB"> #myVarA <sub->3</sub->  </dnf> <!-- =>  dnf.value=39 -->
+
+        <!--  a example addition  (top to bottom, no op precedence)-->
+        <span> <!-- spans are like parens ()  a <i> does also work -->
+            <var>myVarA</var> <!-- <var> is optional searches allows for ids or a .value attr or white space seperated words -->
+            <add->
+                <data>11</data> <!-- data is for numbers, may have a value -->
+            </add->
+            <add->  10 20 30  </add->  <!-- space-seperate list, adds iterativly  ((((x)+10)+20)+30) -->
+
+            <var>.toFixed <span> 2 </span></var>  <!--  <var> with <span> is a function call -->
+
+            <add-><q>A quoted string</q></add->  <!-- could also be a pre, otherwise textContent would be split into words and array applired-->
+
+            <span op="+">word    word2  
+                word3
+            </span> <!--  same w/o custom tags, .op attr can also be a function  -->
+            
+            <span> <b>+</b>  G1 G2 </span>  <!-- this makes the operator visble in a WYSIWYG Editor -->  
+        </span>
+    </p>
+
+    <form id="myFunctionA">
+        <label>name: <input name="name" value="--" ></label>
+        <label>age: <input name="age" value="-1" type="" > </label>
+        
+        <if>#name <i><b>==</b> <q>--</q></i>  </if> <!-- skips next element if untrue -->
+        <output> <q>Err: Invalid Name  </output>
+        
+        <span> <b>?</b> #age <b>></b> <data >-1</data> </span>
+        <span> <b>=></b> <q>Err: No age Given</q></span>
+        <b>=></b>
+        <dl>
+            <dt>YourName
+            <dd>#name 
+            <dt>YourAge
+            <dd>#age
+        </dl>
+    </form>
+    
+</article>
+<object name="myObj" open>
+    <h2 tabindex="0">My Object</h2>
+    
+    
+    <dl>
+        <span> <input name="compact" type="checkbox" ></span>
+        <dt> Name<b>:</b><!-- bold tags are ignored by the data extractor, use <strong> if it should be kept -->
+        <dd>my name
+        <dt> age<b>:</b>
+        <dd>22
+        <dt> <q>address</q></dt>
+        <dd>
+            <dl>
+                <span> <input name="compact" type="checkbox" ></span>
+                <dt>Street
+                <dd>rainbow bulevard
+                <dt>Nr
+                <dd>20   
+            </dl>
+        </dd> 
+    </dl>
+</object>
+
+
+<article>
+    <h1>A Article After</h1>  
+    <blockquote>
+        Here is a <del>cite</del> <ins>blockquote</ins> with <del>no deleted</del> <ins>some text</ins>. 
+        Lorem ipsum dolor sit <mark>amet consectetur</mark>, adipisicing elit. Ullam rem deleniti voluptatibus dolor dolore modi ut, debitis voluptates nisi nam?
+    </blockquote>    
+    <p>Another Paragraph <input type="number" value="348">
+        <.name=45<.tag=br    > A text ^.@bla;[X] ^#myInId
+        <data itemprop="parent.class" value="a b c">^.class<b>=</b> <q>a b c</data>
+</article>
+
+<script>
+    let _E = HTMLElement.prototype;_E=null;
+    
+    function pseudoDetails(ev){
+        let tr = (_E??ev.target);
+        if(tr.matches("h1,h2,h3,h4,h5")) tr=tr.parentElement;
+        const openV = tr.getAttribute("open");
+        if(openV!==null && !('open' in tr)){ 
+            tr.setAttribute("open",openV=="false"?"true":"false"); ev.preventDefault() 
+        }
+    }
+    window.onclick = pseudoDetails
+
+    function getParts(elm=_E){
+        let parts = [];
+        let lastIdx=-1;
+        [... elm.childNodes].forEach((n,i)=>{
+            if(n.localName=="dl") return lastIdx=-1, parts.push( dlToObj(n));
+            if(n.localName=="b"||n.nodeType==8) return;
+            if(lastIdx<0) return lastIdx=i, parts.push(n.textContent);
+            return parts[lastIdx]+=n.textContent; 
+        })
+        return  parts.flatMap( p=> typeof p=="string"?p.trim().split(/\s+/):p ).filter(Boolean);
+    }
+    function dlToObj(dl=HTMLDListElement.prototype){
+        const obj={};
+        let keys=[];
+        let vals=[];
+        let i=0;
+        const popVals = ()=>{
+            const val =  vals.length==1?vals[0]:[...vals];
+            for(const key of keys){  obj[key]= val }
+            vals.length = keys.length = 0;
+        }
+        for(const child of dl.children){
+            if(child.localName=="dt"){
+                if(vals.length) popVals()
+                keys.push(...getParts(child));
+                continue
+            } 
+            if(child.localName=="dd"){
+                vals.push(...getParts(child))
+            }  
+        }
+        if(vals.length) popVals()
+        return obj;
+    }
+
+    function parseNum(str){ return isNaN(+str)? str : +str; }
+
+    const ALL_OPS = {
+        'add-':(a,b)=>a+b,'sub-':(a,b)=>a-b,
+        'mul-':(a,b)=>a*b,'div-':(a,b)=>a/b,
+        'mod-':(a,b)=>a%b,'and-':(a,b)=>a&b,
+        'or-':(a,b)=>a|b,'xor-':(a,b)=>a^b,
+        'br':()=>void 0, 
+        '+':(a,b)=>a+b,'-':(a,b)=>a-b,
+        '*':(a,b)=>a*b,'/':(a,b)=>a/b,
+        '%':(a,b)=>a%b,'&':(a,b)=>a&b,
+        '|':(a,b)=>a|b,'^':(a,b)=>a^b,
+        '=':(a,b)=>a=b,';':()=>void 0,
+    }
+    function hEval(el=_E,ctxEl=el,isRoot=true){
+        if(el.localName=="q") return  !isRoot? [el.textContent]: el.textContent;
+        
+        if(el.localName=="data"){
+            const num = parseNum(el.textContent);
+            el.value = num;
+            return !isRoot? [num]:num;
+        }
+        const resolveRef = (idName,asArr)=>{
+            let useGlobal = idName[0]=="."?false: true;
+            idName = "#.".includes( idName[0]) ? idName.slice(1) : idName;
+            const idSel = `[id="${idName}"]`;
+            const nameSel = `[name="${idName}"]`;
+            let refedEl = el.querySelector(idSel) ?? ctxEl.querySelector(idSel) 
+                ?? el.querySelector(nameSel) ?? ctxEl.querySelector(nameSel)
+                ?? (!useGlobal? undefined: 
+                document.body.querySelector(idSel) ?? document.body.querySelector(nameSel))
+
+            const val = refedEl? refedEl.checked ?? refedEl.valueAsNumber ??  refedEl.value   ?? refedEl.textContent  :null;
+            return asArr? [val]:val;
+        }
+        if(el.localName=="var"){
+            // is fun or ref 
+            if(el.childNodes.length==1){
+                return resolveRef(el.textContent,!isRoot);
+            }
+        } 
+        const autoResolve = (str)=>{  if( str.length>1 && "#.".includes(str[0])) return resolveRef(str) ; return str  }
+        let values = [];
+        let op = null;
+        let rhs = [];
+        const words = [...el.childNodes].flatMap( n=> n.nodeType==3? n.textContent.trim().split(/\s+/): n.nodeType==8?[]: n )
+        .filter(Boolean)
+        
+        for(let word of words){
+            if(word.localName){
+                let tagOp = word.localName; 
+                let attrOp = word.getAttribute("op")??"";
+                let firstChOp = word.firstChild?.localName=="b" ? word.firstChild.textContent :""; 
+                
+                if(word.localName=="b" && word.textContent in ALL_OPS ){ op = word.textContent; continue}
+                if( tagOp in ALL_OPS ) op = tagOp;
+                else if(attrOp in ALL_OPS) op=attrOp;
+                else if(firstChOp in ALL_OPS) op=firstChOp;
+            }
+            const nextVal = word.localName? hEval(word,ctxEl,false):  [autoResolve(word)];
+            if(!op) values.push( ...nextVal );
+            else rhs.push(  ...nextVal);
+
+            if(values.length && rhs.length>= values.length){
+                while(  rhs.length>= values.length){
+                    for(let i=0; i<values.length;i++){
+                        values[i] = ALL_OPS[op](values[i],rhs[i]);
+                    }
+                    rhs.splice(0,values.length);
+                }
+                op="";
+            }
+        }
+        el.value = values.length==1? values[0]: values;
+        return isRoot && values.length==1? values[0]: values;
+    }
+</script>

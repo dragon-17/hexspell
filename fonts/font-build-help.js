@@ -73,7 +73,9 @@ const $SVG = (tag = "", attrs = {}, childs = [], parent) => {
     parent?.appendChild?.(e);
     return e;
 }
-
+window.addPanel.onclick = (ev)=>{
+    ev.target.before(ev.target.previousElementSibling.cloneNode(true))
+}
 let fontW = 1000;
 let fontH = 1000;
 
@@ -83,9 +85,13 @@ const blurEv = (ev) => {
     const W = (el.dataset.w ?? fontW);
     const H = (el.dataset.h ?? fontH);
 
-    let previewSvg = el.lastElementChild;
-    if (previewSvg?.localName !== "svg") {
+    let previewSvg = el.querySelector("&>svg");
+    if (!previewSvg) {
         previewSvg = $SVG("svg", { "viewBox": `0 0 ${W} ${H}`, 'tabindex': 0, }, 0, el);
+    }
+    let previewCanvas = el.querySelector("&>canvas");
+    if(!previewCanvas){
+        previewCanvas = $New("canvas",{width:1000,height:1000,},0,el);
     }
 
     // use innerText, cause it deals intelegently with <br> of contenteditable, 
@@ -157,6 +163,7 @@ const markerChars = {
     // for row columns based meta data
     ':': {needNextNum:true},
     '{':{},'}':{},
+    ";":{},// end Path
 };
 
 // grid in most cases only 16x10 or smaller, use UPPERCASE hexadeciaml nums and lowercase hexspell nums 
@@ -294,9 +301,12 @@ function gridToSvgPath(gridString, targetW, targetH, svg, flipH) {
 
     // 2. Gruppieren nach Gehäuse (Upper) und Löchern (Lower,Digits)
     let groups = Object.groupBy(allPoints, p => p.grp);
+    
+    const idToSortNum = id=> !isNaN(+id)?+id: id[0].charCodeAt(0)*10000+(isNaN(+id.slice(1))?999:+id.slice(1));
 
     for (const grp in groups) {
-        groups[grp] = groups[grp].sort((a, b) => a.id.localeCompare(b.id));
+        groups[grp].forEach( pnt=>pnt.sortNum=idToSortNum(pnt.id) )
+        groups[grp] = groups[grp].sort((a, b) => a.sortNum-b.sortNum);
     }
     // for the enumeration order
     groups = { upper: groups.upper, lower: groups.lower, num: groups.num, ...groups }
@@ -318,10 +328,15 @@ function gridToSvgPath(gridString, targetW, targetH, svg, flipH) {
         }
         if (closestPnt){
             const isPosMarker = "+xypXYP".includes( m.type);
-            if(!closestPnt.marker  || !isPosMarker) closestPnt.marker = m;
+            const isEndMarker = ";".includes(m.type);
+            if(!closestPnt.marker  || !(isPosMarker||isEndMarker) ) closestPnt.marker = m;
 
             (closestPnt.allMarker??=[]).push(m);
 
+            if(isEndMarker){
+                if(m.x>closestPnt.x ) closestPnt.isPathEnd= true;
+                else closestPnt.isPathStart=true;
+            }
             if(m.data && isPosMarker){  // set the relativ or position
                 for(const u in m.data){
                     const lower = u.toLowerCase();
@@ -332,7 +347,18 @@ function gridToSvgPath(gridString, targetW, targetH, svg, flipH) {
         m.dist ??= 1;
     }
     let fullPath = "";
-
+    // split groups by path start end
+    for (const grpName in groups){
+        let grp= groups[grpName];
+        if(!grp) continue;
+        let splitids = 1;
+        let splitIdx = 0;
+        let offset = 0;
+        while( -1!==(splitIdx=grp.findIndex(  (g,i)=>g.isPathEnd? (offset=1,1) : i>0 && g.isPathStart?(offset=0,1):0 )) ){
+            grp = groups[grpName+splitids++] = grp.splice(splitIdx+offset);
+        }
+    }
+        
     for (const grpName in groups)
         if (groups?.[grpName]?.length) {
             fullPath += buildSmartPath(groups[grpName], gridW, gridH, targetW, targetH, flipH) + " ";
@@ -364,7 +390,7 @@ function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, f
     const map = (x, y) => trimNum((x / (gridW - 1)) * targetW, fixed) + " " + trimNum(flipHSub + flipMul * (y / (gridH - 1)) * targetH, fixed);
 
     let d = `M ${map(points[0].x, points[0].y)}`;
-
+    let anyClose = false;
     // calc all entries and exits
     for (let i = 0; i < points.length; i++) {
         if (points[i]?.marker?.type == "&") {
@@ -401,9 +427,8 @@ function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, f
         if (pNext.exit) pNextNext = pNext.exit;
 
         const lastIdChar = pCurr.id.at(-1).toLowerCase();
-        const isEnd = i + 1 == points.length;
-        if (isEnd && lastIdChar !== "z") continue;
-
+        const isEnd = pCurr.isPathEnd ||   i + 1 == points.length;
+        if (isEnd &&  lastIdChar !== "z" && !pCurr.isPathEnd ) continue;
 
         const markerT = pCurr.marker?.type;
 
@@ -436,7 +461,7 @@ function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, f
     }
     return d;
 }
-
+/** only for absolute paths */
 function bbox(string = "") {
     const d = string || string?.getAttribute?.("d");
     const cors = d.match(/\d+(\.\d*)?/g);// uses no H or V so simple algo enough
@@ -449,6 +474,7 @@ function bbox(string = "") {
     }
     return grps;
 }
+
     const asciiToHex = {
         a: 'a', b: 'b', c: 'c', d: 'd', e: 'e', f: 'f',
         g: '9', h: '6', i: '1', j: '9', k: 'b', l: '1', m: '44',

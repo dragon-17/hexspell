@@ -104,10 +104,10 @@ function angularVarianceFilter(points, snapPercent = PATH_SIMPLY_CONFIG.SNAP_PER
         const isApex = PATH_SIMPLY_CONFIG.USE_APEX && ((Math.sign(dxIn) !== Math.sign(dxOut) && dxOut !== 0) ||
             (Math.sign(dyIn) !== Math.sign(dyOut) && dyOut !== 0));
 
-        if ( i==0 || i==points.length-1 || diff >  PATH_SIMPLY_CONFIG.CORNER_THRESHOLD|| p.CMD=="M") return { type: 'CORNER', angle: angleOut,...p };
-        if (isApex) return { type: 'APEX', angle: angleOut, ...p }; // The "tip" of the curve
-        if (diff < PATH_SIMPLY_CONFIG.STRAIGHT_THRESHOLD) return { type: 'STRAIGHT', angle: angleOut,...p };
-        return { type: 'CURVE', angle: angleOut, ...p };
+        if ( i==0 || i==points.length-1 || diff >  PATH_SIMPLY_CONFIG.CORNER_THRESHOLD|| p.CMD=="M") return { type: 'CORNER',  angleOut,angleIn,...p };
+        if (isApex) return { type: 'APEX',  angleOut,angleIn, ...p }; // The "tip" of the curve
+        if (diff < PATH_SIMPLY_CONFIG.STRAIGHT_THRESHOLD) return { type: 'STRAIGHT',  angleOut,angleIn,...p };
+        return { type: 'CURVE',  angleOut,angleIn, ...p };
     });
     let lastAnchorX = [];
     let lastAnchorY = [];
@@ -159,11 +159,11 @@ function angularVarianceFilter(points, snapPercent = PATH_SIMPLY_CONFIG.SNAP_PER
         }
         else if (meta.type === 'STRAIGHT') {
             // Straight lines snap to axis (0, 45, 90...)
-            const angle = meta.angle;
+            const angle = meta.angleOut;
             const sector = Math.round(angle / (Math.PI / 4));
             const targetAngle = sector * (Math.PI / 4);
 
-            // Re-calculate X/Y based on snapped angle from previous point
+            // Re-calculate X/Y based on snapped angleOut from previous point
             const prev = processed[i - 1]??[0,0];
             const dist = Math.hypot(x - prev[0], y - prev[1]);
 
