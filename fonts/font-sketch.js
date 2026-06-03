@@ -1,5 +1,5 @@
 
-const arrBbox = (data)=>{
+const arrBbox = (data,isSketchTemplate=false)=>{
     const allX = data.map(d=>d[0]|| d.x);
     const allY = data.map(d=>d[1]|| d.y);
     const bbox = {
@@ -8,15 +8,29 @@ const arrBbox = (data)=>{
         minY: Math.min.apply(0,allY ),
         maxY: Math.max.apply(0,allY ),
         W:0,H:0,
+        AR:1,
         fr:5,// grid fraction count  Note odd number is better for middle lines
     }
     bbox.W = bbox.maxX-bbox.minX;
     bbox.H = bbox.maxY-bbox.minY;
+    bbox.AR=(bbox.W||1)/(bbox.H||1);
+    if(isSketchTemplate){
+        // center vertical or horzontal strokes, prevent diagonal grid templates
+        if(bbox.AR<0.2){
+            bbox.minX-=2*bbox.W
+            bbox.maxX+=2*bbox.W
+            bbox.W= 5*bbox.W;
+        } else if(bbox.AR>4){
+            bbox.minY-=2*bbox.H
+            bbox.maxY+=2*bbox.H
+            bbox.H= 5*bbox.H;
+        }
+    }
     return bbox;
 }
-function sketchGridId(path){
-    const data = typeof path=="string"? svgLinePathStrToAbsPntArr(path) : path; 
-    const bbox =  arrBbox(data)
+function sketchGridId(path,{parsePath0=undefined,bbox0=undefined,denseDrop=0.71}={}){
+    const data = parsePath0 ?? ( typeof path=="string"? svgLinePathStrToAbsPntArr(path) : path); 
+    const bbox =  bbox0?? arrBbox(data,true)
     let p = null;
     let gridIdxs = [];
     let gridIdxsMap = {__proto__:null};
@@ -45,7 +59,15 @@ function sketchGridId(path){
         }
         p=pNext;
     }
-    return {gridIdxs,gridIdxsMap};
+    // drops values whoes density is small than this percentage from the max density
+    if(denseDrop>0){
+        let maxDens = Math.max( ...Object.values(gridIdxsMap).map(x=>x.dense??1) );
+        const cutOff = maxDens*denseDrop;
+        for(const key in gridIdxsMap) 
+            if(gridIdxsMap[key].dense < cutOff ) delete maxDens[key];
+    }
+    const num = combine(gridIdxsMap);
+    return {num, gridIdxs,gridIdxsMap,bbox};
 }
 function toGridSpace(x,y,bbox){
     return { x:  (x-bbox.minX)/bbox.W,   y:  (y-bbox.minY)/bbox.H, }
@@ -63,7 +85,7 @@ function toGridIdx(grdPnt,bbox){
     if (r > 0.5 && r< 1.35 && (x>0.08&&x<0.92)&&(y>0.08&&y<0.92) ){
         // compress corners stronger than edges
         // 0   => no effect   0.2 => subtle   0.35 => strong
-        const warp = 1 - 0.28 * (r*r);
+        const warp = 1 - 0.25 * (r*r);
         cx *= warp;  cy *= warp;
     }
     // back to 0..1
@@ -86,9 +108,10 @@ function gridNumToAscii(num=0,log=1,bbox){
         str+= +(ni&1)?"#":" "
         if(i%5==5-1) str+="\n";
     }
-    if(log)console.log(`num:${num}  AR:${((bbox?.W??1)/(bbox?.H||1)).toFixed(2).replace(/\.0+$/,"")}\n${str}`);
+    if(log)console.log(`num:${num}  AR:${((bbox?.W??1)/(bbox?.H||1)).toFixed(2).replace(/\.0+$/,"")} bin: ${prettyNumBin(num)} (Read R->L)\n${str}`,typeof log=="object"?log:undefined);
     return str;
 }
+function prettyNumBin(num){ return "0b"+ num.toString(2).padStart(25,"0").replace(/(.{5})(?!$)/g,"$1_") }
 // not complete shape is enough an allows some drawing varity
 const sketchBook= {
     "A":{grid: "mm1mm_m1.1m_....._..1.._1m..1",},
@@ -128,10 +151,41 @@ const sketchBook= {
 
     "/":{grid: 1118480, subMask: 32296687,highAR:"\b",midAR:"\b"},
     "Box":{grid: "1.1.1_1mmm1_1mmm1_1mmm1_1.1.1",},
+    "TriU":{grid: 32516164, subMask: 135729},
 
     "✓":{grid: 2162960, subMask: 25971407,},
 }
-for(const k in sketchBook){parseGridToNum(sketchBook[k])  }
+const intBook = b=>{ for(const k in b){parseGridToNum(b[k])  } }
+intBook(sketchBook)
+
+const spellBook = {
+    "Box":{grid: "1.1.1_1mmm1_1mmm1_1mmm1_1.1.1",},
+    "O":{grid: "m1.1m_11..1_1.m.1_1...1_m1.1m",},
+    "O2":{grid: 15583046, subMask: 137233, char: 'O'},
+    "TriU":{grid: 32516164, subMask: 135729},
+    U: {grid: 15058481, subMask: 0b10001_00000_00100_00100_00100,},
+    n:{grid: 18399564, subMask:  0b00100_00100_00100_00000_10001},
+    "HexU":{grid: 5097316, subMask: 17971329, },//0b00100_11011_10001_11011_00100  read right to left or bottom to top
+
+    'arrR':{grid: 9422824, subMask: 19937299, score: 14},
+    "arrRt": { grid:9207560, subMask:24346871,},// thin
+}
+intBook(spellBook)
+let initalSpells = {...spellBook};
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+function copyNewEntries(book=spellBook,clipTimeout=5_000, asAscii=0){
+    let str ="";
+    for(const k in book) if(!initalSpells[k]){
+        str+=`\n"${k}": { grid:${book[k].grid}, subMask:${book[k].subMask},${asAscii?"_ascii:"+`gridNumToAscii(book[k].grid,0)`:""}  ${book[k].char?"char:"+'"'+book[k].char+'",':""}},`;
+    }
+    console.log(str);
+    if(clipTimeout>=0) sleep(clipTimeout).then( _=> navigator.clipboard.writeText(str));
+    return str;
+}
+document.addEventListener("close",()=>{
+    let anyUnsaved = !!Object.keys(spellBook).some(k=>!(k in initalSpells))?.length;
+    if(anyUnsaved && confirm("Want to save unsaved templates into Clipboard?")) copyNewEntries();
+})
 
 function parseGridToNum(entry, str=entry.grid){
     if(typeof entry.grid=="number") return;
@@ -157,13 +211,13 @@ function aspectAlts(entry,name,asp){
     const k = entry[name]?.char ?? name;
     return (   asp<0.55? entry.lowAR : asp>1.3? entry.highAR : asp<0.8?entry.midAR :asp>1.15?entry.lAR : k) ?? k;
 }
-function lookUpSketch(num=0,aspect){
+function lookUpSketch(num=0,AR,book=sketchBook){
     const canidates = [];
     let sub=0;
-    for(const k in sketchBook){
-        const grid = sketchBook[k].grid;
-        if(   (grid&num) == grid && 3>(sub=count1s(num&sketchBook[k].subMask)) ){
-            canidates.push( {name:aspectAlts(sketchBook[k],k,aspect),score: (sketchBook[k].score??=count1s(grid))- sub } );
+    for(const k in book){
+        const grid = book[k].grid;
+        if(   (grid&num) == grid && 3>(sub=count1s(num&book[k].subMask)) ){
+            canidates.push( {name:aspectAlts(book[k],k,AR),score: (book[k].score??=count1s(grid))- sub } );
         } 
     }
     const res= canidates.sort((a,b)=>b.score-a.score);
@@ -174,7 +228,7 @@ function count1s(num){
     for(let ni=num;ni;ni>>=1) cnt+=ni&1;
     return cnt;
 }
-function lookUpClosests(num=0,aspect){
+function lookUpClosests(num=0,AR){
     const canidates = [];
     let sub=0;
     for(const k in sketchBook){
@@ -182,7 +236,7 @@ function lookUpClosests(num=0,aspect){
         sub=count1s(num&sketchBook[k].subMask);
         score = (count1s(num&grid))- sub ;
         sketchBook[k].score??=(count1s(grid))- sub;
-        canidates.push( {name:aspectAlts(sketchBook[k],k,aspect),score, relScore: score/sketchBook[k].score ,  } );
+        canidates.push( {name:aspectAlts(sketchBook[k],k,AR),score, relScore: score/sketchBook[k].score ,  } );
     }
     const res= canidates.sort((a,b)=>b.score-a.score);
     return res;
@@ -210,6 +264,9 @@ let brushes= {
 let lastSketch = {  
     raw:[], ramen:[], epsPercent: 0.03 /* a small part of view port */ ,eps:5,  grid:null,
     allowConnect:false, snap:1.5, intoText: true, noCurves:false,
+    lessBoxify: 0,
+    logStroke:0,
+    logCountours:1,
     lastMasks:[],
     logMasks:0,
     el: null,
@@ -223,7 +280,8 @@ let lastSketch = {
     brushSize:  0.05,// percent of canvas width
     brushLenMul: 2,
     brushFn: brushes.square,
-    brushColor: "#000",
+    brushColor: "#002",
+    svgClassify:1,
 };
 initBrushInputs()
 function initBrushInputs(){
@@ -232,13 +290,20 @@ function initBrushInputs(){
     inFn.value = lastSketch.brushFn.name;
     inFn.onchange=(ev)=> lastSketch.brushFn=brushes[ev.target.value]
     
-    const inSize = window.brushSize;
-    inSize.min=0;
-    inSize.max=0.3;
-    inSize.value = lastSketch.brushSize;
-    inSize.onchange=(ev)=> lastSketch.brushSize=ev.target.valueAsNumber;
+    const inSizeRn = window.brushSize;
+    const inSizeNu = window.brushSizeNumber;
+    inSizeRn.min= inSizeNu.min=0;
+    inSizeRn.max= inSizeNu.max= 0.4;
+    inSizeRn.value = inSizeNu.value = lastSketch.brushSize;
+    inSizeRn.oninput = inSizeNu.oninput =(ev)=> lastSketch.brushSize = inSizeRn.value = inSizeNu.value = ev.target.valueAsNumber;
 
+    const logCountours = window.logCounturs;
+    logCountours.checked = lastSketch.logCountours;
+    logCountours.onchange = (ev)=> lastSketch.logCountours=ev.target.checked;
     
+    const inBoxify = window.boxify;
+    inBoxify.checked = lastSketch.lessBoxify;
+    inBoxify.onchange = (ev)=> lastSketch.lessBoxify=ev.target.checked;
 }
 document.body.onkeydown= (ev=KeyboardEvent.prototype)=>{
     const el =   ev?.target?.closest?.("pre[name],[sketch]");
@@ -253,6 +318,18 @@ document.body.onkeydown= (ev=KeyboardEvent.prototype)=>{
             input.onchange= (ev)=>  img.style= ev.target.value;
         }
         ev.preventDefault();
+    }
+    if(ev.altKey&&ev.key=="Backspace"){
+        clearSketch(el);
+    }
+    if(ev.altKey&&ev.key=="r" && lastBlurPre){
+        let registerName = prompt(`Register last sketches as stroke template. Enter the register name:`,"");
+        const svg = lastBlurPre.querySelector("svg");
+        classifySVGPaths(svg,{log:1,storeLogMasks:registerName,book:spellBook});
+
+        if(confirm(`Look at console if combined grid is sensible?\nStill register "${registerName}"`)){
+            registerLastSketch(registerName,spellBook);
+        }
     }
 }
 
@@ -320,12 +397,16 @@ const sketchMouse = (ev=MouseEvent.prototype)=>{
             for(let contur of canvasContours){
                 const eps = lastSketch.brushFixEps ?? findEps(contur,lastSketch.brushEpsPercent);
                 if(contur.length>5000) contur= contur.filter((c,i)=>i%8==0);
-                let ramen = ramerDouglasPeuPathFilter(contur,(ev.ctrlKey?0.5:1)* eps);
+                let lessBoxy = lastSketch.lessBoxify ^ ev.ctrlKey;
+                let ramen = ramerDouglasPeuPathFilter(contur,(lessBoxy?0.5:1)* eps);
                 let angular = angularVarianceFilter(ramen, ramen.length>30? multiglyphSnap : lastSketch.brushSnap);
                 openSvg.append($SVG("path",{class:"sketch brush", d: pntsToPathD(angular,  lastSketch.brushUseCurve) }));
                 ramenCountours.push(angular);
             }
-            // debugPath.setAttribute("d","")
+            if(lastSketch.svgClassify){
+                if(lastSketch.logCountours) console.clear()
+                classifySVGPaths(openSvg,{log:lastSketch.logCountours});
+            } 
         } 
 
         const detected = simplifyLastSketch(openPath);
@@ -344,7 +425,7 @@ const sketchMouse = (ev=MouseEvent.prototype)=>{
         delete el.dataset.isSketching;
          lastSketch.el=el;
         // console.log("sketch end x y", ...openPath.at(-1) );
-        console.log( "raw len",lastSketch.raw.length,"\nramen", lastSketch.ramen,);
+        // console.log( "raw len",lastSketch.raw.length,"\nramen", lastSketch.ramen,);
         if(debugPath){
             const curveCnt = lastSketch.ramen.reduce((cnt,r)=>cnt+(r.type=="CURVE"?1:0),0);
             const debugPnts = (lastSketch.noCurves?? curveCnt< 0.5*lastSketch.ramen.length)? 
@@ -363,6 +444,7 @@ const sketchMouse = (ev=MouseEvent.prototype)=>{
 }
 document.body.onmousemove = sketchMouse;
 const sketchUp = (ev)=>{
+    if(ev.target.dataset.isSketching) delete ev.target.dataset.isSketching;
     if(initialSel==false){ 
         ev.preventDefault(); getSelection().collapseToEnd(); 
         initialSel=null; 
@@ -412,16 +494,13 @@ function simplifyLastSketch(path=lastSketch.raw){
 
 
     
-    lastSketch.grid = sketchGridId(lastSketch.ramen);
-    console.time("lookup");
-    lastSketch.grid.num = combine( lastSketch.grid.gridIdxsMap );
+    const grid= lastSketch.grid = sketchGridId(lastSketch.ramen);
     
-    let aspect = (bbox?.W??1)/(bbox?.H||1);
-    lastSketch.match= lookUpSketch(lastSketch.grid.num,aspect );
-    console.log("All even nonmatched by closest similaity",lookUpClosests(lastSketch.grid.num,aspect))
-    console.timeEnd("lookup");
-    gridNumToAscii(lastSketch.grid.num,1,bbox);
-    console.log("Match",lastSketch.match?.[0]?.name??"",lastSketch.match);
+    let AR = grid.bbox.AR;
+    lastSketch.match= lookUpSketch(lastSketch.grid.num,AR );
+    // console.log("All even nonmatched by closest similaity",lookUpClosests(lastSketch.grid.num,AR))
+    gridNumToAscii(lastSketch.grid.num,lastSketch.logStroke,bbox);
+    // console.log("Match",lastSketch.match?.[0]?.name??"",lastSketch.match);
     
     loglastMasks(lastSketch.logMasks,debugPath?.dataset?.connect)
 
@@ -464,22 +543,23 @@ function sketchIntoText(el,countours){
             const arr = pointMap[key]??=[];
             arr.push();
         }
-
     }
-
     // document.execCommand("innertText",false,linesCp.join("\n"));
 }
 
 const bin5x5 = 0b11111_11111_11111_11111_11111;
-function loglastMasks(log=1,isConnect=false){
+function loglastMasks(log=1,isConnect=false,setMasks){
     if(isConnect){
         lastSketch.lastMasks[lastSketch.lastMasks.length-1]=lastSketch.grid.num;
     } else lastSketch.lastMasks.push(lastSketch.grid.num);
-
+    
     if(lastSketch.lastMasks.length>20) lastSketch.lastMasks.splice(0,1);
+    
+    if(setMasks) lastSketch.lastMasks=setMasks;
+    
     lastSketch.lastMaskAnd = lastSketch.lastMasks.reduce( (a,n)=>a&n ,-1);
     lastSketch.lastMaskFree = lastSketch.lastMasks.reduce( (a,n)=>a& ((~n)&bin5x5) ,bin5x5);
-
+    
     if(log){
         console.log("**lastMasksAnd",lastSketch.lastMaskAnd," total len",lastSketch.lastMasks.length,)
         gridNumToAscii(lastSketch.lastMaskAnd,1);
@@ -488,6 +568,41 @@ function loglastMasks(log=1,isConnect=false){
         gridNumToAscii(lastSketch.lastMaskFree,1);
         console.log("****",)
     }
+}
+function registerLastSketch(name,dict=sketchBook){
+    if(dict[name]) {
+        return console.error(`${name} exists already in sketchbook use a number if this is a variant d => d2`);
+    }
+    if(lastSketch.lastMasks.length==0) {return console.error(`No last Combined Sketches`)}
+    let char = name.match(/\d+$/);
+    console.log('registerd',name,'in this session', dict[name]={grid: lastSketch.lastMaskAnd, subMask: lastSketch.lastMaskFree},
+            '\nIf you dont copy save the current sketchbook the sketch is lost')
+    lastSketch.lastMasks.length==0;
+    if(char) dict[name].char=name.slice(0,- char.length);  
+}
+function classifySVGPaths(elm,{log=0,book=spellBook, storeLogMasks="",match=".sketch.brush"}={}){
+    let gridNums = [] 
+    for(let p of elm.querySelectorAll("path")){
+        let d = p.getAttribute("d")??"";
+        if(!p.matches(match)||d=="") continue;
+        let grid = sketchGridId(d);
+        let num= grid.num; 
+        let feat = lookUpSketch(num,grid.bbox,book); 
+        if(feat.length){
+            console.log("Match Countur "+feat[0].name,feat,p);
+            p.dataset.form=  feat[0].name+" "+feat[0].score+"score";
+        } else delete p.dataset.form;
+         
+        if(storeLogMasks)gridNums.push(num);
+        p.innerHTML="<title>ASCII:\n"+gridNumToAscii(num,log?p:undefined,grid.bbox)+"\n"+ feat.map(x=>JSON.stringify(x)) +"</title>";
+    }
+    if(gridNums.length) {
+        loglastMasks(1,0,gridNums);
+    } 
+}
+function clearSketch(elm){
+    elm.querySelectorAll("path").forEach(p=>p.remove());
+    elm.querySelector("canvas").getContext("2d").clearRect(0,0,10_000,10_000)
 }
 
 let saveImg = null;
@@ -519,7 +634,7 @@ function brushToCanvas(openCanvas, pnt0, pntN,restore=0,erase=0){
         y= y0+ i*yStep;
         lastSketch.brushFn( ctx, x,y,brushSize,)
     }
-    ctx.stroke();
+    ctx.fill();
     ctx.closePath();
 }
 function brushWholePath(openPath){

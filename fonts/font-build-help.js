@@ -73,12 +73,13 @@ const $SVG = (tag = "", attrs = {}, childs = [], parent) => {
     parent?.appendChild?.(e);
     return e;
 }
-window.addPanel.onclick = (ev)=>{
-    ev.target.before(ev.target.previousElementSibling.cloneNode(true))
-}
+document.body.addEventListener("click",(ev)=>{
+    if(ev.target.matches("button.addPanel")) ev.target.before(ev.target.previousElementSibling.cloneNode(true))
+});//  ?: .$button.addPanel  .>>-- .>++{}  
+
 let fontW = 1000;
 let fontH = 1000;
-
+let lastBlurPre = null;
 const blurEv = (ev) => {
     const el = ev?.target?.closest?.("pre[name]");
     if (!el) return;
@@ -103,6 +104,7 @@ const blurEv = (ev) => {
     const minMax = bbox(dStr);
     el.title = JSON.stringify(minMax);
     $attrs(pathEl, "d", dStr);
+    lastBlurPre = el;
 }
 document.body.addEventListener("blur", blurEv, true,);
 
@@ -135,8 +137,6 @@ fontBaseIn.onchange =async (ev)=>{
     btnHexspellHex.disabled = false;
     btnHexspellBin.disabled = false;
 }
-
-let _Cache = { grps: null, params: null };
 
 
 function gridStats(gridString) {
@@ -449,9 +449,6 @@ function gridToSvgPath(gridString, targetW, targetH, svg, flipH) {
         if (groups?.[grpName]?.length) {
             fullPath += buildSmartPath(groups[grpName], gridW, gridH, targetW, targetH, flipH) + " ";
         }
-    _Cache.grps = groups;
-    _Cache.params = [gridW, gridH, targetW, targetH, flipH];
-
     return fullPath.trim();
 }
 function lerp(a, b, t) { return { x: (a.x + t * (b.x - a.x)), y: (a.y + t * (b.y - a.y)) } }
