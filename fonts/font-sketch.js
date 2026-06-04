@@ -28,8 +28,63 @@ const arrBbox = (data,isSketchTemplate=false)=>{
     }
     return bbox;
 }
+// helper for template rotation normalisation
+function massPnt(pnts=[]){
+    let Mpnt = Array.from({ length:2, ...pnts[0]??[]});
+    for(const pnt of pnts) for(let i=0;i<Mpnt.length;i++) Mpnt[i]+=pnt[i]??pnts[0][i]??0;
+    for(const x in Mpnt) Mpnt[x]/=pnts.length;
+    return Mpnt;
+}
+function principalAngle(pnts=[]){
+    const c = massPnt(pnts);
+    let xx = 0,  yy = 0, xy = 0;
+    for(const p of pnts){
+        const x = ( p[0]) - c[0];
+        const y = ( p[1]) - c[1];
+        xx += x * x;    yy += y * y;    xy += x * y;
+    }
+    return 0.5 * Math.atan2(  2 * xy, xx - yy ); // PCA angle
+}
+// util
+Object.defineProperty(Number.prototype,"L",{get(){ return new Array(0+this).fill(0).map((x,i)=>i) }})
+Object.defineProperty(Object.prototype,"log",{get(){ let v=this.valueOf  === Object.prototype.valueOf?this:this.valueOf(); console.log(v);return v }})
+
+function norm(v){ let l=Math.hypot(...v);return v.map(x=>x/l) }
+var TAU=2*Math.PI;
+//// General in Geo Alg: R = vu / |vu| for vecs v,u
+function rotor2(angle){
+    const h = angle * 0.5;// R is half the angle you actually want e.g.  for 45° use 22.5° vec 
+    return [ Math.cos(h), Math.sin(h)]; 
+}
+/**  use :  `let R = rotor2(Math.PI/2);  rotate2([1,0], R);//[0,1]`  */
+function rotate2(v, r){
+    const [x=0,y=0] = v;
+    if(r[2]<=-100) Object.assign(r,rotor2(r[0])),r[2]=204;
+    const [s,b] = r;
+    return [ (s*s - b*b)*x - 2*s*b*y, 2*s*b*x + (s*s - b*b)*y ];  // equivalent to sandwich geo product:   v' = R * v * R~
+}
+function rotor3( angle,axis=[0,0,1],normize=true){
+    if(normize) axis = norm(axis);
+    let [x,y,z] = axis;
+    const h = angle * 0.5 ,  s = Math.cos(h), k = Math.sin(h);
+    return [ s, x * k, y * k, z * k ];// R = s + xy e12 + yz e23 + zx e31
+}
+function rotate3(v, r){
+    const [Vx=0,Vy=0,Vz=0] = v;
+    if(r[4]<=-100) Object.assign(r,rotor3(r[0],r.slice(1,4),1)),r[4]=204; // simple rotor init for map
+    const [ s, yz, zx, xy ] = r;
+    // r * v (bi-vec * vec)  -> x y z xyz
+    const QVx = s*Vx + zx*Vz - xy*Vy;
+    const QVy = s*Vy + xy*Vx - yz*Vz;
+    const QVz = s*Vz + yz*Vy - zx*Vx;
+    const QVxyz = -yz*Vx - zx*Vy - xy*Vz;
+    // result * r~
+    return [ QVx*s + QVxyz*-yz + QVy*-xy - QVz*-zx,      QVy*s + QVxyz*-zx + QVz*-yz - QVx*-xy,     QVz*s + QVxyz*-xy + QVx*-zx - QVy*-yz ];
+}
+
+
 function sketchGridId(path,{parsePath0=undefined,bbox0=undefined,denseDrop=0.71}={}){
-    const data = parsePath0 ?? ( typeof path=="string"? svgLinePathStrToAbsPntArr(path) : path); 
+    const data = parsePath0 ?? ( typeof path=="string"? svgLinePathStrToAbsPntArr(path,1) : path); 
     const bbox =  bbox0?? arrBbox(data,true)
     let p = null;
     let gridIdxs = [];
@@ -101,6 +156,7 @@ function combine(gridMap){
     for(const key in gridMap) num |=(+key);
     return num;
 }
+/** Usfull info for this string */
 function gridNumToAscii(num=0,log=1,bbox){
     if(num<1) return;
     let str="";
@@ -108,7 +164,12 @@ function gridNumToAscii(num=0,log=1,bbox){
         str+= +(ni&1)?"#":" "
         if(i%5==5-1) str+="\n";
     }
-    if(log)console.log(`num:${num}  AR:${((bbox?.W??1)/(bbox?.H||1)).toFixed(2).replace(/\.0+$/,"")} bin: ${prettyNumBin(num)} (Read R->L)\n${str}`,typeof log=="object"?log:undefined);
+    
+    if(log){
+        let prettyNum = prettyNumBin(num);
+        console.log(`num:${num}  AR:${(bbox?.AR??1).toFixed(2).replace(/\.0+$/,"")} bin: ${prettyNum} (Read R->L)\n${str}\n\npotEnt: "?":{ grid:${prettyNum}, subMask:${prettyNumBin(~num & bin5x5)} },`,
+        typeof log=="object"?log:undefined);
+    } 
     return str;
 }
 function prettyNumBin(num){ return "0b"+ num.toString(2).padStart(25,"0").replace(/(.{5})(?!$)/g,"$1_") }
@@ -159,16 +220,57 @@ const intBook = b=>{ for(const k in b){parseGridToNum(b[k])  } }
 intBook(sketchBook)
 
 const spellBook = {
-    "Box":{grid: "1.1.1_1mmm1_1mmm1_1mmm1_1.1.1",},
+    "Box":{grid: "11111_1mmm1_1mmm1_1mmm1_11111",},
     "O":{grid: "m1.1m_11..1_1.m.1_1...1_m1.1m",},
     "O2":{grid: 15583046, subMask: 137233, char: 'O'},
     "TriU":{grid: 32516164, subMask: 135729},
-    U: {grid: 15058481, subMask: 0b10001_00000_00100_00100_00100,},
-    n:{grid: 18399564, subMask:  0b00100_00100_00100_00000_10001},
+    U: {grid: 15058481, subMask: 0b10001_00100_00100_01110_01110,},
+    // n:{grid: 18399564, subMask:  0b00100_00100_00100_00000_10001},
     "HexU":{grid: 5097316, subMask: 17971329, },//0b00100_11011_10001_11011_00100  read right to left or bottom to top
 
     'arrR':{grid: 9422824, subMask: 19937299, score: 14},
     "arrRt": { grid:9207560, subMask:24346871,},// thin
+
+    "arrDia":{ grid:0b00100_00100_01110_11011_01110, subMask:0b10001_10001_10001_00000_10001 }, 
+    "arrCir":{ grid:0b00100_00100_11111_11011_11111, subMask:0b11011_11011_00000_00100_00000 }, 
+
+
+    "Column":{ grid:0b11111_00100_00100_00100_00100, subMask:0b00000_10001_10001_10001_11011 },
+    "Dispersion":{ grid:0b11111_10101_00100_00100_00100, subMask:0b00000_00000_10001_11011_11011 }, // connected Box
+    "Crush":{ grid:0b10101_10101_01010_01010_01010, subMask:0b01010_00000_00000_00000_10101 },
+    "Collection":{ grid:0b00000_01010_00000_01010_11111, subMask:0b01110_10001_10001_00100_00000 },
+    "Entwine":{ grid:0b11111_10101_00100_11111_10001, subMask:0b00000_00000_11011_00000_01110 },
+    "Solidify":{ grid:0b01110_01010_00100_01010_01110, subMask:0b10001_00000_10001_00000_10001 },
+    "SightSet": { grid:0b01110_11011_00100_10101_01110, subMask:0b10001_00000_10001_00000_10001 }, 
+    "Envelop":{ grid:0b00110_00101_00100_10100_01100, subMask:0b11001_11000_11010_00011_10011 }, 
+    "Gather":{ grid:0b10001_01110_00100_01110_00100, subMask:0b00110_10001_01010_00000_10001 },
+    "Cross":{ grid:0b00100_00100_11111_00100_00100, subMask:0b11011_10001_00000_10001_11011 },
+    "Bolt":{ grid:0b00100_01110_11111_01110_00100, subMask:0b11011_10001_00000_10001_11011 },
+    "Glaives":{ grid:0b00100_00100_00100_01110_10101, subMask:0b11011_11011_11011_00000_00000 }, 
+    "Pull":{ grid:0b00100_01110_10101_00100_00100, subMask:0b10001_00000_00000_10001_10001 , need:[{child:"TriU"}]}, 
+    "Levitate":{ grid:0b00100_00100_10101_11111_01110, subMask:0b10001_11011_01010_00000_10001 },
+    "Levitate2":{ grid:0b11111_00100_00100_10101_00100, subMask:0b00000_10001_00000_00000_10001,char: "Levitate"},  
+    "Wind":{ grid:0b01000_00110_00011_11011_01110, subMask:0b00111_10001_11000_00000_00000 }, 
+    "Weave":{ grid:0b10001_01010_01010_01010_01110, subMask:0b00100_10101_00100_00100_10001 }, 
+    "Strengthen":{ grid:0b11111_01010_11011_01110_00100, subMask:0b00000_10101_00100_10001_11011 }, 
+    // "Strengthen2":{ grid:0b01110_01010_11111_00100_00100, subMask:0b00000_10101_00000_10001_11011,char:"Strengthen" },  
+    "Region":{ grid:0b10001_01010_01010_00100_00100, subMask:0b01110_00100_00000_10001_11011 },
+    "L":{ grid:0b10000_10000_10000_10000_11111, subMask:0b01111_00111_00111_10011_00000 },
+    "RegionWing":{ grid:0b10001_01010_01110_01110_00100, subMask:0b01100_10001_10001_10001_11011 },
+    "ElchTower":{ grid:0b11111_11111_00100_01100_01100, subMask:0b00000_00000_11011_10011_10011 },
+    "Diamond":{ grid:0b00100_01010_10001_01010_00100, subMask:0b10001_00100_00100_00100_10001, lowAR:"Bolt" },
+    "Limit":{ grid:0b01010_10101_10101_01010_01110, subMask:0b10100_00000_00000_00001_10001 }, 
+    "OHalf":{ grid:0b01111_11001_10001_11001_01111, subMask:0b10000_00110_01110_00110_10000 }, 
+    // a bit more pointy
+    "OHalf2":{ grid:0b00111_01001_10001_11001_01111, subMask:0b11000_10110_01110_00110_10000 }, 
+    "Vision":{ grid:0b00100_01110_01110_01110_00100, subMask:0b01010_10001_00000_10001_01010 },
+    "Rain":{ grid:0b10101_01110_10001_11111_00100, subMask:0b11000_10000_01100_00000_11011 },  
+    "Window":{ grid:0b00100_01110_11011_01110_00100, subMask:0b10001_10001_00100_10001_10001 }, 
+    "Radial":{ grid:0b10001_11011_11111_11111_01110, subMask:0b01110_00100_00000_00000_10001 },  
+    "Float":{ grid:0b01110_11100_11110_00111_01110, subMask:0b10001_00011_00001_11000_10001 },// thin vert tilde
+    "Asteroid":{ grid:0b10001_01110_01010_01110_10001, subMask:0b01110_00001_10101_10001_01110 }, 
+    
+    "S":{ grid:0b01110_10000_01100_00010_01110, subMask:0b00000_00111_00000_11100_00001, lowAR:"Float" },
 }
 intBook(spellBook)
 let initalSpells = {...spellBook};
@@ -211,12 +313,13 @@ function aspectAlts(entry,name,asp){
     const k = entry[name]?.char ?? name;
     return (   asp<0.55? entry.lowAR : asp>1.3? entry.highAR : asp<0.8?entry.midAR :asp>1.15?entry.lAR : k) ?? k;
 }
+let maxSubFalse= 4;
 function lookUpSketch(num=0,AR,book=sketchBook){
     const canidates = [];
     let sub=0;
     for(const k in book){
         const grid = book[k].grid;
-        if(   (grid&num) == grid && 3>(sub=count1s(num&book[k].subMask)) ){
+        if(   (grid&num) == grid && maxSubFalse>(sub=count1s(num&book[k].subMask)) ){
             canidates.push( {name:aspectAlts(book[k],k,AR),score: (book[k].score??=count1s(grid))- sub } );
         } 
     }
@@ -228,15 +331,15 @@ function count1s(num){
     for(let ni=num;ni;ni>>=1) cnt+=ni&1;
     return cnt;
 }
-function lookUpClosests(num=0,AR){
+function lookUpClosests(num=0,AR,book=sketchBook){
     const canidates = [];
     let sub=0;
-    for(const k in sketchBook){
-        const grid = sketchBook[k].grid;
-        sub=count1s(num&sketchBook[k].subMask);
-        score = (count1s(num&grid))- sub ;
-        sketchBook[k].score??=(count1s(grid))- sub;
-        canidates.push( {name:aspectAlts(sketchBook[k],k,AR),score, relScore: score/sketchBook[k].score ,  } );
+    for(const k in book){
+        const grid = book[k].grid;
+        sub=count1s(num&book[k].subMask);
+        score = (count1s(num&grid))- sub - (count1s( ~num& grid & bin5x5) );
+        book[k].score??=(count1s(grid))- sub;
+        canidates.push( {name:aspectAlts(book[k],k,AR),score, relScore: score/book[k].score ,  } );
     }
     const res= canidates.sort((a,b)=>b.score-a.score);
     return res;
@@ -277,7 +380,7 @@ let lastSketch = {
     brushFixEps: undefined,// no scaling with figure boundingbox, better for large connected figures
     brushUseCurve:0,
     brushSnap: undefined,// -> auto
-    brushSize:  0.05,// percent of canvas width
+    brushSize:  0.01,// percent of canvas width
     brushLenMul: 2,
     brushFn: brushes.square,
     brushColor: "#002",
@@ -295,7 +398,8 @@ function initBrushInputs(){
     inSizeRn.min= inSizeNu.min=0;
     inSizeRn.max= inSizeNu.max= 0.4;
     inSizeRn.value = inSizeNu.value = lastSketch.brushSize;
-    inSizeRn.oninput = inSizeNu.oninput =(ev)=> lastSketch.brushSize = inSizeRn.value = inSizeNu.value = ev.target.valueAsNumber;
+    inSizeNu.oninput =(ev)=> lastSketch.brushSize = inSizeRn.value  = ev.target.valueAsNumber;
+    inSizeRn.oninput =(ev)=> lastSketch.brushSize = inSizeNu.value  = ev.target.valueAsNumber;
 
     const logCountours = window.logCounturs;
     logCountours.checked = lastSketch.logCountours;
@@ -311,11 +415,20 @@ document.body.onkeydown= (ev=KeyboardEvent.prototype)=>{
     if(ev.altKey && ev.key=="i"){
         const url = prompt(`Enter a Url for a reference image\n(use query parameters for advanced CSS placement:  <URL>?css=width:200px;top:40px )`,"");
         const style=url.match(/css=([^&]+)/)?.[0];
-        const img = $New("img",{src:url,class:"reference",style,tabindex:0},0,el);
+        const img = $New("img",{class:"reference",style,src:url, tabindex:0},0,el);
+        if(location.protocol!=="file") img.setAttribute("crossOrigin","Anonymous");
         if(style){
             const label=$New("label",{},["Ref:"],el);
             const input = $New("input",{class:"reference",style},0,label);
             input.onchange= (ev)=>  img.style= ev.target.value;
+        }
+        ev.preventDefault();
+    }
+    if(ev.altKey&&ev.key=="p"){
+        const url = prompt(`Enter a Url to draw onto the canvas:`,"");
+        if(url){
+            let [_,x,y,W,H] =  style=url.match(/(x=\d+)|(y=\d+)|(W=\d+)|(H=\d+)/g)??[];
+            drawImgToCanvas(url,el.querySelector("canvas"),{x,y,W,H});
         }
         ev.preventDefault();
     }
@@ -325,7 +438,7 @@ document.body.onkeydown= (ev=KeyboardEvent.prototype)=>{
     if(ev.altKey&&ev.key=="r" && lastBlurPre){
         let registerName = prompt(`Register last sketches as stroke template. Enter the register name:`,"");
         const svg = lastBlurPre.querySelector("svg");
-        classifySVGPaths(svg,{log:1,storeLogMasks:registerName,book:spellBook});
+        classifySVGPaths(svg,{log:1,storeLogMasks:registerName,book:spellBook,match:".sketch.brush",rotate:1});
 
         if(confirm(`Look at console if combined grid is sensible?\nStill register "${registerName}"`)){
             registerLastSketch(registerName,spellBook);
@@ -400,15 +513,16 @@ const sketchMouse = (ev=MouseEvent.prototype)=>{
                 let lessBoxy = lastSketch.lessBoxify ^ ev.ctrlKey;
                 let ramen = ramerDouglasPeuPathFilter(contur,(lessBoxy?0.5:1)* eps);
                 let angular = angularVarianceFilter(ramen, ramen.length>30? multiglyphSnap : lastSketch.brushSnap);
-                openSvg.append($SVG("path",{class:"sketch brush", d: pntsToPathD(angular,  lastSketch.brushUseCurve) }));
+                let path = $SVG("path",{class:"sketch brush", d: pntsToPathD(angular,  lastSketch.brushUseCurve) });
+                openSvg.append(path);
                 ramenCountours.push(angular);
+                path._countour = angular;
             }
             if(lastSketch.svgClassify){
                 if(lastSketch.logCountours) console.clear()
-                classifySVGPaths(openSvg,{log:lastSketch.logCountours});
+                classifySVGPaths(openSvg,{log:lastSketch.logCountours,match:".sketch.brush",rotate:1});
             } 
         } 
-
         const detected = simplifyLastSketch(openPath);
         lastSketch.insertedChar=false;
         if(lastSketch.insertFound && detected){
@@ -446,7 +560,7 @@ document.body.onmousemove = sketchMouse;
 const sketchUp = (ev)=>{
     if(ev.target.dataset.isSketching) delete ev.target.dataset.isSketching;
     if(initialSel==false){ 
-        ev.preventDefault(); getSelection().collapseToEnd(); 
+        ev.preventDefault(); getSelection?.()?.collapseToEnd?.(); 
         initialSel=null; 
         return
     }
@@ -499,7 +613,7 @@ function simplifyLastSketch(path=lastSketch.raw){
     let AR = grid.bbox.AR;
     lastSketch.match= lookUpSketch(lastSketch.grid.num,AR );
     // console.log("All even nonmatched by closest similaity",lookUpClosests(lastSketch.grid.num,AR))
-    gridNumToAscii(lastSketch.grid.num,lastSketch.logStroke,bbox);
+    gridNumToAscii(lastSketch.grid.num,lastSketch.logStroke,grid.bbox);
     // console.log("Match",lastSketch.match?.[0]?.name??"",lastSketch.match);
     
     loglastMasks(lastSketch.logMasks,debugPath?.dataset?.connect)
@@ -547,7 +661,9 @@ function sketchIntoText(el,countours){
     // document.execCommand("innertText",false,linesCp.join("\n"));
 }
 
+// for subMasks
 const bin5x5 = 0b11111_11111_11111_11111_11111;
+
 function loglastMasks(log=1,isConnect=false,setMasks){
     if(isConnect){
         lastSketch.lastMasks[lastSketch.lastMasks.length-1]=lastSketch.grid.num;
@@ -580,29 +696,165 @@ function registerLastSketch(name,dict=sketchBook){
     lastSketch.lastMasks.length==0;
     if(char) dict[name].char=name.slice(0,- char.length);  
 }
-function classifySVGPaths(elm,{log=0,book=spellBook, storeLogMasks="",match=".sketch.brush"}={}){
-    let gridNums = [] 
-    for(let p of elm.querySelectorAll("path")){
+const step7SkyRotors = 7 .L.map( (n,_a)=> ({angle: _a=((n+1)/8)*TAU,angleDeg:_a/TAU*360, rotor: rotor2(_a)}) );
+const step16SkyRotors = 15 .L.map( (n,_a)=> ({angle: _a=((n+1)/16)*TAU,angleDeg:_a/TAU*360, rotor: rotor2(_a)}) );
+
+/* clasifies the svg path elm or all matching queried children  */
+function classifySVGPaths(elm,{match="", log=1,book=spellBook, storeLogMasks="", rotate=0,skyDirs=step16SkyRotors}={}){
+    let gridNums = [] ;
+    let paths = elm.localName=="path"?[elm]:elm.querySelectorAll("path");
+    let founPaths = [];
+    for(let p of paths){
         let d = p.getAttribute("d")??"";
-        if(!p.matches(match)||d=="") continue;
-        let grid = sketchGridId(d);
+        if( (match&&!p.matches(match))||d=="") continue;
+        
+        let pnts = (p._countour?.map?.(p=>[p.x??p[0],p.y??p[1]])) ?? svgLinePathStrToAbsPntArr(d,1);
+        const pba = principalAngle(pnts);
+
+        let grid = sketchGridId(d,{parsePath0:pnts});
+        p._bbox = grid.bbox;
         let num= grid.num; 
         let feat = lookUpSketch(num,grid.bbox,book); 
-        if(feat.length){
+        const Mpnt = massPnt(pnts);
+        p._mPnt=Mpnt;
+        if(rotate){
+            let dev=[];
+    
+
+            for(const dir of skyDirs){
+                let rotPnts = pnts.map( p=>rotate2( [p[0]  - Mpnt[0],p[1]  - Mpnt[1],],dir.rotor) );
+                if(rotate>1){// for debuggin use 2 and you see the emited points
+                    let pCl = p.cloneNode();
+                    pCl.className="";
+                    dev.forEach(pCl=> pCl.style.stroke="grey" )
+                    pCl.style.stroke="orange";
+                    dev.push(pCl );
+                    p.after(pCl);
+                    pCl.setAttribute("d", pntsToPathD( rotPnts.map( p=> [p[0]  + Mpnt[0],p[1]  + Mpnt[1],] )))
+                }
+                let rotGrid = sketchGridId(d,{parsePath0:rotPnts});
+                // gridNumToAscii(rotGrid.num,log?p:false,rotGrid.bbox)
+                feat.push( ...lookUpSketch( rotGrid.num,rotGrid.bbox,book).map(s=>({...s,angle:dir.angle,angleDeg:dir.angleDeg,bW:rotGrid.bbox.W,bH:rotGrid.bbox.H}))); 
+            }
+            dev.map(d=>d.remove());
+            feat.sort( (a,b)=>b.score-a.score);
+        }
+
+        if( log&&feat.length){
+            founPaths.push(p);
             console.log("Match Countur "+feat[0].name,feat,p);
             p.dataset.form=  feat[0].name+" "+feat[0].score+"score";
         } else delete p.dataset.form;
          
         if(storeLogMasks)gridNums.push(num);
-        p.innerHTML="<title>ASCII:\n"+gridNumToAscii(num,log?p:undefined,grid.bbox)+"\n"+ feat.map(x=>JSON.stringify(x)) +"</title>";
+        
+        p.dataset.pbangle=pba;
+        p.dataset.pbangleDeg=pba/TAU*360;
+        
+        p.innerHTML="<title>ASCII:\n"+gridNumToAscii(num,log?p:false,grid.bbox)+"\n"+ feat.map(x=>JSON.stringify(x)) +"</title>";
     }
     if(gridNums.length) {
         loglastMasks(1,0,gridNums);
-    } 
+    }
+    buildContourHierarchy(founPaths); 
 }
 function clearSketch(elm){
     elm.querySelectorAll("path").forEach(p=>p.remove());
     elm.querySelector("canvas").getContext("2d").clearRect(0,0,10_000,10_000)
+}
+function buildContourHierarchy(paths, eps=0.0001){
+    for(let i=0;i<paths.length;i++){
+        const p = paths[i];
+        p._children = [];
+        p._parent = null;
+        p._depth = 0;
+        p._idx = i;
+        p._area = (p._bbox.W * p._bbox.H)
+    }
+    let maxArea=0;
+    for(let i=0;i<paths.length;i++){ // smallest containing bbox wins
+        const a = paths[i];
+        let bestParent = null;
+        let bestArea = Infinity;
+        const ab = a._bbox;
+
+        for(let j=0;j<paths.length;j++){
+            if(i===j) continue;
+            const b = paths[j];
+            const bb = b._bbox;
+            // does B contain A ?
+            if( ab.minX >= bb.minX - eps && ab.maxX <= bb.maxX + eps && 
+                ab.minY >= bb.minY - eps && ab.maxY <= bb.maxY + eps 
+            ){
+                const area = b._area;// use unrotate bounding box
+                // choose smallest containing box
+                if(area < bestArea){
+                    if(maxArea<area) maxArea=area;
+                    bestArea = area;
+                    bestParent = b;
+                }
+            }
+        }
+        if(bestParent){
+            a._parent = bestParent;
+            bestParent._children.push(a);
+        }
+    }
+    // compute nesting depth
+    for(const p of paths){
+        let d = 0;
+        let q = p._parent;
+        while(q){
+            d++;
+            q = q._parent;
+        }
+        p._depth = d;
+        p.dataset.depth= d % 5;
+        if(p._children.length==1){
+            let childAr = p._children[0]._area;
+            if( Math.abs(p._area-childAr)/p._area < 0.25  ) {
+                p._children[0].dataset.innerCountour="";
+                p._children[0]._isInnerCountour=true;
+            }
+        } 
+    }
+    
+    return paths;
+}
+
+// you shoud center these eventually
+const signsToPaths= {
+    "Box":{d:`M 0 0 L 100 0 L 100 100 L 0 100 L0 0`},
+    "Column":{ d:"M105 60L105 60L105 134L141 134L141 147L62 147L62 134L98 134L98 66L105 60", },
+    "Dispersion":{d:`M304 60L304 60L304 134L340 134L340 147L261 147L261 134L297 134L297 66L304 60
+         M266 152L291 169L315 169L338 152L346 159L328 175L297 181L269 169L266 159L266 152`},
+    "Levitate":{d:`M504 58L531 90L531 96L523 96L510 83L510 126L531 126L531 139L479 139L479 126L500 126L499 83L485 96L479 90L504 58`},
+    "Crush":{d:`M869 81L899 112L929 81L959 112L959 125L944 106L930 94L899 125L869 96L846 127L835 125L837 119L869 81`},
+    "Envelop":{d:`M901 429L939 472L932 472L901 450L901 570L901 570L863 532L863 525L894 554L894 435L901 429`},
+    "Limit":{d:`M500 422L519 428L530 445L517 489L555 473L570 479L582 489L576 519L560 533L517 510L531 555L525 570L505 582L489 579L478 554L500 515L449 531L434 525L423 506L426 489L440 478L460 477L500 489L473 449L479 434L500 422
+M509 434L496 434L483 446L489 466L503 487L520 455L509 434
+M558 485L540 488L514 503L538 516L558 521L570 505L570 499L558 485
+M453 487L431 495L444 518L462 518L490 499L474 492L453 487
+M503 515L485 548L485 558L495 570L508 570L521 558L516 538L503 515`},
+    "TriU": {d:`M460 271L546 271L551 271L506 357L496 357L460 279L460 271`},
+    "Diamond":{d:`M701 240L743 301L701 366L659 301L701 240`},
+    "Region":{d:`M303 263L352 324L352 324L303 279L263 324L254 324L303 263`},
+    "RegionWing":{d:`M303 263L352 324L352 324L303 279L263 324L254 324L303 263`},
+    "Collection":{d:`M67 453L147 453L111 503L147 542L147 552L103 513L67 552L67 542L96 503L67 464L67 453`},
+    "Rain":{d:`M899 606L906 612L907 650L912 626L920 630L921 649L968 632L952 680L971 681L975 689L950 694L995 699L991 707L950 708L975 713L972 721L951 723L969 768L922 753L920 773L912 776L907 752L902 796L894 791L893 752L888 776L880 773L879 753L833 771L848 722L828 721L825 713L850 708L805 703L810 695L850 694L825 689L829 681L849 679L835 633L879 649L880 628L888 626L894 649L898 606
+        M947 651L910 661L852 651L861 685L852 751L890 741L947 751L939 717L947 651`},
+    "Weave":{d:`M495 613L545 624L579 658L590 709L568 760L587 787L553 760L578 719L570 663L545 636L509 624L464 633L434 663L426 719L451 760L417 787L436 760L414 709L422 664L454 627L495 613`},
+    "Eye":{d:`M699 401L630 409L608 433L606 481L624 540L667 564L712 566L749 555L790 535L811 506L811 479L793 479L757 434L699 401
+M689 465L738 473L761 495L767 516L746 533L716 542L656 533L633 516L655 479L689 465
+M709 476L669 483L647 512L678 530L724 530L755 512L740 488L709 476
+M697 487L708 488L716 497L716 507L709 516L697 516L685 508L686 494L697 487`},
+
+
+};
+
+
+function selectWithAllChildren(path){
+    return [path,...path._children?.flatMap?.(c=>selectWithAllChildren(c))];
 }
 
 let saveImg = null;
@@ -642,9 +894,27 @@ function brushWholePath(openPath){
         brushToCanvas(openCanvas, openPath[i-1],openPath[i],i==1?1:0);
     }
 }
+function urlContentToDataUri(url){
+    return  fetch(url).then( response => response.blob() ).then( blob => new Promise( callback =>{
+        let reader = new FileReader() ;
+        reader.onload = function(){ callback(this.result) } ;
+        reader.readAsDataURL(blob) ;
+    }) ) ;
+}
+async function drawImgToCanvas(imgURL,canvas=openCanvas,{x=5,y=5,W=undefined,H=undefined}={},img,){
+    let imgI = !img?.src?  $New("img",{src:await urlContentToDataUri(imgURL)}):img;
+    imgI.onload= ()=>{
+        let ctx = canvas.getContext("2d");
+        let size = canvas.width-5;//padding
+        ctx.drawImage(imgI,x,y,W??size,H?? ((size/imgI.width)*imgI.height))
+        imgI.hidden=1;
+    }
+    return imgI;
+}
+
 
 // any svg path to data util
-function svgLinePathStrToAbsPntArr(svgPathD=""){
+function svgLinePathStrToAbsPntArr(svgPathD="",useArrs=false/* loses command info */){
     let xyAltCntr = 0;  let isVv = 0; let openCmd=null; let isRel=false;
     let data = [];
     const makeLastAbs = ()=>{
@@ -669,5 +939,5 @@ function svgLinePathStrToAbsPntArr(svgPathD=""){
         return "";
     });
     if(isRel) makeLastAbs();
-    return data;
+    return useArrs? data.map(p=>[p.x,p.y]): data;
 }

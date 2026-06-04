@@ -27,13 +27,13 @@
             </details>
             <label> <u title="ALT+P to select">P</u>encil   <select accesskey="P" id="brushFn"><option>square<option>flatStick<option>circle</select> </label>
             <label for="brushSize"> <u title="ALT+S to select">S</u>ize<b>%</b><i><sup>?</sup></i>
-                <aside><b>Info:</b> Number is the Size percantage of Canvas <code>width</code></aside>
+                <aside hidden><b>Info:</b> Number is the Size percantage of Canvas <code>width</code></aside>
             </label>
-            <input accesskey="S" id="brushSize" type="range" step="0.01" list="brushSizes">
-            <input accesskey="S" id="brushSizeNumber" type="number" step="0.01" list="brushSizes">
+            <input accesskey="S" id="brushSize" type="range" step="0.001" list="brushSizes">
+            <input accesskey="S" id="brushSizeNumber" type="number" step="0.001" list="brushSizes">
             <datalist id="brushSizes"><option>0.01<option>0.03<option>0.06<option>0.10<option>0.12<option>0.18<option>0.24</datalist>
             <label for="boxify">Less Boxify:<i><sup>?</sup></i>
-                <aside><b>Info:</b> The Ramen-Peuker-Douglas Filter is used to egt the simpler paths.<br> If your result is to <b>blocky</b>, this makes the filter <b>less brutal</b></aside>
+                <aside hidden><b>Info:</b> The Ramen-Peuker-Douglas Filter is used to egt the simpler paths.<br> If your result is to <b>blocky</b>, this makes the filter <b>less brutal</b></aside>
             </label>
             <input id="boxify" type="checkbox">
             
@@ -602,6 +602,7 @@ A  By2 C;
     <button class="addPanel">add Panel</button>
 </details>
 
+    <script  src="asciiToSVG.js"></script>
     <script  src="font-build-help.js"></script>
     <script  src="font-path-simplifier.js"></script>
     <script  src="canvasToSVG.js"></script>

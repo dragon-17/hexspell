@@ -1,11 +1,24 @@
 <meta  charset="utf-8">
 
-<div style="white-space: pre;">
+<div >
 <button id="clearSigils">Clear</button>        <label><input id="logMask" type="checkbox" > LogSketchTrain</label>  
-<details open><summary>Brush</summary><label> <u title="ALT+P to select">P</u>encil   <select accesskey="P" id="brushFn"><option>square<option>flatStick<option>circle</select></label
-    ><label> <u title="ALT+S to select">S</u>ize <input accesskey="S" id="brushSize" type="range" step="0.01" list="brushSizes">
-                <datalist id="brushSizes"><option>0.01<option>0.03<option>0.06<option>0.10<option>0.12<option>0.18<option>0.24</datalist></label><label
-                >Show Cavas <input id="showCanvas" type="checkbox" ></label></details>
+<details open><summary>Brush</summary>
+                <label> <u title="ALT+P to select">P</u>encil   <select accesskey="P" id="brushFn"><option>square<option>flatStick<option>circle</select> </label>
+            <label for="brushSize"> <u title="ALT+S to select">S</u>ize<b>%</b><i><sup>?</sup></i>
+                <aside hidden><b>Info:</b> Number is the Size percantage of Canvas <code>width</code></aside>
+            </label>
+            <input accesskey="S" id="brushSize" type="range" step="0.01" list="brushSizes">
+            <input accesskey="S" id="brushSizeNumber" type="number" step="0.01" list="brushSizes">
+            <datalist id="brushSizes"><option>0.01<option>0.03<option>0.06<option>0.10<option>0.12<option>0.18<option>0.24</datalist>
+            <label for="boxify">Less Boxify:<i><sup>?</sup></i>
+                <aside hidden><b>Info:</b> The Ramen-Peuker-Douglas Filter is used to egt the simpler paths.<br> If your result is to <b>blocky</b>, this makes the filter <b>less brutal</b></aside>
+            </label>
+            <input id="boxify" type="checkbox">
+            
+            <label>Log Template Grids: <input id="logCounturs" type="checkbox"></label>
+
+
+</details>
 <label>Save last N Sketches as <input id="saveSketch"></label>
 <div> 
 <pre name="sigilDetect" contenteditable="">
@@ -32,7 +45,7 @@ Detected Character are inserted here
 .
 .
 ........
-<svg id="mainSvg" viewBox="0 0 1000 1000"></svg>
+<svg id="mainSvg" viewBox="0 0 1000 1000" tabindex ></svg>
 <img src="Sign_Compilation.png">
 <canvas id="mainCanvas" width=1000 height=1000>
 </pre>
@@ -67,28 +80,20 @@ const $SVG = (tag = "", attrs = {}, childs = [], parent) => {
     lastSketch.insertFound=1;
     let clearSigils = window.clearSigils;
     let mainSvg = window.mainSvg;
+    let mainPre = document.body.querySelector("pre[name=sigilDetect]");
     clearSigils.onclick = ()=>{
-        mainSvg.querySelectorAll("path.sketch").forEach(e=>e.remove());
-        lastSketch.lastMasks.length==0;
-        window?.mainCanvas?.getContext?.("2d")?.clearRect?.(0,0,20000,200000)
+        clearSketch(mainPre);
     } 
-
     window.logMask.onchange= (ev)=>   (lastSketch.logMasks = ev.target.checked ); 
 
     window.saveSketch.onchange = (ev)=>{
         const name = ev.target.value;
-        if(sketchBook[name]) {
-            return console.error(`${name} exists already in sketchbook use a number if this is a variant d => d2`);
-        }
-        if(lastSketch.lastMasks.length==0) {return console.error(`No last Combined Sketches`)}
-        console.log('registerd',name,'in this session', sketchBook[name]={grid: lastSketch.lastMaskAnd, subMask: lastSketch.lastMaskFree},
-            '\nIf you dont copy save the current sketchbook the sketch is lost')
-        lastSketch.lastMasks.length==0;
+        registerLastSketch(name);
     }
 
-    lastSketch.brushSize=0.01;
-    lastSketch.brushColor="#da4";
-    lastSketch.brushUseCurve=1;
+    // lastSketch.brushSize=0.01;
+    lastSketch.brushColor="#668";
+    // lastSketch.brushUseCurve=1;
     PATH_SIMPLY_CONFIG.CORNER_THRESHOLD= Math.PI/2*2/3
     initBrushInputs()
 </script>
@@ -101,20 +106,20 @@ const $SVG = (tag = "", attrs = {}, childs = [], parent) => {
         &[data-is-sketching]::selection{background-color: transparent;}
     }
     pre>svg,pre>canvas,pre>img {
-        z-index: -2;
         position: absolute; 
         inset: 0;
         box-shadow: -1px -1px 2px #777;
+        z-index: -2;
         path.sketch{
             fill: none;
             stroke: crimson;
-            stroke-width: 3;
+            stroke-width: 5;
             animation: fadeStroke 10s ease-in 1s forwards;
         }
         path.brush{
             fill: none;
             stroke: forestgreen;
-            stroke-width: 1;
+            stroke-width: 4;
             /* opacity: 0.5; */
             animation: fadeStroke 10s ease-in 1s forwards;
         }
@@ -122,11 +127,25 @@ const $SVG = (tag = "", attrs = {}, childs = [], parent) => {
             animation: none;
         }
         path[data-char]{ stroke: slategray; }
+        path[data-form]{  stroke: goldenrod;  }
     }
+     svg:focus{
+        width: 255px;
+        max-width: 255px;
+        z-index: 1;
+        opacity: 1;
+        padding: 0;
+        margin: 0;
+        border: inset 2px oklch(from var(--cB) 0.4 c h);
+        background-color: white;
+        path:not(.sketch){ stroke: var(--cB);  fill: var(--L0); stroke-width: 3; }
+    }
+    pre>svg{padding: inherit;}
     pre>canvas{
-        width: 100%;
-        height: 100%;
-        opacity: 0.3;
+        width: stretch;
+        height: stretch;
+        padding: inherit;
+        opacity: 0.5;
     }
     body:has(#showCanvas:checked) pre>canvas{
         opacity: 1;
