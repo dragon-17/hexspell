@@ -221,18 +221,20 @@ intBook(sketchBook)
 
 const spellBook = {
     "Box":{grid: "11111_1mmm1_1mmm1_1mmm1_11111",},
-    "O":{grid: "m1.1m_11..1_1.m.1_1...1_m1.1m",},
-    "O2":{grid: 15583046, subMask: 137233, char: 'O'},
+    "O":{grid: 15583046, subMask: 137233, },
+    "O2":{grid: "m1.1m_11..1_1.m.1_1...1_m1.1m",char: 'O'},
     "TriU":{grid: 32516164, subMask: 135729},
     U: {grid: 15058481, subMask: 0b10001_00100_00100_01110_01110,},
     // n:{grid: 18399564, subMask:  0b00100_00100_00100_00000_10001},
     "HexU":{grid: 5097316, subMask: 17971329, },//0b00100_11011_10001_11011_00100  read right to left or bottom to top
 
-    'arrR':{grid: 9422824, subMask: 19937299, score: 14},
-    "arrRt": { grid:9207560, subMask:24346871,},// thin
-
-    "arrDia":{ grid:0b00100_00100_01110_11011_01110, subMask:0b10001_10001_10001_00000_10001 }, 
-    "arrCir":{ grid:0b00100_00100_11111_11011_11111, subMask:0b11011_11011_00000_00100_00000 }, 
+    // goes unrotated to the right
+    'Arr':{grid: 9422824, subMask: 19937299, score: 14},
+    // thin
+    "Arrt": { grid:0b01000_01000_11111_01000_01000, subMask: 0b10111_00111_00000_00111_10111,},
+    'ArrHarp':{ grid:0b00011_01101_00001_00001_00001, subMask:0b11100_00000_01110_11110_11110 },
+    "ArrDia":{ grid:0b00100_00100_01110_11011_01110, subMask:0b10001_10001_10001_00000_10001 }, 
+    "ArrCir":{ grid:0b00100_00100_11111_11011_11111, subMask:0b11011_11011_00000_00100_00000 }, 
 
 
     "Column":{ grid:0b11111_00100_00100_00100_00100, subMask:0b00000_10001_10001_10001_11011 },
@@ -246,15 +248,14 @@ const spellBook = {
     "Gather":{ grid:0b10001_01110_00100_01110_00100, subMask:0b00110_10001_01010_00000_10001 },
     "Cross":{ grid:0b00100_00100_11111_00100_00100, subMask:0b11011_10001_00000_10001_11011 },
     "Bolt":{ grid:0b00100_01110_11111_01110_00100, subMask:0b11011_10001_00000_10001_11011 },
-    "Glaives":{ grid:0b00100_00100_00100_01110_10101, subMask:0b11011_11011_11011_00000_00000 }, 
+    "Glaives":{ grid:0b00100_00100_00100_10101_10101, subMask:0b11011_11011_11011_00000_00000 }, 
     "Pull":{ grid:0b00100_01110_10101_00100_00100, subMask:0b10001_00000_00000_10001_10001 , need:[{child:"TriU"}]}, 
-    "Levitate":{ grid:0b00100_00100_10101_11111_01110, subMask:0b10001_11011_01010_00000_10001 },
-    "Levitate2":{ grid:0b11111_00100_00100_10101_00100, subMask:0b00000_10001_00000_00000_10001,char: "Levitate"},  
+    "Levitate":{ grid:0b11111_00100_00100_10101_00100, subMask:0b00000_10001_00000_00000_10001},  
     "Wind":{ grid:0b01000_00110_00011_11011_01110, subMask:0b00111_10001_11000_00000_00000 }, 
     "Weave":{ grid:0b10001_01010_01010_01010_01110, subMask:0b00100_10101_00100_00100_10001 }, 
     "Strengthen":{ grid:0b11111_01010_11011_01110_00100, subMask:0b00000_10101_00100_10001_11011 }, 
     // "Strengthen2":{ grid:0b01110_01010_11111_00100_00100, subMask:0b00000_10101_00000_10001_11011,char:"Strengthen" },  
-    "Region":{ grid:0b10001_01010_01010_00100_00100, subMask:0b01110_00100_00000_10001_11011 },
+    "Region":{ grid:0b10001_01010_01010_00100_00100, subMask:0b01110_00100_00100_10001_11011 },
     "L":{ grid:0b10000_10000_10000_10000_11111, subMask:0b01111_00111_00111_10011_00000 },
     "RegionWing":{ grid:0b10001_01010_01110_01110_00100, subMask:0b01100_10001_10001_10001_11011 },
     "ElchTower":{ grid:0b11111_11111_00100_01100_01100, subMask:0b00000_00000_11011_10011_10011 },
@@ -310,8 +311,8 @@ function parseGridToNum(entry, str=entry.grid){
 function reverse(n){ return parseInt(  [...n.toString(2)].reverse().join("")) }
 /** select depending on the aspect artio a char  */
 function aspectAlts(entry,name,asp){
-    const k = entry[name]?.char ?? name;
-    return (   asp<0.55? entry.lowAR : asp>1.3? entry.highAR : asp<0.8?entry.midAR :asp>1.15?entry.lAR : k) ?? k;
+    const nm = entry?.char ?? name;
+    return (   asp<0.55? entry.lowAR : asp>1.3? entry.highAR : asp<0.8?entry.midAR :asp>1.15?entry.lAR : nm) ?? nm;
 }
 let maxSubFalse= 4;
 function lookUpSketch(num=0,AR,book=sketchBook){
@@ -381,6 +382,7 @@ let lastSketch = {
     brushUseCurve:0,
     brushSnap: undefined,// -> auto
     brushSize:  0.01,// percent of canvas width
+    eraseBrushScale: 1.25, // make erasing easier
     brushLenMul: 2,
     brushFn: brushes.square,
     brushColor: "#002",
@@ -709,18 +711,17 @@ function classifySVGPaths(elm,{match="", log=1,book=spellBook, storeLogMasks="",
         if( (match&&!p.matches(match))||d=="") continue;
         
         let pnts = (p._countour?.map?.(p=>[p.x??p[0],p.y??p[1]])) ?? svgLinePathStrToAbsPntArr(d,1);
-        const pba = principalAngle(pnts);
-
+        const pba = p._pba = principalAngle(pnts);
+        p._pbaDeg = pba/TAU*360;
         let grid = sketchGridId(d,{parsePath0:pnts});
         p._bbox = grid.bbox;
         let num= grid.num; 
         let feat = lookUpSketch(num,grid.bbox,book); 
         const Mpnt = massPnt(pnts);
         p._mPnt=Mpnt;
+        let noRotFeat = feat[0];
         if(rotate){
             let dev=[];
-    
-
             for(const dir of skyDirs){
                 let rotPnts = pnts.map( p=>rotate2( [p[0]  - Mpnt[0],p[1]  - Mpnt[1],],dir.rotor) );
                 if(rotate>1){// for debuggin use 2 and you see the emited points
@@ -738,11 +739,17 @@ function classifySVGPaths(elm,{match="", log=1,book=spellBook, storeLogMasks="",
             }
             dev.map(d=>d.remove());
             feat.sort( (a,b)=>b.score-a.score);
+            // use unrot for rotational symmetric thingls like boxes
+            if( noRotFeat && feat?.[0]?.name==noRotFeat.name){
+                feat[0] = noRotFeat;
+                feat._unrotPut=true;
+            }
         }
 
         if( log&&feat.length){
             founPaths.push(p);
             console.log("Match Countur "+feat[0].name,feat,p);
+            p._feat = feat[0];
             p.dataset.form=  feat[0].name+" "+feat[0].score+"score";
         } else delete p.dataset.form;
          
@@ -759,10 +766,17 @@ function classifySVGPaths(elm,{match="", log=1,book=spellBook, storeLogMasks="",
     buildContourHierarchy(founPaths); 
 }
 function clearSketch(elm){
-    elm.querySelectorAll("path").forEach(p=>p.remove());
-    elm.querySelector("canvas").getContext("2d").clearRect(0,0,10_000,10_000)
+    elm.querySelectorAll("path.sketch").forEach(p=>p.remove());
+    clearCanvas(elm.querySelector?.("canvas"));
+}
+function clearCanvas(c){
+    c?.getContext?.("2d")?.clearRect?.(0,0,10_000,10_000)
 }
 function buildContourHierarchy(paths, eps=0.0001){
+    // replace magic circles from last frame
+    const svg = paths[0]?.closest?.("svg");
+    if(svg) svg.querySelectorAll("g.spell-circle").forEach(c=>c.remove());
+
     for(let i=0;i<paths.length;i++){
         const p = paths[i];
         p._children = [];
@@ -810,21 +824,30 @@ function buildContourHierarchy(paths, eps=0.0001){
         }
         p._depth = d;
         p.dataset.depth= d % 5;
-        if(p._children.length==1){
-            let childAr = p._children[0]._area;
-            if( Math.abs(p._area-childAr)/p._area < 0.25  ) {
-                p._children[0].dataset.innerCountour="";
-                p._children[0]._isInnerCountour=true;
+    }
+    for(const p of paths){
+        for(const child of p._children){
+            const parentAreaFillPercent = 1 -  Math.abs(p._area-child._area)/p._area;
+            child._fillArea = parentAreaFillPercent;
+            if(child._fillArea<0.05) child.classList.add("inkdots"); 
+        }
+        // trigger activation If a closed circle WITH interor child elements is detected
+        if(p._children.length==1 && p._children[0]._fillArea>0.80 ){
+            p._children[0].dataset.innerCountour="";
+            p._children[0]._isInnerCountour=true;
+            if( p._feat?.name=="O" && p._parent==null){
+                buildPrettyCircle(p); 
             }
         } 
     }
-    
     return paths;
 }
 
 // you shoud center these eventually
 const signsToPaths= {
+    "O":{d:`M501 143L633 163L746 228L826 323L872 465L861 598L791 731L680 821L534 861L396 841L279 772L198 671L158 544L158 460L173 392L243 268L350 183L430 153L501 143`,},
     "Box":{d:`M 0 0 L 100 0 L 100 100 L 0 100 L0 0`},
+    "arrR":{d:`M670 66L880 339L670 630L670 403L328 467L328 196L382 199L670 260L670 66`},
     "Column":{ d:"M105 60L105 60L105 134L141 134L141 147L62 147L62 134L98 134L98 66L105 60", },
     "Dispersion":{d:`M304 60L304 60L304 134L340 134L340 147L261 147L261 134L297 134L297 66L304 60
          M266 152L291 169L315 169L338 152L346 159L328 175L297 181L269 169L266 159L266 152`},
@@ -851,11 +874,69 @@ M697 487L708 488L716 497L716 507L709 516L697 516L685 508L686 494L697 487`},
 
 
 };
-
-
 function selectWithAllChildren(path){
     return [path,...path._children?.flatMap?.(c=>selectWithAllChildren(c))];
 }
+function buildPrettyCircle(elm,{sketchRotAngle= TAU/4}={}){
+    let parent = elm.parentElement;
+    let paths = [...parent.querySelectorAll("path.sketch.brush")].filter(  e=> e==elm || e.parentElement!==parent  );
+    let circlePaths =[];
+    let rootP = null;
+    for(const p of paths){
+        const en = signsToPaths[p?._feat?.name];
+        if(!p._feat || p._isInnerCountour ){ continue; }
+        if(!en){
+
+        }
+        let runeP = p.cloneNode();
+        runeP.classList.add("rune");
+        runeP.classList.remove("sketch","brush");
+        p._runeP = runeP; 
+        if(p._parent==null) rootP=p;
+        // no template path found keep it
+        if(!en ){
+            circlePaths.push(p); continue;
+        }
+        if(!en.parsed){
+            en.parsed = svgLinePathStrToAbsPntArr(en.d);
+            en.bbox = arrBbox(en.parsed);
+        }
+        const {W,H,minX,minY} = p._bbox;
+        const eB = en.bbox;
+        const srcB = en.bbox;
+        // preserve aspect ratio? use:
+        // const s = Math.min( W/srcB.W, H/srcB.H );
+        const sx = W / srcB.W;
+        const sy = H / srcB.H;
+        // remap points
+        const mapped =  en.parsed.map(pt => {
+            const nx = (pt.x - srcB.minX);// norm
+            const ny = (pt.y - srcB.minY);
+            return { ...pt, 0: minX + nx * sx, 1: minY + ny * sy }; 
+        });
+        // rebuild svg path string
+        runeP.setAttribute("d", pntsToPathD(mapped) );
+
+        const fetaDeg = p._feat.angleDeg;
+        const pbaDeb = p._pbaDeg;
+        runeP.style.rotate = pbaDeb + (en.rotShift??0) +"deg";
+        circlePaths.push(p);
+    }
+    // build real tree with actual hierachy
+    const makeSpellG = (p)=>{
+        let children = p._children?.flatMap?.(makeSpellG);
+        let rune = p._runeP;
+        // p may be omitted earlery due to being an innerCountour
+        if(rune) children.splice(0,0,rune);
+        const g = $SVG("g",{class:"rune",depth:p._depth,},children)
+        return g;
+    }
+    let spell = makeSpellG(rootP);
+    spell.classList.add("spell-circle");
+    rootP.after(spell);
+    return spell; 
+}
+
 
 let saveImg = null;
 function brushToCanvas(openCanvas, pnt0, pntN,restore=0,erase=0){
@@ -876,7 +957,7 @@ function brushToCanvas(openCanvas, pnt0, pntN,restore=0,erase=0){
 
     ctx.fillStyle= erase?"#fff":lastSketch.brushColor;
 
-    const brushSize = ctx.canvas.width * lastSketch.brushSize;
+    const brushSize = ctx.canvas.width * lastSketch.brushSize * (erase? lastSketch.eraseBrushScale:1);
     const steps = lastSketch.brushLenMul *  Math.min(30_000, Math.max(1,Math.hypot( x1-x0, y1-y0 )));
     const xStep= (x1-x0)/steps;
     const yStep= (y1-y0)/steps;
@@ -910,6 +991,12 @@ async function drawImgToCanvas(imgURL,canvas=openCanvas,{x=5,y=5,W=undefined,H=u
         imgI.hidden=1;
     }
     return imgI;
+}
+function drawSVGToCanvas(svg="",canvas=openCanvas,opt,img){
+    const blob = new Blob([svg], {type: 'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    drawImgToCanvas(url,canvas,opt,img);
+    setTimeout( _=> URL.revokeObjectURL(url),4000) // fine enough
 }
 
 

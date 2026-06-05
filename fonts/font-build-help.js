@@ -57,7 +57,7 @@ var fontH = 1000;
 
 //*** Load other svg font input logic
 const fontBaseIn = document.querySelector("#fontBaseIn");
-const svgIframe = $New('iframe',{hidden:1,},0,document.body);
+let svgIframe;
 
 let svgFontElm = null;
 
@@ -65,6 +65,7 @@ fontBaseIn.onchange =async (ev)=>{
     const file = ev.target.files[0];
     let svg  = $SVG("svg");
     const svgStr =  (await ev.target.files[0].text())
+    svgIframe??= $New('iframe',{hidden:1,},0,document.body);
     // ?.replace?.(/<\?xml.*?\n(\s*<!DOC.*?\n)/i,"");
     svgIframe.contentDocument.body.innerHTML = svgStr;
     
@@ -148,7 +149,7 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
 
         // you must recalculate fliped path, cause fonts/postscript corrdinate system starts in lower left corner, not svg top-left.
         let dFlipped = isLoaded||elm.hasAttribute("d")? elm.getAttribute("d") ||"" 
-                : gridToSvgPath(elm.innerText || elm.textContent, fontW, fontH, 0, true);
+                : asciiToSVG(elm.innerText || elm.textContent, fontW, fontH, 0, true);
         
         // parse all svg paths
         let xyAltCntr = 0;  let isVv = 0;

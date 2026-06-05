@@ -37,7 +37,7 @@
             </label>
             <input id="boxify" type="checkbox">
             
-            <label>Log Template Grids: <input id="logCounturs" type="checkbox"></label>
+            <label>  Log Templates: <input id="logCounturs" type="checkbox"></label>
         </details>
     </header>
    
@@ -108,9 +108,9 @@
 ....................
 !- Tab for preview
   A~                 
-..P        C~        
+..P;       C~        
       b a~       
-         g~      
+        ~g;      
       e~   D
       F E        
                
@@ -162,7 +162,7 @@
         B&3 
          A&4
 .z           h &4
-.        Z&4 
+.        Gz&4 
 .   F&       
          i&5
  k &
@@ -171,7 +171,7 @@
  .. ..|. ............  .
   . a&     A&           
 .      b
-.    g    L
+.    gz   LZ !- Z fills
 
 .   J&             C   &
 
@@ -223,6 +223,52 @@ A§  B§yn C;§
 .....+.....+.....+.....+
 </pre>
 
+<pre name="graph" contenteditable>.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+...
+
+  !-  2 spaces after '!-' => line comment
+
+!- a word list comment  ;b   b;  
+!-wordComment ;c cy2 c;
+.....+
+
+
+
+
+..... ;p   pY2  pY1  pY2  p     p,py2    py2 ,p    p,pY2       pY2 ,p         p
+                                 
+                              
+
+!-  this shows you how to do line based functions
+ 
+                               !- ^- ',' means take left 'x' coor, => boxes
+
+
+
+ 
+   !- a box with only a line 
+ R,Ry9                                                                         Ry9,R;
+
+
+                                           #A-D;
+                          !- ref syntax                !- next End      
+          ;A&2      B&2       #A-D;                     #A-;       #A-; +0.5,-4.5  
+                          
+
+           D;&2     C &2
+ 
+                  !- ^- & is quadratic bezire marker  
+  !-     #R-;
+  !-  #R-; 
+
+
+
+
+
+
+
+
+
+..........</pre>
 <pre name="triforce" contenteditable>
 
 A         By5,#A y5   C; ,#A               .
@@ -550,7 +596,8 @@ A  By2 C;
 
 <pre name="magicCircle" contenteditable="">
 .....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+
-
+    !- comment stroke a Magic circle  
+    !- use <kbd>Alt+i</kbd> for reference img
 
 
 
@@ -633,8 +680,8 @@ A  By2 C;
                 padding: inherit;
                 user-select: none;
                 z-index: -2;
-                /* opacity: 0.55; */
-                path{ stroke: var(--cB); fill: var(--L1); stroke-width: 6; }
+                opacity: 0.55;
+                /* path{ stroke: var(--cB); fill: var(--L1); stroke-width: 4; } */
             }
             svg:focus{
                 width: 255px;
@@ -649,7 +696,8 @@ A  By2 C;
             }
             path.sketch {
                 fill: none;
-                stroke: var(--cR); 
+                stroke: var(--cR);
+                stroke-width: 3; 
             }
             path.brush {
                 fill: none;
@@ -671,6 +719,36 @@ A  By2 C;
                 z-index: -4;
                 /* opacity: 0.5; */
             }
+            path{
+                transform-box: fill-box;
+                transform-origin: center;
+            }
+            &:has(.spell-circle) {
+                /* svg { z-index: 4; } */
+                path.sketch {
+                    stroke-dasharray: 4 4;
+                    stroke-width: 1;
+                }
+                canvas { opacity: 0.2;  }
+            }
+            path.rune {
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                stroke-width: 10;
+            }
+            path.inkdots {
+                opacity: 0.5;
+                stroke-dasharray: 1 0;
+            }
+            g.spell-circle path{
+                fill: none;
+            }
+            g[depth="0"] path{ stroke: var(--cP); }
+            g[depth="1"] path{ stroke: var(--cB); }
+            g[depth="2"] path{ stroke: var(--cG); }
+            g[depth="3"] path{ stroke: var(--cR); }
+            g[depth="4"] path{ stroke: var(--cY); stroke-dasharray: 4 3 5; }
+            g[depth="5"] path{ stroke: var(--cO); }
         }
         /* page style */
         body,details:open::details-content,header{
