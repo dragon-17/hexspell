@@ -109,12 +109,22 @@ function extractAllContours(source, options = {}) {
     return allPaths;
 }
 
-// --- ANWENDUNGS-BEISPIELE ---
-
-// Szenario A: Direktes Auslesen des User-Canvas
-// const userPaths = extractAllContours(document.getElementById('userCanvas'));
-// console.log(`Der User hat ${userPaths.length} separate Striche/Formen gezeichnet.`);
-
-// Szenario B: Text-Modus (erzeugt intern ein hochauflösendes Canvas)
-// const textPaths = extractAllContours("B", { width: 1000, height: 1000 });
-
+/** gives you a approximation of the path d of any font on your system/writeable on the canvas
+  also has a svg to preview;  could be put into the angleVarianz filter, but this is probaly not precices enough to returve the curves
+  try eg.:  `document.write( getFontPathAproxs("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.,:-_?!/\"'()[]{}<>",{eps:4}).svg )` */
+function getFontPathAproxs(chars="A",{width=128,height=128,fontStyle="112px Cascadia Code",eps=2.5/*higher->simpler*/}={}){
+    const paths = [];
+    let h=-1;let w=0;
+    let lineBrI = Math.floor(1000/width);
+    const opt = {width,height,fontStyle};
+    const pathsStr = [...chars].map( (c,i)=>{
+        const cont= extractAllContours(c,opt);
+        const simple = cont.map( c=>  ramerDouglasPeuPathFilter(c,eps));
+        paths.push({c,p:simple});
+        if(i%lineBrI==0)h++,w=0;
+        const path =`<path data-glyph='${c}' style='translate: ${w}px  ${ h*height}px' d='` +simple.map( p=> pntsToPathD(p)+"Z").join("\n")+"' />";
+        w+=width;
+        return path+"\n";
+    } )
+    return {paths,svg:  "<svg viewBox='0 0 1000 2000'>"+pathsStr.join("")+"</svg>"}
+}

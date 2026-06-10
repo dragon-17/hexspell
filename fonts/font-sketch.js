@@ -116,7 +116,10 @@ function sketchGridId(path,{parsePath0=undefined,bbox0=undefined,denseDrop=0.71}
     }
     // drops values whoes density is small than this percentage from the max density
     if(denseDrop>0){
-        let maxDens = Math.max( ...Object.values(gridIdxsMap).map(x=>x.dense??1) );
+        const vals = Object.values(gridIdxsMap).map(x=>x.dense??1);
+        if( vals.length> 20 ) denseDrop = 0.9; // tight things brushes or forms like W/Crush to get better distinguisch
+
+        let maxDens = Math.max( ...vals );
         const cutOff = maxDens*denseDrop;
         for(const key in gridIdxsMap) 
             if(gridIdxsMap[key].dense < cutOff ) delete maxDens[key];
@@ -240,6 +243,7 @@ const spellBook = {
     "Column":{ grid:0b11111_00100_00100_00100_00100, subMask:0b00000_10001_10001_10001_11011 },
     "Dispersion":{ grid:0b11111_10101_00100_00100_00100, subMask:0b00000_00000_10001_11011_11011 }, // connected Box
     "Crush":{ grid:0b10101_10101_01010_01010_01010, subMask:0b01010_00000_00000_00000_10101 },
+    "Crush2":{  char:"Crush",grid:0b00000_10101_01010_01010_01010, subMask:0b01010_00000_00000_00000_10101 },
     "Collection":{ grid:0b00000_01010_00000_01010_11111, subMask:0b01110_10001_10001_00100_00000 },
     "Entwine":{ grid:0b11111_10101_00100_11111_10001, subMask:0b00000_00000_11011_00000_01110 },
     "Solidify":{ grid:0b01110_01010_00100_01010_01110, subMask:0b10001_00000_10001_00000_10001 },
@@ -351,6 +355,8 @@ function lookUpClosests(num=0,AR,book=sketchBook){
 
 let openPath = [];
 let prevTouch = null;
+let openEl = null;
+let openH = null, openAR=null;
 let openSvg = null;
 let debugPath = null;
 let openCanvas = null;
@@ -368,6 +374,7 @@ let brushes= {
 let lastSketch = {  
     raw:[], ramen:[], epsPercent: 0.03 /* a small part of view port */ ,eps:5,  grid:null,
     allowConnect:false, snap:1.5, intoText: true, noCurves:false,
+    debugPathTimeout: 250,// don't call path.setAttr(d) to often triggers
     lessBoxify: 0,
     logStroke:0,
     logCountours:1,
@@ -388,6 +395,8 @@ let lastSketch = {
     brushColor: "#002",
     svgClassify:1,
 };
+let inSizeRn;
+let brushSizes;
 initBrushInputs()
 function initBrushInputs(){
     const inFn = window.brushFn;
@@ -395,7 +404,8 @@ function initBrushInputs(){
     inFn.value = lastSketch.brushFn.name;
     inFn.onchange=(ev)=> lastSketch.brushFn=brushes[ev.target.value]
     
-    const inSizeRn = window.brushSize;
+    inSizeRn = window.brushSize;
+    brushSizes = window.brushSizes;
     const inSizeNu = window.brushSizeNumber;
     inSizeRn.min= inSizeNu.min=0;
     inSizeRn.max= inSizeNu.max= 0.4;
@@ -436,6 +446,7 @@ document.body.onkeydown= (ev=KeyboardEvent.prototype)=>{
     }
     if(ev.altKey&&ev.key=="Backspace"){
         clearSketch(el);
+        ev.preventDefault();
     }
     if(ev.altKey&&ev.key=="r" && lastBlurPre){
         let registerName = prompt(`Register last sketches as stroke template. Enter the register name:`,"");
@@ -444,6 +455,18 @@ document.body.onkeydown= (ev=KeyboardEvent.prototype)=>{
 
         if(confirm(`Look at console if combined grid is sensible?\nStill register "${registerName}"`)){
             registerLastSketch(registerName,spellBook);
+        }
+    }
+    if(ev.altKey&&  "+-".includes(ev.key)){
+        let dir = ev.key=="+"? 1:-1;
+        
+        ev.preventDefault();
+        let allSizes = [...brushSizes.options].map(o=>+o.value);
+        let curIdx = allSizes.findLastIndex(i=>i<=lastSketch.brushSize)??0;
+        const nextSize = allSizes[ curIdx+ dir];
+        if(nextSize!==undefined){
+            brushSize.value = nextSize;
+            brushSize.oninput({target:brushSize});
         }
     }
 }
@@ -462,12 +485,24 @@ const sketchMouse = (ev=MouseEvent.prototype)=>{
         if(initialSel) return;
         else el.dataset.isSketching=true;
        
-        openSvg ??= el.querySelector("&>svg");
-        openCanvas ??= el.querySelector("&>canvas")??false;
-        
+        const erase = ev.altKey || ev.detail>1;
+       
+        if(!openPath.length){
+            openAR ??=  el._asciiObj?.gridAR ?? 1000;
+            openH ??= el._asciiObj?.viewH ?? 1000;
+            openSvg ??= el.querySelector("&>svg.sketch") ?? $SVG("svg",{"viewBox":`0 0 1000 ${el._asciiObj?.viewH??1000}`,class:"sketch",tabindex:"0"},0,el);
+            openCanvas ??= el.querySelector("&>canvas")??false;
+            openEl ??= el;
+            window?.alignViewPorts?.(openCanvas,openSvg,el._asciiObj);
+            if(openSvg){
+                debugPath ??= $SVG("path",{class:"sketch"+ (erase?" erase":""),},0,openSvg);
+                debugPath._last = 0;
+            } 
+        }
+       
         let connect=false;
         if( !openPath.length && (lastSketch.allowConnect  && lastSketch.el==el)){
-            const posSvgSpace = toOtherSpace( ev.offsetX,ev.offsetY,el.clientWidth,el.clientHeight,);
+            const posSvgSpace = toOtherSpace( ev.offsetX,ev.offsetY,el.clientWidth, el.clientHeight, 1000, openH );
             const eps=lastSketch.eps*2;
             connect = ( lastSketch.raw.findLast( p=>eps>Math.hypot(p[0]-posSvgSpace[0],p[1]-posSvgSpace[1]) ))
             if(connect){
@@ -476,25 +511,27 @@ const sketchMouse = (ev=MouseEvent.prototype)=>{
                 if(debugPath)debugPath.dataset.isSketching=true;
             }
         }
-        if(openSvg) debugPath ??= $SVG("path",{class:"sketch",},0,openSvg);
-       
+
         if( ev.movementX || ev.movementY ){
             let [x,y]=  connect?.length?  connect  : [ev.offsetX,ev.offsetY];
-            let newPnt=toOtherSpace( ev.offsetX,ev.offsetY,el.clientWidth,el.clientHeight,);
+            // normed to 0..1 then mapped to current aspect ratio
+            let newPnt= toOtherSpace( ev.offsetX,ev.offsetY,el.clientWidth, el.clientHeight, 1000, openH );
             openPath.push(newPnt);
-        
-            if(connect  ){
+
+            if(connect){
                 debugPath.dataset.connect=true;
                 const  lastRam = lastSketch.ramen.at(-1);
                 if(( Math.abs( connect[0]-lastRam[0]) >10   && Math.abs( connect[1]-lastRam[1]) >10    )) {
                     newPnt.cmd="M";
                 }
             }
-            if(debugPath) debugPath.setAttribute("d",pntsToPathD(openPath));
+            if(debugPath &&   ev.timeStamp- debugPath._last > lastSketch.debugPathTimeout){
+                debugPath.setAttribute("d",pntsToPathD(openPath));
+                debugPath._last = ev.timeStamp;
+            } 
             
             if(openCanvas){
                 // use double click or rightclick
-                const erase = ev.altKey || ev.detail>1;
                 const clearCanvas = erase && ev.detail>1;
                 brushToCanvas( openCanvas, openPath.at(-2), newPnt, clearCanvas, erase   );
             } 
@@ -514,7 +551,7 @@ const sketchMouse = (ev=MouseEvent.prototype)=>{
                 if(contur.length>5000) contur= contur.filter((c,i)=>i%8==0);
                 let lessBoxy = lastSketch.lessBoxify ^ ev.ctrlKey;
                 let ramen = ramerDouglasPeuPathFilter(contur,(lessBoxy?0.5:1)* eps);
-                let angular = angularVarianceFilter(ramen, ramen.length>30? multiglyphSnap : lastSketch.brushSnap);
+                let angular = angularVarianceFilter(ramen, lessBoxy? 0.005 :  ramen.length>30? multiglyphSnap : lastSketch.brushSnap);
                 let path = $SVG("path",{class:"sketch brush", d: pntsToPathD(angular,  lastSketch.brushUseCurve) });
                 openSvg.append(path);
                 ramenCountours.push(angular);
@@ -554,7 +591,7 @@ const sketchMouse = (ev=MouseEvent.prototype)=>{
         const allP = openSvg.querySelectorAll("path.sketch");
         if(allP.length>maxDebugPaths) allP[0]?.remove?.();
 
-        openSvg= null; debugPath = null; openCanvas= null; prevTouch=null;
+        openEl = openAR = openH = null; openSvg= null; debugPath = null; openCanvas= null; prevTouch=null;
         ev.preventDefault?.();
     }
 }
@@ -588,6 +625,17 @@ function touchEvToMouse(ev,el){
     })
     prevTouch = touch;
     return mEv;
+}
+
+function alignViewPorts(canvas,sketchSVG, asciiObj){
+    if(!asciiObj) return;
+    const expectedH = asciiObj?.viewH;
+    if( Math.abs( expectedH-canvas.height) >5 )  canvas.height = expectedH;
+
+    if( Math.abs( expectedH-sketchSVG?.viewBox?.baseVal?.height) >5 ){
+        const vB = sketchSVG.viewBox.baseVal;
+        sketchSVG.setAttribute("viewBox",vB.x+" "+vB.y+" "+vB.width+" "+expectedH)
+    }
 }
 
 function toOtherSpace(x,y,gw,gh,outW=1000,outH=1000 ,padding=16){
@@ -647,7 +695,7 @@ function sketchIntoText(el,countours){
     let pointMap = {__proto__:null};
     let letters = ["1"];
     for(const countour of countours){
-        const mapped = countour.map( p=> toOtherSpace(p[0],p[1],1000,1000,gridW,gridH,0)  );
+        const mapped = countour.map( p=> toOtherSpace(p[0],p[1],el.clientWidth,el.clientHeight,gridW,gridH,0)  );
         let placesCtrl=100;
         for(const pnt of mapped){
             const intX = pnt[0]|0;
@@ -917,9 +965,9 @@ function buildPrettyCircle(elm,{sketchRotAngle= TAU/4}={}){
         // rebuild svg path string
         runeP.setAttribute("d", pntsToPathD(mapped) );
 
-        const fetaDeg = p._feat.angleDeg;
         const pbaDeb = p._pbaDeg;
-        runeP.style.rotate = pbaDeb + (en.rotShift??0) +"deg";
+        const fetaDeg = p._feat.angleDeg;
+        runeP.style.rotate = fetaDeg + (en.rotShift??0) +"deg";
         circlePaths.push(p);
     }
     // build real tree with actual hierachy
@@ -939,7 +987,7 @@ function buildPrettyCircle(elm,{sketchRotAngle= TAU/4}={}){
 
 
 let saveImg = null;
-function brushToCanvas(openCanvas, pnt0, pntN,restore=0,erase=0){
+function brushToCanvas(openCanvas, pnt0, pnt1,restore=0,erase=0){
     if(openPath.length<2) return;
     /** @type {CanvasRenderingContext2D} */
     const ctx = openCanvas.getContext("2d"); 
@@ -949,8 +997,11 @@ function brushToCanvas(openCanvas, pnt0, pntN,restore=0,erase=0){
         ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height)
     }
     if(pnt0.cmd=="M") return;
-    let [x0,y0] = toOtherSpace(pnt0[0],pnt0[1],1000,1000, ctx.canvas.width,ctx.canvas.height); 
-    let [x1,y1]= toOtherSpace(pntN[0],pntN[1],1000,1000, ctx.canvas.width,ctx.canvas.height);
+    // no more mapping neccesary
+    let x0 =pnt0[0] ,y0 = pnt0[1]
+    let x1 =pnt1[0] ,y1 = pnt1[1]
+    // let [x0,y0] = toOtherSpace(pnt0[0],pnt0[1],openEl.clientWidth??1000,openH??1000, ctx.canvas.width,ctx.canvas.height); 
+    // let [x1,y1]= toOtherSpace(pntN[0],pntN[1],openEl.clientWidth??1000,openH??1000, ctx.canvas.width,ctx.canvas.height);
     // padding of canvas
     // x0+=16; y0+=16;
     // x1+=16; y1+=16;

@@ -37,12 +37,14 @@ const blurEv = (ev) => {
     }
     let previewCanvas = el.querySelector("&>canvas");
     if(!previewCanvas){
-        previewCanvas = $New("canvas",{width:1000,height:1000,},0,el);
+        const openAr = (el.clientWidth-32) / (el.clientHeight-32);//padding 
+        previewCanvas = $New("canvas",{width:1000,height: 1000/ openAr,},0,el);
     }
 
     // use innerText, cause it deals intelegently with <br> of contenteditable, 
     // but innerText returns nothing if elm hidden in <details>, so for init use textContent as follback, you should use <br> in the static HTML anyway
-    const asciiObj = asciiToSVG(el.innerText || el.textContent, W, H);
+    const asciiObj = asciiToSVG(el.innerText || el.textContent, W);
+    el._asciiObj = asciiObj;
     previewSvg.outerHTML = asciiObj.svg;
     previewSvg = el.querySelector("&>svg");
     previewSvg.setAttribute("tabindex","0")
@@ -56,11 +58,14 @@ const blurEv = (ev) => {
     // set the canvas from the ascii svg txt sketch
     if(inputedText && window.clearCanvas&&previewSvg){
         inputedText = false;
-        clearSketch(el);
-        const canvasSVG = previewSvg.cloneNode(true);
-        // remove the sketch path-elms
-        canvasSVG.querySelectorAll(".sketch,.spell-circle").forEach(c=>c.remove())
-        drawSVGToCanvas(canvasSVG,previewCanvas,)
+        const sketchSVG = el.querySelector("&>svg.sketch")
+        window?.alignViewPorts?.(previewCanvas,sketchSVG,asciiObj);
+        
+        // clearSketch(el);
+        // const canvasSVG = previewSvg.cloneNode(true);
+        // // remove the sketch path-elms
+        // canvasSVG.querySelectorAll(".sketch,.spell-circle").forEach(c=>c.remove())
+        // drawSVGToCanvas(canvasSVG,previewCanvas,)
     }
 }
 document.body.addEventListener("blur", blurEv, true,);
@@ -184,17 +189,15 @@ function compactCombine(wrd,digit){
     return wrd;
 }
 
-function asciiToSVG(gridString, targetW, targetH, svg, flipH,viewBox="") {
+function asciiToSVG(gridString, targetW, flipH) {
     let [lines, gridW, gridH] = gridStats(gridString);
     
-    const targetAR =  targetW/targetH;
     //             v~~ monospace chars have aspect of 1:2
     const gridAR = (2 * gridH) / gridW;
-    // you could handle issues here when gridH and targetH aspect does not fit
-    // if(targetAR!=gridAR) 
-    //      console.log("Given target ARs do not match");
-
-    viewBox ||= 'viewBox="'+ 0 + " " + 0 + " " + targetW + " " + targetH+'"';
+    
+    const viewH =  1000*  2*gridH / gridW;
+    const targetH = viewH;
+    let viewBox = 'viewBox="'+ 0 + " " + 0 + " " + targetW + " " + targetH+'"';
     
     const allPoints = [];
     const markers = []; //  ~ und &,  § means 50% round -> &5
@@ -462,7 +465,7 @@ function asciiToSVG(gridString, targetW, targetH, svg, flipH,viewBox="") {
         }
     }
 
-    let maxRef=0;
+    let maxRef=2;
     for (const grpName in groups) if(groups[grpName]) for(const pnt of groups[grpName]){
         if(!pnt.isRef||pnt.R>maxRef) continue;
         let startPnt = groups[grpName].find(p=>p!==pnt && p.id==pnt.id) ?? allOrderedPnts.find(p=>p.id==pnt.id);
@@ -502,7 +505,7 @@ function asciiToSVG(gridString, targetW, targetH, svg, flipH,viewBox="") {
         groups[grpName].splice(pntIdx,1,...insertees);
         splitGrp(grpName);
     }    
-    let asciiParsed = { svg:"",allG:[], allD:"" };// assemble svg and a combination of all paths
+    let asciiParsed = { svg:"",allG:[], allD:"", gridW,gridH,gridAR,viewH };// assemble svg and a combination of all paths
   
     const attrStr = (k,v)=> v==undefined?"":" "+k+'="'+v+'"';
 
@@ -543,6 +546,7 @@ function asciiToSVG(gridString, targetW, targetH, svg, flipH,viewBox="") {
         asciiParsed.svg+=`<path${attrGrp[0].attr} d="${attrGrp.reduce( (d,g)=>d+g.d,"")}"/>\n`;
     }
     asciiParsed.svg+="</svg>"
+    
     return asciiParsed;
 }
 function lerp(a, b, t) { return { x: (a.x + t * (b.x - a.x)), y: (a.y + t * (b.y - a.y)) } }

@@ -1,9 +1,8 @@
-let blissChars=`[]|_-"()/\\=:,'+*!<>^voOV`
-
 // cell is 8x*16y  1/2 like a proper monospace font
 let cW=8; let cH = 16;
 let blissPathMap = {
-    '|':{ d:"m4 0 v16 m4-16" },
+    '|':{ d:"v16 m8-16" },// left right of box
+    'I':{ d:"m8 16 v-16" },
     '_':{ d:"m0 16 h8 m0-16"},
     '-':{ d:"m0 8 h8 m0-8"},
     '"':{ d:"h8"},
@@ -96,7 +95,7 @@ function buildBliss(word="",{padStroke=2,strokeCap="round",fill="none"}={}){
 }
 
 const R = String.raw;
-let bsps= [
+let blissBsps= [
 R`["""]   f"""i   [""\§ ono
 L___J   l___j   l__J§  `,    
     
@@ -147,7 +146,7 @@ L 0_0;oooo.`,   includeSVGCode=true){
     const el = window.blissPreviewBox;
     getSelection().setBaseAndExtent(el,0,el,el.childElementCount);
 
-    document.execCommand("insertHTML",false, `<code id="blissInText" contenteditabl="plaintext-only" >${sane(str)} </code><hr>${svgStr}${
+    document.execCommand("insertHTML",false, `<code id="blissInText" style="padding:0" contenteditabl="plaintext-only" >${sane(str)} </code><hr>${svgStr}${
         includeSVGCode? `<hr><output>${sane(svgStr)}</output>`:""}`
     )
 }

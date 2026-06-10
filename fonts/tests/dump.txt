@@ -1,0 +1,48 @@
+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+........+.....+
+    !- comment stroke a Magic circle     F y0.5                     
+    !- use Alt+i for reference                           
+                                                           G  
+                            Ey-1.4         k8                
+                             k7                            k9      
+.....+
+                                                      ?@.d=    
+                       
+
+                                 ~-                                  
+.....+              D  k6        T   S1 R  P                    k10     
+                                          O1
+                            ~-      b
+                             a1                   
+                            a0  S2      S  c#111==12y    
+.....+                                     Q O&0-                        G  
+                                         
+                         k5   U                N              k11
+                             [_         _]: 
+
+....+                   C
+                           k4§-                      M       k12
+                                    How to Draw Anime Characters Tutorial - AnimeOutline
+                                                                 H
+.....+                     A~7-#424M#000==5                                  
+                        B-    Y  W      k3&1             L  J     G
+                                   V                  k13 ,k15                       
+                                    &3-      k14&0- y-1 y-1.1  I
+.....+                       Z;   X          +0.1,-1.1     K
+
+                         y.5 l  l     k2&2-          k99&5-
+                          &15-        y-0.8                 #l y-0.6   k100
+                  k1                                        
+.....+         
+
+                                                           
+                                
+                 ;k0#ffeM#000==4 l#fffM#000==2                               k101;~
+.....+             &5-       l2;  
+                            y-1    x-2  
+
+
+              
+  !-  ref img from   https://www.animeoutline.com/how-to-draw-anime-characters-tutorial/    
+   !-   note to myself should read that side
+
+.....+.....+.....+

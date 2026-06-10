@@ -31,13 +31,15 @@
             </label>
             <input accesskey="S" id="brushSize" type="range" step="0.001" list="brushSizes">
             <input accesskey="S" id="brushSizeNumber" type="number" step="0.001" list="brushSizes">
-            <datalist id="brushSizes"><option>0.01<option>0.03<option>0.06<option>0.10<option>0.12<option>0.18<option>0.24</datalist>
+            <datalist id="brushSizes"><option>0.004<option>0.01<option>0.03<option>0.06<option>0.10<option>0.12<option>0.18<option>0.24</datalist>
             <label for="boxify">Less Boxify:<i><sup>?</sup></i>
-                <aside hidden><b>Info:</b> The Ramen-Peuker-Douglas Filter is used to egt the simpler paths.<br> If your result is to <b>blocky</b>, this makes the filter <b>less brutal</b></aside>
+                <aside hidden><b>Info:</b> The Ramen-Peuker-Douglas Filter is used to egt the simpler paths.<br> If your result is to <b>blocky</b>, this makes the filter <b>less brutal</b>
+                You can also press <kbd>CTRL</kbd> during brush release to flip to opposite more/less boxify setting
+                </aside>
             </label>
             <input id="boxify" type="checkbox">
             
-            <label>  Log Templates: <input id="logCounturs" type="checkbox"></label>
+            <label>  Classify Canvas: <input id="logCounturs" type="checkbox"></label>
         </details>
     </header>
    
@@ -116,7 +118,7 @@
                
   L   
      K
-. .   .    . <canvas id="testOCRCanvs" width="256" height="256" ></canvas></pre>
+. .   .    . </pre>
     <pre name="rounded-box" contenteditable>
 ....................
   .                .
@@ -660,7 +662,6 @@ A  By2 C;
     <style>
         /* needed to align the nested svg and canvas to the contenteditable pre[name] */
         pre[name],[sketch] {
-            /* color: #d75; */
             color: var(--L0);
             &[data-is-sketching]{
                 user-select: none;
@@ -669,14 +670,15 @@ A  By2 C;
                 background-color: transparent;
             }
             width: fit-content;
+            height: fit-content;
+            line-height: 1.1; /* may need to tweak this per font */
             position: relative;
             padding: 1rem;
-            line-height: 1;
 
             &>svg,&>canvas,&>img {
                 position: absolute;
                 inset: 0;
-                border: solid 2px oklch(from var(--cG) 0.8 c h);
+                outline: solid 2px oklch(from var(--cG) 0.8 c h);
                 padding: inherit;
                 user-select: none;
                 z-index: -2;
@@ -684,20 +686,22 @@ A  By2 C;
                 /* path{ stroke: var(--cB); fill: var(--L1); stroke-width: 4; } */
             }
             svg:focus{
-                width: 255px;
-                max-width: 255px;
+                width: 80%;
+                max-width: 512px;
                 z-index: 1;
                 opacity: 1;
                 padding: 0;
                 margin: 0;
                 border: inset 2px oklch(from var(--cB) 0.4 c h);
                 background-color: white;
-                path:not(.sketch){ stroke: var(--cB);  fill: var(--L0); stroke-width: 3; }
             }
             path.sketch {
                 fill: none;
                 stroke: var(--cR);
                 stroke-width: 3; 
+            }
+            path.erase {
+                stroke: var(--cB);
             }
             path.brush {
                 fill: none;
@@ -706,7 +710,7 @@ A  By2 C;
             path[data-form]{  stroke: var(--cY);  }
             &>canvas {
                 /* canvas has no viewport, but this ensure it has same size as pre and svg
-                Your text needs to hava a fitting 1:1 aspect ratio, cnavas has internally a 1000 1000 */
+                Your text needs to have a fitting aspect ratio */
                 width: stretch;
                 height: stretch;
                 padding: inherit;
@@ -767,10 +771,10 @@ A  By2 C;
 
         #addPanel { width: min-content; height: min-content; }
         kbd{
-            --col: light-dark(darkslategrey,grey);
-            box-shadow: 0 2px 0px 1px   var(--col);
+            box-shadow: 0 2px 0px 1px   var(--L4);
             border-radius: 0.1rem;padding: 0.1rem;
-            &:hover{ box-shadow: 0 1px 0 0.5px   var(--col); translate: 0 1px; }
+            vertical-align: super;
+            &:hover{ box-shadow: 0 1px 0 0.5px   var(--L4); translate: 0 1px; vertical-align: normal; }
         }
     </style>
 </body>
