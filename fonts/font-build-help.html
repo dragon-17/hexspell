@@ -185,13 +185,13 @@
 <pre name="block"  contenteditable="" ignore >
 .....+.....+.....+. ...+............
 
-
-
-A§  B§yn C;§       
+            !- semicolon closes/opens new path
+    
+A§  B§yn C;§#0f0    
  
                
            
-M§  M§yn M§ 
+M§  M§yn M§#f00
         
         
 ;~N N~y4 ~N+3,4 N~;     
@@ -229,29 +229,29 @@ A§  B§yn C;§
 
   !-  2 spaces after '!-' => line comment
 
-!- a word list comment  ;b   b;  
-!-wordComment ;c cy2 c;
+!- a word list comment  ;b   b;#00f  
+!-wordComment ;c cy2 c;#f0fM#a00
 .....+
 
 
 
 
-..... ;p   pY2  pY1  pY2  p     p,py2    py2 ,p    p,pY2       pY2 ,p         p
+..... ;p   pY2  pY1  pY2  p     p,py2    py2 ,p    p,pY2       pY2 ,p         p#f00
                                  
                               
 
 !-  this shows you how to do line based functions
  
-                               !- ^- ',' means take left 'x' coor, => boxes
-
+                               !- ^- ',' means take left 'x' coor, => boxes (e.g. for rects)
+                               !- therefore comma is called the <i>Glide Operator</i>
 
 
  
    !- a box with only a line 
  R,Ry9                                                                         Ry9,R;
 
-
-                                           #A-D;
+                                            !- SVG fill stroke-width dasharray 
+                                           #A-D;#f00M==5=-=25
                           !- ref syntax                !- next End      
           ;A&2      B&2       #A-D;                     #A-;       #A-; +0.5,-4.5  
                           
@@ -260,44 +260,152 @@ A§  B§yn C;§
  
                   !- ^- & is quadratic bezire marker  
   !-     #R-;
-  !-  #R-; 
+  !-  #R-;#f006M#f00==1[=]=-=5
+                                       !- '-' makes a marker (here quad-bezir) spread to the next verticies
+    &3                            &3-
+    ;K1         K2#6e1100M        K11       K12#cc021dM
 
 
-
-
-
-
+    K4;         K3                K14;      K13
 
 
 
 ..........</pre>
 <pre name="triforce" contenteditable>
 
-A         By5,#A y5   C; ,#A               .
-                 
-                        
-                                          
-                              !- try mod this
-                                     ~DE  ~
-     #D-;
-  
-                                 ~G;     F  ~ 
-          #D
-
+A--------By5------C;#FF0M --,#A-----            .
+  '.           .'   '.           .'
+    '.       .'       '.       .' 
+      '.   .'           '.   .'  !- try mod this      
+        '.' , #A- y1      '.'         .'.
+          -----------------         ~-DE#0FFM   
+     #D-   '.           .'          /     \
+             '.       .'           (       )   
+               '.   .'             G;-._.-F    
+          #D#f44MaIdName
+                  '
                #D
-
-  
-                   
-
-
+                       !- line art just fluff
+                       !- looks good in editor
+                     ,#D-;#881M
 
 
 
+                     ,#A-#323M        
 
-               
+         #A-#323M     #A-#323M
+
+                                      
+                
 
 .
 </pre>
+<pre name="dashdemo" contenteditable>
+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+
+    !- some dash array demos, they can be used for simple patterns  
+    
+        
+        #a-#0f06==50 
+        y0.5       
+.....+
+ a  bX300#f006==100=-=200
+   cY50
+     #a-#00f6==25[=] 
+
+
+
+.....+ A                   B#de6==150[=]=-=20,15,25,10
+
+
+
+                                      #A#6ed
+.....+          f
+
+   
+                                               e     
+
+.....+ D;                  C
+
+
+
+                                #B-#d6eo=o
+.....+
+
+
+
+
+.....+
+                          d
+
+
+
+.....+
+
+
+
+
+.....+
+
+
+
+
+
+
+
+.....+.....+.....+
+</pre>
+<pre name="z-demo" contenteditable>
+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+
+    !- use of the 'z' to go back inside a path   
+       
+                       Ez      
+                               A        B
+
+.....+                    D         Cz     
+                                         #A
+             #A
+
+                               #A-;                 
+
+.....+
+                                              !- you can return back to first with z
+                         &2-       ;     #;6-6;   #;6-7;   #;6-8   #;6-9  #;6-
+                           2   1 8z 6#o=o  
+                                    9z     
+.....+                              5&0 
+                              7z                  
+                           3        4          
+                               
+                                     ~6- 
+.....+                               ;G0       G1             #G0-H3*1.5
+                                       H1    ;H      
+
+                                               #G0-H3*2
+                                       H2     H3Z
+.....+                                G3Z      G2
+
+
+     ;R10      R20;+100,-10#0008==300[=]=-=25lines  
+
+.....+
+
+
+   
+
+.....+
+                            #N-Q1;*0.5   #N-Q1;*0.5
+                                ;N.....N#fffM==4
+                               ~-
+
+.....+                       ....N4Z...N....
+                              . ;Q     Q  .        
+                              y-1- ~9-    .
+                              .           .
+                              Q1Z#fffM==4 Q#torso
+
+
+.....+.....+.....+
+</pre>    
 </details>
 <details name="samples" class="font" >
     <summary>Font Hex Digits</summary>

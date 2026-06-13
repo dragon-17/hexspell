@@ -130,6 +130,7 @@ const markerChars = {
     'X':{after:1,format:['X'],needNextNum:true},'Y':{after:1,format:['Y'],needNextNum:true}, 
     'P':{after:1, format:['XY','XXYY'],needNextNum:true},
     'p':{after:1, format:['xy','xxyy'],needNextNum:true}, 
+    '*':{  format:['xy','xxyy'],formatPrePrint:"s", needNextNum:true,passMask:0b10, },// calc after pos offset to get midpoints
     // for row columns based meta data
     ':': {needNextNum:true},
     '{':{},'}':{},
@@ -159,12 +160,12 @@ const compactNumsRE = /^[0-9a-folzwnshtßq]/i;
 
 /**    A+47   -> cor offset 4,7     B+8,e  -> B.xy+= {x:8,y:14}      
  *    compact wide valid cors to two chars:  D+16,-7  */
-function parseCompactNums(str = "", formats = ['xy', 'xyW', 'xxyy'], dataObj={}) {
+function parseCompactNums(str = "", formats = ['xy', 'xyW', 'xxyy'], dataObj={},formatPrePrint="") {
     let format = formats.find(f => str.length <= f.length) ?? formats.at(-1);
 
     const units = [...format].reduce( (us,f)=>(us.at(-1)==f? 0:us.push(f),us) ,[]); 
     
-    const addUnit = (n,i)=> !isNaN(n) &&  (dataObj[units[i]] =  +n);
+    const addUnit = (n,i)=> !isNaN(n) &&  (dataObj[formatPrePrint+units[i]] =  +n);
 
     if(/[+,.-]/.test(str)){// fallback to normal cors seperated via ,
         str.split(",").map( n=> [...n].reduce( (numStr,d)=>compactCombine(numStr,d),"")).forEach(addUnit); 
@@ -252,7 +253,7 @@ function asciiToSVG(gridString, targetW, flipH) {
                     marker.data += line[x];
                 }
                 if ( marker.data && !anyData) {
-                    if(markerT.format)  parseCompactNums(marker.data,markerT.format, marker.data={});
+                    if(markerT.format)  parseCompactNums(marker.data,markerT.format, marker.data={},markerT.formatPrePrint);
                     // use as lerp radius or for catmull as tension
                     else if (marker.data.includes(".")) marker.data = Number(marker.data);
                     else marker.data = (Number(marker.data)) / 10 ** (marker.data.length);
@@ -296,7 +297,7 @@ function asciiToSVG(gridString, targetW, flipH) {
                 }
 
             } else if (isNum || /[A-Za-z]/.test(char)) {
-                const pnt = { id: char, char, x, y, grp: isNum ? "num" : /[a-z]/.test(char) ? "lower" : "upper" };
+                const pnt = { id: char, char, x, y, grp: isNum ? "num" : /[a-z]/.test(char) ? "lower" : "upper",idNorm:char };
                 let refM = openRef;
                 let isRefMarker = refM?.type=="#" && !refM.resolved; 
                 if(isRefMarker){
@@ -309,6 +310,8 @@ function asciiToSVG(gridString, targetW, flipH) {
                     x++; pnt.id += (line[x]??"");
                     if (!line[x]||  (!isRefMarker &&  "zZ".includes(line[x]) )) break;
                 }
+                pnt.idNorm= pnt.id.replace(/z$/i,"");
+
                 allPoints.push(pnt);
                 lastIsPnt = true;
                 lastIsNoWSPnt = true;
@@ -339,8 +342,8 @@ function asciiToSVG(gridString, targetW, flipH) {
 
     // 2. Gruppieren nach Gehäuse (Upper) und Löchern (Lower,Digits)
     let groups = Object.groupBy(allPoints, p => p.grp);
-    
-    const idToSortNum = (id,grp=0, offset=0)=> !isNaN(+id)?+id:(grp+id[0].charCodeAt(0))*10000+(isNaN(+id.slice(1))?999:+id.slice(1)+offset);
+     
+    const idToSortNum = (id,grp=0, offset=0)=> !isNaN(+id)?+id:(grp+id[0].charCodeAt(0))*10000+(isNaN(+id.slice(1))? +id.slice(2)||999 :+id.slice(1)+offset);
 
     for (const grp in groups) {
         groups[grp].forEach( pnt=>pnt.sortNum=idToSortNum(pnt.id,pnt.idGrp, pnt.idOff) )
@@ -356,8 +359,9 @@ function asciiToSVG(gridString, targetW, flipH) {
         if( ! (markerPassMask & passMask ) || !pnt ) return;
 
         const isPosMarker = "+xypXYP".includes( m.type);
-        const specialMarker = ";,".includes(m.type);
-        if(!pnt.marker  || !(isPosMarker||specialMarker) ) pnt.marker = m;
+        const isCurveMarker = "~&".includes( m.type);
+        const isScaleMarker = "*".includes(m.type);
+        if( isCurveMarker ) pnt.marker = m;
 
         let allM = pnt.allMarker??=[];
         if(!allM.includes(m)) allM.push(m); 
@@ -365,7 +369,7 @@ function asciiToSVG(gridString, targetW, flipH) {
         if(!allP.includes(m)) allP.push(pnt); 
 
         if(m.type==";"){
-            if(m.x>pnt.x ) pnt.isPathEnd= true;
+            if(m.x> (pnt.x0??pnt.x) ) pnt.isPathEnd= true;
             else pnt.isPathStart=true;
         } else if(m.type=="-" ){
             pnt.isPathStart=false;
@@ -381,6 +385,13 @@ function asciiToSVG(gridString, targetW, flipH) {
                 pnt[lower+"0"] ??= pnt[lower]; 
                 pnt[lower] =  lower===u? (pnt[u]||0)+m.data[u]  : m.data[u];
             }
+        } else if(isScaleMarker && pnt.bbMid){
+            m.data['sy'] ??= m.data['sx']; // just number scale should also scale y
+            for(const u in m.data){
+                const cor = u.at(-1);
+                pnt[cor+"0"] ??= pnt[cor]; 
+                pnt[cor] = pnt.bbMid[cor] +  m.data[u] * (pnt[cor]-pnt.bbMid[cor])
+            }
         }
     }
     // find closest point for each marker
@@ -394,10 +405,11 @@ function asciiToSVG(gridString, targetW, flipH) {
         if (!closestPnt) for (const pnt of allPoints) {
             // has already a marker maybe? skip
             // if(pnt?.marker?.type==m.type) continue;
-
-            if(m.y - pnt.y> maxYDist) continue
+            const py = pnt.y0??pnt.y;
+            if(m.y - py> maxYDist) continue
+            const px = pnt.x0??pnt.x;
             
-            let d = Math.hypot((m.x - pnt.x), (m.y - pnt.y) * 2);
+            let d = Math.hypot((m.x - px), (m.y - py) * 2);
             
             if( d>maxDist) continue
             
@@ -418,7 +430,6 @@ function asciiToSVG(gridString, targetW, flipH) {
                     m.snapPnt =  closestPnt; 
                 } 
             }
-
             markerAction(m,closestPnt,{passMask:0b01});  
         }  
         m.dist ??= 1;
@@ -426,6 +437,14 @@ function asciiToSVG(gridString, targetW, flipH) {
 
     let allOrderedPnts = Object.values(groups).flatMap(g=>g??[]);
     
+    const calcMidPnt = (pnts)=>{
+        if(!pnts) return;
+        const minXY=pnts.reduce( (a,p)=>(a[0]=Math.min(a[0],p.x),a[1]=Math.min(a[1],p.y),a)  ,[Infinity,Infinity] );
+        const maxXY=pnts.reduce( (a,p)=>(a[0]=Math.max(a[0],p.x),a[1]=Math.max(a[1],p.y),a)  ,[0,0] );
+        const mid = {x: minXY[0]+(maxXY[0]- minXY[0])/2,y: minXY[1]+ (maxXY[1]- minXY[1])/2, };
+        for(const p of pnts) p.bbMid = mid;
+    }
+
     let fullPath = "";
     let grpSplitCounts={};
     const splitGrp = (grpName)=>{
@@ -441,7 +460,9 @@ function asciiToSVG(gridString, targetW, flipH) {
     }
     // split groups by path start end
     for (const grpName in groups){  splitGrp(grpName) }
-   
+    
+    for (const grpName in groups){  calcMidPnt(groups[grpName]) }
+    
     // constraints snap of ,  do only after all offsets have been applied
     for(const m of markers){
         markerAction(m,m.closestPnt,{passMask:0b10});
@@ -451,6 +472,8 @@ function asciiToSVG(gridString, targetW, flipH) {
     // prolong markers
     for(const m of markers){
         if(!m.prolong) continue;
+        const isCurve = m=> "&~".includes(m.type);
+        const mIsCurve = isCurve(m);
         for(const pnt of m.allPnts??[]){
             const grp = getGrp(pnt);
             let firstIdx = grp.indexOf(pnt);
@@ -459,7 +482,7 @@ function asciiToSVG(gridString, targetW, flipH) {
                 // stop before next prolong marker
                 if(nxtPnt?.allMarker?.some?.(mNxt=>mNxt.prolong && "&-~".includes( mNxt.type)  )){ break; }
                 // has this marker already
-                if(nxtPnt?.allMarker?.some?.(mNxt=>mNxt.type==m.type)){ continue; }
+                if(nxtPnt?.allMarker?.some?.(mNxt=>mNxt.type==m.type || (mIsCurve&& isCurve(mNxt)) )){ continue; }
                 markerAction(m,nxtPnt,{passMask:0b11});
             }
         }
@@ -468,13 +491,19 @@ function asciiToSVG(gridString, targetW, flipH) {
     let maxRef=2;
     for (const grpName in groups) if(groups[grpName]) for(const pnt of groups[grpName]){
         if(!pnt.isRef||pnt.R>maxRef) continue;
-        let startPnt = groups[grpName].find(p=>p!==pnt && p.id==pnt.id) ?? allOrderedPnts.find(p=>p.id==pnt.id);
+        let startPnt = groups[grpName].find(p=>p!==pnt && p.idNorm==pnt.id) ?? allOrderedPnts.find(p=>p.idNorm==pnt.id);
         let startPntIdx = allOrderedPnts.indexOf(startPnt);
-        let endPntIdx = allOrderedPnts.findIndex( p=>p.id==pnt.endId);
+        let endPntIdx = allOrderedPnts.findIndex( p=>p.idNorm==pnt.endId);
         let insertees;
         let curGrp = groups[grpName];
-        if(endPntIdx>0){ insertees  = endPntIdx<startPntIdx? allOrderedPnts.slice(endPntIdx,startPntIdx+1).reverse() 
+        if(endPntIdx>0){ 
+            const reversed = endPntIdx<startPntIdx; 
+            insertees  = reversed? allOrderedPnts.slice(endPntIdx,startPntIdx+1).reverse() 
                  : allOrderedPnts.slice(startPntIdx,endPntIdx+1) 
+            if(reversed){
+                insertees[0].isPathEnd = false;
+                insertees[insertees.length-1].isPathStart = false;
+            }
         }
         else { 
             curGrp = getGrp(startPnt);
@@ -483,7 +512,7 @@ function asciiToSVG(gridString, targetW, flipH) {
         // base on the first point, -> could implement setting how to align via boundingbox e.g  center or left shift 
         let anchorX = pnt.x - insertees[0]?.x; 
         let anchorY = pnt.y - insertees[0]?.y; 
-
+        let mulM = pnt.allMarker.find(m=>m.type=="*");
         const attrs = {};  // overwrite style attributes
         for(const attr in ATTR_2_PROP){
             const prop = ATTR_2_PROP[attr];
@@ -495,9 +524,13 @@ function asciiToSVG(gridString, targetW, flipH) {
             Object.assign(p,attrs);
             p.x+=anchorX;
             p.y+=anchorY; 
+            if(mulM){ // for now scale around first point
+                p.x = pnt.x +  mulM.data.sx * (p.x-pnt.x)
+                p.y = pnt.y +  mulM.data.sy * (p.y-pnt.y)
+            }
             p.R= 1+ (pnt.R??0);// recursiv depth 
             p.copyOf=oriP;
-            if(i==0&&pnt.isPathStart) p.isPathStart=true;
+            if(i==0&& pnt.isPathStart) p.isPathStart=true;
             if(i==insertees.length-1&&pnt.lastIsPathEnd) p.isPathEnd=true;
             return p;
         } );
@@ -562,7 +595,7 @@ function calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, type = 'start', tens
 
 /** further away marker like rund & or catrom ~, the higher the radius or tension, but if a number after marker use this as data value */
 function markerDistToPercent(pnt) {
-    return pnt?.marker?.data !== "" ? pnt.marker.data : Math.round(2 * pnt?.marker.dist) / 10 - 0.1;
+    return pnt?.marker?.data !== "" ? pnt.marker.data : Math.round(2 * pnt?.marker.dist) / 10 - 0.2;
 }
 function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, fixed = 3) {
     const flipHSub = (flipH ? targetH : 0);
@@ -570,7 +603,8 @@ function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, f
     const map = (x, y) => trimNum((x / (gridW - 1)) * targetW, fixed) + " " + trimNum(flipHSub + flipMul * (y / (gridH - 1)) * targetH, fixed);
 
     let d = `M ${map(points[0].x, points[0].y)}`;
-    let anyClose = points.some(p=>p.close);
+    let lastPnt = points.at(-1);
+    let isClosed = lastPnt.isPathEnd || lastPnt.id.toLowerCase().includes("z");
 
     // calc all entries and exits
     for (let i = 0; i < points.length; i++) {
@@ -607,7 +641,7 @@ function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, f
         if (pNext.exit) pNextNext = pNext.exit;
 
         const isEnd = pCurr.isPathEnd ||   i + 1 == points.length;
-        if (isEnd &&  !anyClose && !pCurr.isPathEnd ) continue;
+        if (isEnd &&  !isClosed && !pCurr.isPathEnd ) continue;
 
         const markerT = pCurr.marker?.type;
 
@@ -637,6 +671,8 @@ function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, f
             // Scharfe Kante
             d += `L${map(pNext.x, pNext.y)}`;
         }
+        // in path closes closes
+        if(!(i+2==points.length) && (pNext.id.includes("z")||pNext.id.includes("Z")))d+='Z';
     }
     return d;
 }

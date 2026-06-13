@@ -1,0 +1,40 @@
+<h1>Min JS-SVG Fractal Shape-Guided World Map Generator</h1>
+<header><small>By Daniel Reul</small>  <b>Info:</b> (If bad, reload for new via <kbd>Str+R</kbd>) (you can re-color SVGS fills/strokes/dashes)</header>
+<footer> Uses depth=6 for ~30-60ms gen time, try slower depth=7 or 8 for more Realism/less squares.  
+    <br> I have even more fractal function all with just different params or 4-6line L-System function</footer>
+<script>
+//  replace lines to make fractal from  <path d="M0 100 l 200 0"/>
+//  just these 20LoC, you can use a other relativ shape paths or a different L-System function (look main fractal .js file)
+const fractalPass = (ori=[100,100], shapeRel=[ [200,0] ],n=10,sw=0.1,vBx,pAttr)=>{
+    for(let i=n;0<i--;){ shapeRel= shapeRel.flatMap( (x)=> erosion(x,n-i)  )   }
+    return {svg:  toSvg(ori,shapeRel,vBx,pAttr,'stroke-width="'+sw+'"'), shapeRel };
+}
+var nScale = 1.07;// tweak 0.8   (simple-atlas)   1.5 (wired but self-intersecting stroke mointains)
+const erosion = ([x,y])=>{// fractal fn for continents, erodes coast-lines
+    const n =Math.random()* nScale;
+    return [ [x*0.3,y*0.3], [-y*n,x*n], [x*0.4,y*0.4], [y*n*0.5,-x*n*0.5],[x*0.3,y*0.3]];
+}
+const toSvg = (ori,shapeRel,viewBox="0 0 600 800 ",pAttr='fill="none" stroke="black"',wid="")=>
+     `<svg style="max-width:1000px" viewBox="${viewBox}" ${wid}><path  ${pAttr} d="m${ori[0]} ${ori[1]} l${shapeRel.map(([x,y])=>[x.toFixed(2),y.toFixed(2)]).join("l")}z" /></svg>`
+
+let square= [[200,0],[0,200],[-200,0],[0,-200]];// tri a line tri or any relativ path
+var depth = 6; // 5 (squary) - 8 (fractal/pointy, needs-longer 5s)   9 (freeze)  
+console.time("genFractal")
+let f=fractalPass([150,150],square,depth,1,'-400 0 800 800','fill="#cda" stroke="#55d6" stroke-linejoin="round"')
+console.timeEnd("genFractal")
+document.write(  (f.svg)); // has also point in f.shapeRel
+document.body.style.background="#eef";// for water
+</script>
+<!-- advances: could build polgon inlcude hierachy and color them as heightmap, 
+ run a flodd-fill-polygonnize and a vec simplify algo like  ramen-peuker to extract actual polgons
+ then they could be used for rivers/mountains/country borders
+ -->
+
+<!-- longer
+var SEED = Date.now();
+function RNG(seed=SEED) { 
+    var m = 2**35 - 31;var a = 185852;var s = seed % m
+    return ()=>(s = s * a % m) / m
+}
+const random = RNG(); 
+-->
