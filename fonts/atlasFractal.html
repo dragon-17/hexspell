@@ -9,7 +9,7 @@ const fractalPass = (ori=[100,100], shapeRel=[ [200,0] ],n=10,sw=0.1,vBx,pAttr)=
     for(let i=n;0<i--;){ shapeRel= shapeRel.flatMap( (x)=> erosion(x,n-i)  )   }
     return {svg:  toSvg(ori,shapeRel,vBx,pAttr,'stroke-width="'+sw+'"'), shapeRel };
 }
-var nScale = 1.07;// tweak 0.8   (simple-atlas)   1.5 (wired but self-intersecting stroke mointains)
+var nScale = 1.077;// tweak 0.8   (simple-atlas)  1.2 (big)  1.5 (wired but self-intersecting stroke mointains)
 const erosion = ([x,y])=>{// fractal fn for continents, erodes coast-lines
     const n =Math.random()* nScale;
     return [ [x*0.3,y*0.3], [-y*n,x*n], [x*0.4,y*0.4], [y*n*0.5,-x*n*0.5],[x*0.3,y*0.3]];
@@ -38,3 +38,141 @@ function RNG(seed=SEED) {
 }
 const random = RNG(); 
 -->
+
+<script>
+const rasterizeDensity = ( relLines, [x,y]=[150,150], [vx,vy,vw,vh]=[-400,0,800,800], W=256, H=256,blurN=2 )=>{
+
+    const density= Array.from({length:H}, ()=>new Float32Array(W));
+    
+    const add=(px,py)=>{
+        const gx= Math.floor((px-vx)/vw*W);
+        const gy= Math.floor((py-vy)/vh*H);
+        if(  gx>=0 && gy>=0 && gx<W && gy<H ){
+            density[gy][gx]+= Math.hypot(px,px);
+        }
+    };
+    add(x,y);
+    for(const [dx,dy] of relLines){
+        const steps= Math.max( 1, Math.ceil( Math.hypot(dx,dy)/2 ) );
+        for(let i=1;i<=steps;i++){
+            const t=i/steps;
+            add( x+dx*t, y+dy*t);
+        }
+        x+=dx;
+        y+=dy;
+    }
+    return blur(density,blurN);
+};
+const blur=(grid,n=2)=>{
+    const H=grid.length;
+    const W=grid[0].length;
+    while(n--){
+        const out= Array.from({length:H}, ()=>new Float32Array(W));
+        for(let y=1;y<H-1;y++)
+        for(let x=1;x<W-1;x++){
+            let s=0;
+            for(let dy=-1;dy<=1;dy++)
+            for(let dx=-1;dx<=1;dx++)
+                s+=grid[y+dy][x+dx];
+            out[y][x]=s/9;
+        }
+        grid=out;
+    }
+    return grid;
+}
+const drawHeightmap = ( heights, canvas=document.createElement("canvas"))=>{
+    const ctx = canvas.getContext("2d");
+    if(!canvas.isConnected) document.body.append(canvas);
+    const H = heights.length;
+    const W = heights[0].length;
+    canvas.width = W;
+    canvas.style.width="600px";
+    canvas.height = H;
+    const img = ctx.createImageData(W,H);
+    let max = -Infinity;
+    let min = Infinity;
+    for(const row of heights)
+    for(const v of row){
+        if(v>max) max=v;
+        if(v<min) min=v;
+    }
+    const scale = 255/Math.log(max-min || 1);
+    let p=0;
+    for(let y=0;y<H;y++)
+    for(let x=0;x<W;x++){
+        const g = (Math.log(heights[y][x]-min)*scale)|0;
+        
+        img.data[p++] = 255- g;
+        img.data[p++] = 255- g;
+        img.data[p++] = 255- g;
+        
+        img.data[p++] = 255;
+    }
+    ctx.putImageData(img,0,0);
+    return canvas;
+};
+const heightmapToSvgDots = ( height, palette,countourOnly=true)=>{
+    const H = height.length;
+    const W = height[0].length;
+    let min=Infinity;
+    let max=-Infinity;
+    for(const row of height)
+    for(const v of row){
+        if(v<min) min=v;
+        if(v>max) max=v;
+    }
+    const buckets = palette.map(()=>[]);
+    const n = palette.length-1;
+    let lastLn = [];
+    let lastIdx = null;
+    for(let y=0;y<H;y++)
+    for(let x=0;x<W;x++){
+        if(x==0) lastLn.length=0;
+        const h = 
+        // ( height[y][x]-min) / (max-min || 1);
+ Math.log(height[y][x]+1);
+        const idx = Math.min( n, Math.floor(h*(n+1)) );
+        lastLn[x]=idx;
+        if(countourOnly && (idx==lastIdx&& lastLn[x]==idx)  )continue
+        buckets[idx].push(`M${x} ${y}Z`);
+        lastIdx = idx;
+    }
+    return `
+<svg viewBox="0 0 ${W} ${H}" width="600"
+stroke-width="1"
+stroke-linecap="round"
+fill="none"
+>
+${palette.map((color,i)=>`
+<path
+stroke="${color}"
+
+d="${buckets[i].join(' ')}"
+/>
+`).join("")}
+</svg>
+`;
+};
+
+
+let canvas = drawHeightmap(rasterizeDensity(f.shapeRel,undefined,undefined,1024,1024,2) )
+canvas.style.display="inline-block;"
+
+let heightMap =  rasterizeDensity(f.shapeRel,undefined,undefined,512,512)
+const terrain = [
+    "#001133",
+    "#003399",
+    "#0077cc",
+    "#22aa55",
+    "#66bb44",
+    "#bbbb66",
+    "#888888",
+    "#ffffff"
+];
+let div = document.createElement("div");
+div.innerHTML =  heightmapToSvgDots(heightMap,terrain)
+div.style.display="inline-block;"
+document.body.append(div);
+
+
+</script>

@@ -1,0 +1,104 @@
+
+<body>
+<script>
+    const N = 33 // 2^n + 1
+
+const map = Array.from({length:N},
+    ()=>Array(N).fill(0));
+
+map[0][0]=Math.random();
+map[0][N-1]=Math.random();
+map[N-1][0]=Math.random();
+map[N-1][N-1]=Math.random();
+
+let step=N-1;
+let rough=1.4;
+
+while(step>1){
+
+    const half=step/2;
+
+    // diamond
+    for(let y=half;y<N;y+=step)
+    for(let x=half;x<N;x+=step){
+
+        map[y][x]=(
+            map[y-half][x-half]+
+            map[y-half][x+half]+
+            map[y+half][x-half]+
+            map[y+half][x+half]
+        )/4
+        +(Math.random()-.5)*rough;
+    }
+
+    // square
+    for(let y=0;y<N;y+=half)
+    for(let x=(y+half)%step;x<N;x+=step){
+
+        let s=0,c=0;
+
+        [[-half,0],[half,0],[0,-half],[0,half]]
+        .forEach(([dx,dy])=>{
+            let xx=x+dx,yy=y+dy;
+            if(map[yy]?.[xx]!=null){
+                s+=map[yy][xx];
+                c++;
+            }
+        });
+
+        map[y][x]=s/c+(Math.random()-.5)*rough;
+    }
+
+    rough*=0.55;
+    step=half;
+}
+
+
+const proj = (x,y,z)=>[
+    250 + x*12 - y*12,
+    350 - z*80 + (x+y)*5
+];
+
+let p=[];
+
+for(let y=0;y<N;y++){
+
+    let row=[];
+
+    for(let x=0;x<N;x++){
+
+        const [sx,sy]=proj(x,y,map[y][x]);
+
+        row.push(
+            `${x?'L':'M'}${sx.toFixed(1)} ${sy.toFixed(1)}`
+        );
+    }
+
+    p.push(row.join(''));
+}
+
+for(let x=0;x<N;x++){
+
+    let col=[];
+
+    for(let y=0;y<N;y++){
+
+        const [sx,sy]=proj(x,y,map[y][x]);
+
+        col.push(
+            `${y?'L':'M'}${sx.toFixed(1)} ${sy.toFixed(1)}`
+        );
+    }
+
+    p.push(col.join(''));
+}
+
+document.body.innerHTML=
+`<svg  viewBox="0 0 600 600">
+<path fill="none"
+stroke="black"
+stroke-width=".4"
+d="${p.join(' ')}"/>
+</svg>`;
+
+</script>

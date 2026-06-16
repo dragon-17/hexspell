@@ -159,15 +159,15 @@
 <pre name="simple-D" contenteditable>
 .............. .....
   .                 
-.a&        d&7
-    C&0.05   
-        B&3 
-         A&4
-.z           h &4
-.        Gz&4 
-.   F&       
-         i&5
- k &
+.a&         d&7
+    D--  
+        C   
+         B  
+.            
+.        A&4-  
+.   F;       
+            i&7 
+ k&;
 </pre>
 <pre name="axe" contenteditable="">
  .. ..|. ............  .
@@ -405,7 +405,58 @@ A--------By5------C;#FF0M --,#A-----            .
 
 
 .....+.....+.....+
-</pre>    
+</pre>  
+<pre name="ref-text-demo" contenteditable>
+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+
+    !- Some cool refs and text  
+    !- use Alt+i for reference img
+
+   " A Racing track via re-use of same path with with dashed lines
+                     B  
+.....+           
+
+             A~5-  ,#A-                   D  
+          #==25     #fff==3[=]=-=16=+=2
+       
+.....+                  C      c #0f0==20  #c
+                              d
+                                #c
+          H;          #c   "The #c are bushes"
+
+.....+                                                         #c
+                 #c                                        E
+
+    #c-c;
+
+.....+
+            G2
+
+              F&5
+                                           L&9-
+.....+                          #080M              " More complex referencing
+                                y.5                  
+                          K&    #K*0.5                      
+                                  #K*0.2,0.3 
+.....+                                                     
+                                               M&    
+                                   #444M             
+                                                     
+                            N;
+.....+
+                                #K'1-N'2
+
+
+
+.....+
+
+
+
+
+
+
+
+.....+.....+.....+
+</pre>  
 </details>
 <details name="samples" class="font" >
     <summary>Font Hex Digits</summary>
@@ -770,7 +821,8 @@ A  By2 C;
     <style>
         /* needed to align the nested svg and canvas to the contenteditable pre[name] */
         pre[name],[sketch] {
-            color: var(--L0);
+            color: var(--L1);
+            text-shadow: 0.5px 0.5px var(--L5), -0.5px -0.5px var(--L5), 0.5px -0.5px var(--L5) ;
             &[data-is-sketching]{
                 user-select: none;
             }
@@ -790,12 +842,12 @@ A  By2 C;
                 padding: inherit;
                 user-select: none;
                 z-index: -2;
-                opacity: 0.55;
+                /* opacity: 0.55; */
                 /* path{ stroke: var(--cB); fill: var(--L1); stroke-width: 4; } */
             }
             svg:focus{
-                width: 80%;
-                max-width: 512px;
+                /* width: 80%; */
+                /* max-width: 512px; */
                 z-index: 1;
                 opacity: 1;
                 padding: 0;

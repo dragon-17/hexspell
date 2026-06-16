@@ -25,9 +25,11 @@ document.body.addEventListener("click",(ev)=>{
 });//  ?: .$button.addPanel  .>>-- .>++{}  
 
 let lastBlurPre = null;
+let lastAscii = null;
 const blurEv = (ev) => {
     const el = ev?.target?.closest?.("pre[name]");
     if (!el) return;
+    ev?.preventDefault?.();
     const W = (el.dataset.w ?? window.fontW??1000);
     const H = (el.dataset.h ?? window.fontH??1000);
 
@@ -42,8 +44,15 @@ const blurEv = (ev) => {
     }
 
     // use innerText, cause it deals intelegently with <br> of contenteditable, 
-    // but innerText returns nothing if elm hidden in <details>, so for init use textContent as follback, you should use <br> in the static HTML anyway
-    const asciiObj = asciiToSVG(el.innerText || el.textContent, W);
+    // but innerText returns nothing if elm hidden in <details>, so for init use textContent as fallback, you should use <br> in the static HTML anyway
+   
+    //  when svg contains text innerText will inlcude this so skip svg
+    for(const c of el.children){ if(c.localName=="svg") c.style. display="none" }
+    const txt = el.innerText || el.textContent;
+    for(const c of el.children){ if(c.localName=="svg") c.style.removeProperty("display") }
+
+    const asciiObj = lastAscii = asciiToSVG(txt, W);
+   
     el._asciiObj = asciiObj;
     previewSvg.outerHTML = asciiObj.svg;
     previewSvg = el.querySelector("&>svg");
@@ -67,8 +76,30 @@ const blurEv = (ev) => {
         // canvasSVG.querySelectorAll(".sketch,.spell-circle").forEach(c=>c.remove())
         // drawSVGToCanvas(canvasSVG,previewCanvas,)
     }
+    return asciiObj;
 }
 document.body.addEventListener("blur", blurEv, true,);
+const objToURL = (a)=>{
+    return URL.createObjectURL(   new Blob([a.svg], { type: "image/svg+xml" }) );
+}
+document.body.addEventListener("keydown",(ev)=>{
+    if(ev.ctrlKey && ev.key=="Enter") blurEv(ev);
+    if(ev.ctrlKey && ev.key=="u"){
+        const asciiObj = blurEv(ev)
+        if(!asciiObj) return;
+        const url =objToURL(asciiObj);
+        const w = open(url,"_blank");
+        w.onload = _=>URL.revokeObjectURL(url);
+    }
+    if(ev.ctrlKey && ev.key=="s"){
+        const asciiObj = blurEv(ev)
+        if(!asciiObj) return;
+        const url =objToURL(asciiObj);  
+        const a = document.$New("a",{download:svg.id||svg.name||"a.svg", href:url});
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+}, true,);
 let inputedText = false;
 document.body.addEventListener("input", (ev)=>  ev.data? inputedText=1:0 , true,);
 
@@ -95,6 +126,8 @@ let STROKE_DFLT = "currentColor";
 let FILL_DFLT = "none";
 let FILL_Z_DFLT = STROKE_DFLT;
 let STROKE_W_DFLT = 8;
+/** set to undefined to not emit this as attr, but needed for non-inline svg */
+let XMLNS="http://www.w3.org/2000/svg"
 
 //  use   A#o=o
 let LINE_JOINS = {"o=o":"round","<=>":"miter","i=i":"square"};
@@ -105,6 +138,10 @@ let LINE_CAPS_DFLT = "round";
 let ATTR_LOOK_UP = {
     ...LINE_JOINS, ...LINE_CAPS, 
 };
+let TXT_DFLT = {fill:"currentColor",strokeW:0, };
+let TXT_FONT_SIZE_IN_Y_CELLS = 1; // ensures etxt has same look as in ascii
+/** if you have text this will be set on the root, fill and stroke-width are elm based cause normal paths use them already */
+let TXT_ROOT_ATTR = {"font-family":"monospace"}
 
 const ATTR_2_PROP = {   
     fill:"fill",stroke:"stroke",id:"attrId",
@@ -112,14 +149,15 @@ const ATTR_2_PROP = {
     "stroke-linejoin":"strokeJoin", 
     "stroke-linecap":"strokeCaps",
     "stroke-dasharray":"strokeDash",
+    "stroke-dashoffset":"strokeDashOff",
 };
 
 // just toPrecision might return scientific notation  e.g. 1000 -> 1.00e3, which BREAKs svg paths
 var TRIM_OUT_SVG_PATH = 3;
 const trimNum = (num = 0, fix) => (num.toPrecision(TRIM_OUT_SVG_PATH)).replace(/(?<=\.\d*[1-9])0+$|\.0*$/, "");
 
-////   THK Gemini    << 🍪🍪🍪
-// heavily edited manually, 
+////   THK Gemini    << 🍪🍪🍪 for generating first the basis of the asciiToSVG fn
+// heavily edited manually, now more than 600lns  
 
 const markerChars = { 
     '~': 1, '&': 1, 
@@ -130,14 +168,18 @@ const markerChars = {
     'X':{after:1,format:['X'],needNextNum:true},'Y':{after:1,format:['Y'],needNextNum:true}, 
     'P':{after:1, format:['XY','XXYY'],needNextNum:true},
     'p':{after:1, format:['xy','xxyy'],needNextNum:true}, 
+    
     '*':{  format:['xy','xxyy'],formatPrePrint:"s", needNextNum:true,passMask:0b10, },// calc after pos offset to get midpoints
     // for row columns based meta data
     ':': {needNextNum:true},
     '{':{},'}':{},
     ";":{noData:true, maxYDist:5},// end Path
     ",":{maxYDist:2, noData:true, passMask:0b10, breakWSConnect:true},// connect to the left
-    '!':{ secondChar:"-", comment:1},// use !- like a simpler HTML <!-- Comment  -->  space after determins end
-    '#':{  anyNonWSDataConnect:true },
+    '!':{ secondChar:"-", wsScope:1},// use !- like a simpler HTML <!-- Comment  -->  space after determins end
+    // '#':{  anyNonWSDataConnect:true },
+    '#':{  anyNonWSData:true },
+    "<":{secondChar:"=<",},
+    '"':{ wsScope:1 },// strings
 };
 
 // grid in most cases only 16x10 or smaller, use UPPERCASE hexadeciaml nums and lowercase hexspell nums 
@@ -202,6 +244,29 @@ function asciiToSVG(gridString, targetW, flipH) {
     
     const allPoints = [];
     const markers = []; //  ~ und &,  § means 50% round -> &5
+    const wsScopes = [];
+
+    let fontSize = TXT_FONT_SIZE_IN_Y_CELLS *  targetH/gridH; 
+
+    const handleHashCSSM = (m,pnt,adjacent=false)=>{
+        if(!m.data) return false;
+        let [_,fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,strokeDashOff,id] = 
+        m.data.match(/(?:([0-9a-f]+)M)?(?:#?([0-9a-f]{2,}))?(?:==(\d+))?(o=o|<=>|i=i)?(\(=\)|<=>|\[=\])?(?:=-=([+-]?\d+(?:,\d+)*))?(?:=\+=([+-]?\d+(?:.\d+)*))?(.+)?/i)??[]; 
+        const isRefInstead = !adjacent && id;
+        if(isRefInstead) return false;
+        // set attr
+        const obj = {fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,strokeDashOff,attrId: id};
+        m.CSS={};             
+        for(const key in obj){
+            if(obj[key]==undefined) continue
+            let val = obj[key];
+            if(["fill","stroke"].includes(key)) val='#'+val;
+            if(ATTR_LOOK_UP[val]) val = ATTR_LOOK_UP[val];
+            m.CSS[key]=val;
+        }
+        return true;
+    }
+
     // 1. Grid parsen
     ln:for (let yCell = 0, line; line = lines[yCell], line !== undefined; yCell++) {
         const y = yCell;
@@ -213,22 +278,47 @@ function asciiToSVG(gridString, targetW, flipH) {
             const charNext =  line[x+1];
             const hasNextChar =  charNext&& !!charNext.trim();
             const nextIsCpNum = charNext&& (compactNumsRE.test(charNext) ||  (".,+-".includes(charNext)&&compactNumsRE.test(line[x+2])) );
-
+            let x0=x;
             let markerT = markerChars[char];
             if ( markerT  && ( ( !markerT.after && !markerT.needNextNum) || lastIsPnt ||  nextIsCpNum) ) {
                 if(markerT.secondChar ){
-                    if(markerT.secondChar!==charNext)continue;
-                    x++;
+                    if(markerT.secondChar!== line.slice(x+1,x+1+markerT.secondChar.length))continue;
+                    char += markerT.secondChar; 
+                    x+= markerT.secondChar.length;
                 } 
                 const marker = { type: char, x, y, data: "",prolong:false, closestPnt: lastIsPnt? allPoints.at(-1) : null };
                 let lastPnt = marker.closestPnt;
                 const prevChar = line[x-1];
 
-                if(markerT.comment){
-                    x++;// know after the comment char
-                    if(x==0|| (line[x]==" "&&line[x+1]==" ")  ) continue ln;
+                if(markerT.wsScope){
+                    x++;
+                    let beginnX = x;
+                    wsScopes.push(marker);
+                    if(marker.type=='"'){
+                        marker.isPathStart = marker.isPathEnd=true;
+                        allPoints.push(marker);
+                        marker.grp = "txt";
+                        marker.id = marker.idNorm = "1_000_000_000";
+                        Object.assign(marker,TXT_DFLT);
+                        // move one down too not need hanging attr, move one right to skip " and match text with preview"
+                        marker.y0 = marker.y;
+                        marker.x0 = marker.x ++;
+                    }
+                    if(x==0|| (line[x]==" "&&line[x+1]==" ")  ){
+                        marker.data = line.slice(beginnX);
+                        continue ln;
+                    }  
                     if(line[x]==" ") while( line[x] && !(line[x]==" "&&line[x+1]==" ") ){x++}
                     else while (line[x] && line[x]!==" "){x++}
+                    
+                    marker.data = line.slice(beginnX,x);
+                    if(marker.type=='"'){// exeption to scope rule for common close strings:   "My String"
+                        const endQ_m = line.slice(x).match(/(.*?)"(?:\s|$)/);
+                        if(endQ_m){
+                            marker.data+= endQ_m[1];
+                            x+=  endQ_m[0].length;
+                        }
+                    }
                     continue;
                 }
                 // maybe interpret some markers as lines  like a -- emits a <path d="Mx,y H 9999" /> and || a <path d="Mx,y H 9999" />
@@ -239,7 +329,7 @@ function asciiToSVG(gridString, targetW, flipH) {
                     marker.type += char;
                 }
                 let anyData = markerT.anyNonWSData;
-                if(lastIsNoWSPnt) anyData ||= markerT.anyNonWSDataConnect;
+                if(lastIsNoWSPnt ) anyData ||= markerT.anyNonWSDataConnect;
 
                 const dataBlockRE =  anyData?  /[^\s;]/ : markerT.format ?  compactNumsRE : /[0-9]/ ;
                 // allow continuation with numbers like  42 or  A2 B3 
@@ -269,20 +359,10 @@ function asciiToSVG(gridString, targetW, flipH) {
                 if(marker.type=="#"){
                     let lastPnt = allPoints.at(-1);
                     // is no WS before # interpet it as a hex stroke color, hex fill color a id for the object
-                    if(lastIsNoWSPnt){
-                        let [_,fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,id] = 
-                            marker.data.match(/(?:([0-9a-f]+)M)?(?:#?([0-9a-f]{2,}))?(?:==(\d+))?(o=o|<=>|i=i)?(\(=\)|<=>|\[=\])?(?:=-=(\d+(?:,\d+)*))?(.+)?/i)??[]; 
-                        // set attr
-                        const obj = {fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,attrId: id};
-                         
-                        for(const key in obj){
-                            if(obj[key]==undefined) continue
-                            let val = obj[key];
-                            if(["fill","stroke"].includes(key)) val='#'+val;
-                            if(ATTR_LOOK_UP[val]) val = ATTR_LOOK_UP[val];
-                            lastPnt[key]=val;
-                        }
+                    if( handleHashCSSM(marker,lastPnt,lastIsNoWSPnt) ){
+                        // handled in fn
                     } else{ // becomes next ref
+                        x=x0; // step back and let next be a real point
                         openRef=marker;
                         marker.isPathStart =  prevChar=="-"? "":";";
                     }
@@ -305,12 +385,11 @@ function asciiToSVG(gridString, targetW, flipH) {
                     refM.resolved=1;
                     (pnt.allMarker??=[]).push(refM);
                 }
-                const eat = isRefMarker? /[0-9A-Z\-;/]/i : /[0-9zZ]/; 
+                const eat = isRefMarker? /[0-9A-Z\-;'/]/i : /[0-9zZ]/; 
                 while (eat.test(line[x + 1])) {// allow continuation with numbers like  42 or  A2 B3  and a ending Z to close a path 
                     x++; pnt.id += (line[x]??"");
                     if (!line[x]||  (!isRefMarker &&  "zZ".includes(line[x]) )) break;
                 }
-                pnt.idNorm= pnt.id.replace(/z$/i,"");
 
                 allPoints.push(pnt);
                 lastIsPnt = true;
@@ -323,8 +402,8 @@ function asciiToSVG(gridString, targetW, flipH) {
                     pnt.close = true;
                 }
 
-                if(isRefMarker){
-                    let [_,isPathStart=refM.isPathStart,pathCon="",startId="",endId="",lastIsPathEnd=""] = pnt.id.match(/(;)?(-)?[#\/]?([A-Z]\d*|\d+)(?:-)?[#\/]?([A-Z]?\d*)?(;)?/i)??[]; 
+                if(isRefMarker && !handleHashCSSM(refM,pnt,false)){
+                    let [_,isPathStart=refM.isPathStart,pathCon="",startId="",endId="",lastIsPathEnd=""] = pnt.id.match(/(;)?(-)?[#\/]?((?:[A-Z]\d*|\d+)(?:'\d*)?)(?:-)?[#\/]?([A-Z]?\d*(?:'\d*)?)?(;)?/i)??[]; 
                     if(!pathCon) pnt.idGrp=200;  // emit point(s) after all other, otherwise
                     else isPathStart="";
                     Object.assign(pnt,{isPathStart,pathCon,endId,lastIsPathEnd});
@@ -333,6 +412,7 @@ function asciiToSVG(gridString, targetW, flipH) {
                     pnt.isRef=true;
                     pnt.x= refM.x;
                 }
+                pnt.idNorm = pnt.id.match(/[A-Z]?\d*/i)?.[0]??pnt.id;
             } else {
                 lastIsPnt = false;
                 lastIsNoWSPnt = false;
@@ -378,6 +458,8 @@ function asciiToSVG(gridString, targetW, flipH) {
                 pnt.x0 ??= pnt.x;
                 pnt.x = m.snapPnt.x;
             }  
+        } else if(m.type=="#"){
+            Object.assign(pnt,m.CSS);
         }
         if(m.data && isPosMarker){  // set the relativ or position
             for(const u in m.data){
@@ -472,7 +554,7 @@ function asciiToSVG(gridString, targetW, flipH) {
     // prolong markers
     for(const m of markers){
         if(!m.prolong) continue;
-        const isCurve = m=> "&~".includes(m.type);
+        const isCurve = m=> "&~-".includes(m.type);
         const mIsCurve = isCurve(m);
         for(const pnt of m.allPnts??[]){
             const grp = getGrp(pnt);
@@ -491,12 +573,12 @@ function asciiToSVG(gridString, targetW, flipH) {
     let maxRef=2;
     for (const grpName in groups) if(groups[grpName]) for(const pnt of groups[grpName]){
         if(!pnt.isRef||pnt.R>maxRef) continue;
-        let startPnt = groups[grpName].find(p=>p!==pnt && p.idNorm==pnt.id) ?? allOrderedPnts.find(p=>p.idNorm==pnt.id);
+        let startPnt = groups[grpName].find(p=>p!==pnt && !p.isRef && p.idNorm==pnt.id) ?? allOrderedPnts.find(p=>!p.isRef&&p.idNorm==pnt.id);
         let startPntIdx = allOrderedPnts.indexOf(startPnt);
-        let endPntIdx = allOrderedPnts.findIndex( p=>p.idNorm==pnt.endId);
+        let endPntIdx = allOrderedPnts.findIndex( p=>!p.isRef && p.idNorm==pnt.endId);
         let insertees;
         let curGrp = groups[grpName];
-        if(endPntIdx>0){ 
+        if(endPntIdx>=0){ 
             const reversed = endPntIdx<startPntIdx; 
             insertees  = reversed? allOrderedPnts.slice(endPntIdx,startPntIdx+1).reverse() 
                  : allOrderedPnts.slice(startPntIdx,endPntIdx+1) 
@@ -530,15 +612,19 @@ function asciiToSVG(gridString, targetW, flipH) {
             }
             p.R= 1+ (pnt.R??0);// recursiv depth 
             p.copyOf=oriP;
+            oriP.copyCnt = (oriP.copyCnt??0)+1;
+            p.idNorm = p.idNorm+"'"+ oriP.copyCnt;
             if(i==0&& pnt.isPathStart) p.isPathStart=true;
             if(i==insertees.length-1&&pnt.lastIsPathEnd) p.isPathEnd=true;
             return p;
         } );
         let pntIdx= groups[grpName].indexOf(pnt);
         groups[grpName].splice(pntIdx,1,...insertees);
+        let allGrpsIdx = allOrderedPnts.indexOf(pnt);
+        allOrderedPnts.splice(allGrpsIdx,0,...insertees);
         splitGrp(grpName);
     }    
-    let asciiParsed = { svg:"",allG:[], allD:"", gridW,gridH,gridAR,viewH };// assemble svg and a combination of all paths
+    let asciiParsed = { svg:"",allG:[], allD:"", gridW,gridH,gridAR,viewH,wsScopes };// assemble svg and a combination of all paths
   
     const attrStr = (k,v)=> v==undefined?"":" "+k+'="'+v+'"';
 
@@ -548,6 +634,9 @@ function asciiToSVG(gridString, targetW, flipH) {
             d:buildSmartPath(groups[grpName], gridW, gridH, targetW, targetH, flipH),
             nodes: groups?.[grpName],
             attr:"", // inlcudes style
+        }
+        if(grpName.startsWith("txt")){
+            nextG.attr+=attrStr("x",nextG.nodes[0].xOut,)+attrStr("y",nextG.nodes[0].yOut,)
         }
         asciiParsed.allG.push(asciiParsed[grpName]=nextG);
         asciiParsed.allD+= asciiParsed[grpName].d+" ";
@@ -570,13 +659,22 @@ function asciiToSVG(gridString, targetW, flipH) {
     let rootAttrs = asciiParsed.allG.length? attrStr("fill",FILL_DFLT)
         + attrStr("stroke",STROKE_DFLT)  + attrStr("stroke-width",STROKE_W_DFLT) 
         + attrStr("stroke-linecap",LINE_CAPS_DFLT) 
+        + (wsScopes.some(n=>n.type=='"')?   
+            attrStr("font-size",fontSize)
+             + Object.entries(TXT_ROOT_ATTR).reduce( (a,[k,v])=>a+attrStr(k,v),"" )
+            :"")
+        +  attrStr("xmlns",XMLNS)
     :"";
     
     asciiParsed.svg+=`<svg ${viewBox}${rootAttrs}>`;
     
     for(const attrGrpNm in attrGrps){
         const attrGrp = attrGrps[attrGrpNm];
-        asciiParsed.svg+=`<path${attrGrp[0].attr} d="${attrGrp.reduce( (d,g)=>d+g.d,"")}"/>\n`;
+        const firstNode = attrGrp?.[0]?.nodes?.[0];
+        if(firstNode?.type=='"'){
+            const sane = firstNode.data.replaceAll(/^\s|\s$/g,`&#160;`).replaceAll("<","&lt;");
+            asciiParsed.svg+=`\n<text${attrGrp[0].attr}>${sane}</text>`
+        } else asciiParsed.svg+=`\n<path${attrGrp[0].attr} d="${attrGrp.reduce( (d,g)=>d+g.d,"")}"/>`;
     }
     asciiParsed.svg+="</svg>"
     
@@ -594,18 +692,25 @@ function calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, type = 'start', tens
 }
 
 /** further away marker like rund & or catrom ~, the higher the radius or tension, but if a number after marker use this as data value */
-function markerDistToPercent(pnt) {
-    return pnt?.marker?.data !== "" ? pnt.marker.data : Math.round(2 * pnt?.marker.dist) / 10 - 0.2;
+function markerDistToPercent(pnt,baseOffset=0.2) {
+    return pnt?.marker?.data !== "" ? pnt.marker.data : Math.round(2 * pnt?.marker.dist) / 10 - baseOffset;
 }
 function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, fixed = 3) {
     const flipHSub = (flipH ? targetH : 0);
     const flipMul = (flipH ? -1 : 1);
-    const map = (x, y) => trimNum((x / (gridW - 1)) * targetW, fixed) + " " + trimNum(flipHSub + flipMul * (y / (gridH - 1)) * targetH, fixed);
+    const map = (x, y,p={}) => trimNum( p.xOut= (x / (gridW - 1)) * targetW, fixed) + " " + trimNum(p.yOut = flipHSub + flipMul * (y / (gridH - 1)) * targetH, fixed);
 
-    let d = `M ${map(points[0].x, points[0].y)}`;
+    let d = `M ${map(points[0].x, points[0].y, points[0])}`;
     let lastPnt = points.at(-1);
     let isClosed = lastPnt.isPathEnd || lastPnt.id.toLowerCase().includes("z");
-
+    
+    // insert more points curves to mimic circles/ellipsis
+    // without this, the curves would degenerate into straight lines,
+    //  which could confuse user (cause ~& marker seem doing nothing) and is useless, so do auto circles
+    if(points.length==2 && "&~".includes( points[0].marker?.type) ){
+        const ab =  sub(points[0],points[1]);
+        const abNormal = {x: -ab.y,y: ab.x };
+    }
     // calc all entries and exits
     for (let i = 0; i < points.length; i++) {
         if (points[i]?.marker?.type == "&") {
@@ -618,7 +723,7 @@ function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, f
 
             const pnt = points[i];
 
-            let dist = markerDistToPercent(pnt);
+            let dist = markerDistToPercent(pnt,0.1);
             // do not go more radius, than the previous had
             let pdist = 1 - Math.max(0, Math.min(maxPrevDist, dist));
             pnt.entry = lerp(pPrev, pnt, pdist);
@@ -650,26 +755,27 @@ function buildSmartPath(points, gridW, gridH, targetW, targetH, flipH = false, f
             const exit = pCurr.exit
 
             if (i == 0) d = "";
-            let nextLine = isEnd ? 'Z' : 'L' + map(pNext.x, pNext.y);
+            let nextLine = isEnd ? 'Z' : 'L' + map(pNext.x, pNext.y,pNext);
 
             // if rounded to 50% the Q may ladn already on the next point -> skip L directiv
             if (Math.abs(exit.x - pNext.x) < 0.1 && Math.abs(exit.y - pNext.y) < 0.1) nextLine = ""
 
-            d += `${i == 0 ? 'M' + map(entry.x, entry.y) : ''}Q${map(pCurr.quadCP.x, pCurr.quadCP.y)} ${map(exit.x, exit.y)}${nextLine}`;
+            d += `${i == 0 ? 'M' + map(entry.x, entry.y,entry) : ''}Q${map(pCurr.quadCP.x, pCurr.quadCP.y,pCurr.quadCP)} ${map(exit.x, exit.y,exit)}${nextLine}`;
         }
         else if (markerT === '~') {
             // Catmull-Rom zu Cubic Bezier
-            const percent = markerDistToPercent(pCurr);
+            const percent = markerDistToPercent(pCurr,0.2);
             const tens = pCurr.marker?.data || 1 - Math.max(-3, Math.min(3, percent));
+
             const cp1 = calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, 'start', tens);
             const cp2 = calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, 'end', tens);
-            d += ` C${map(cp1.x, cp1.y)} ${map(cp2.x, cp2.y)} ${map(pNext.x, pNext.y)}`;
+            d += ` C${map(cp1.x, cp1.y,cp1)} ${map(cp2.x, cp2.y,cp2)} ${map(pNext.x, pNext.y,pNext)}`;
         }
         else if (isEnd) {
             d += 'Z'
         } else {
             // Scharfe Kante
-            d += `L${map(pNext.x, pNext.y)}`;
+            d += `L${map(pNext.x, pNext.y,pNext)}`;
         }
         // in path closes closes
         if(!(i+2==points.length) && (pNext.id.includes("z")||pNext.id.includes("Z")))d+='Z';
