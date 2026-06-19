@@ -1,0 +1,25 @@
+<body><script>
+R=(...x)=>x[~~(Math.random()*x.length)]
+F=(o,s,d)=>{
+ for(i=d;0<i--;)s=s.flatMap( (x)=> e(x))
+ return{g:g(o,s),s};
+}
+m=_=>{
+(D=document.body.style).background="#eef"
+if(!_&&D.width) return
+D.width="1000px";r=x=>x.toFixed(2)
+S=R(.8,.95,1.07,1)
+e=([x,y],n=Math.random()*S)=>[[x*0.3,y*0.3],[-y*n,x*n],[x*0.4,y*0.4],[y*n*0.5,-x*n*0.5],[x*0.3,y*0.3]];
+g=(o,s,f="fill",z=" stroke")=>`<svg viewBox="-40 0 120 80">
+<path fill="${R('#cda','#dca','#adc')}"${z}="#55d6"${z}-width="${R(0,.2,.3,.5)}"${z}-linejoin="round" paint-order="${R(f,f,z)}"
+d="m${o[0]} ${o[1]} l${s.map(([x,y])=>[r(x),r(y)]).join("l")}z"/></svg>`
+p=R([[30,0],[0,20],[-30,0],[0,-20]],[[20,0],[-10,17],[-10,-17]]);
+lv=R(5,6);
+f=F([15,15],p,lv)
+n=R('Tellius','Eilbe','Fodlan');
+document.body.innerHTML+=(`<b>Map of ${n}</b> PRESS CTR [m]ore [s]ave ~by Dani.R.;own <b>ATLAS-fractal</b>;1kb;octa=${lv};base=&lt;path d="M10,10l${p.join('l')}z"/>`
++(f.g));
+D.fontFamily="cursive"}
+m();
+this.onkeydown=e=>e.key=="m"?m(1):1
+</script>

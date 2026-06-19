@@ -109,11 +109,12 @@ const erosion = ([x,y])=>{// for mountain ridges
 }
 // call animation loop for bunch of shapes/nScale params
 useFn=moreChaos;
+( async x=>{
 for(let shapNm in shapes) 
 for(let n=0.2;n<1.3;n+=0.1)
 // for(let n of speacialN)
      await showFractal(n,shapNm);
-
+})()
 
 // simple continent or even world map img
 function atlasFrac(nScaleP=0.6, useFnP=noisy, depth=8,shape=shapes.tri){
@@ -128,61 +129,4 @@ function atlasFrac(nScaleP=0.6, useFnP=noisy, depth=8,shape=shapes.tri){
     svg.style.background = "#abd";
     svg.setAttribute("stroke-linejoin","round");
     return myFrac;
-}
-function atlasFrac2(shape=shapes.square,n=6){// tri or square
-    useFn = erosion;  nScale = 0.9;
-    document.write(  (_resAtlas2=fractalPass(undefined,shape,n,0.5,'-200 -200 800 800','fill="#cda" stroke="#55d6"')).svg)
-}
-// random Pnts via stroke-dash like stars or random pills
-// simple continent or even world map img
-function starFrac(nScaleP=0.6, useFnP=dragonAlt, depth=8,shape=shapes.blob){
-    nScaleP=nScaleP;useFn=useFnP;
-    const myFrac = fractalPass([0,0],shape, depth,1,'-50 -50 300 300')
-    document.body.innerHTML = `<h2> Star/RND-Pnt Fractal</h2>`+myFrac.svg;;1;
-    // style colors
-    const contNt= document.querySelector("path");
-    contNt.setAttribute("stroke","#edb")
-    contNt.setAttribute("fill","none")//#b85
-    const svg= document.querySelector("svg");
-    svg.style.background = "#112";
-    contNt.setAttribute("stroke-width","8")
-    svg.setAttribute("stroke-linecap","round");
-    svg.setAttribute("stroke-dasharray","0,200");
-    return myFrac;
-}
-function quadStitch(){
-    nScale=0.47888;useFn=l2sawZacLine;
-    const myFrac = fractalPass([100,100],shapes.square, 8,0.05,"0 0 600 300")
-    document.body.innerHTML = `<h2>Fractal</h2>`+myFrac.svg;;1;
-}
-//  for(let i=10;i--;) await sleep(1000), fireFractal()
-function fireFractal(){
-  nScale = 0.64; // tweak 0 .. 1.4
-  useFn = noisy;
-  const myFrac = fractalPass([100,100], shapes.flame, 5, -10  ,"-200 -200 500 500")
-  document.body.innerHTML = `<h2>Fractal</h2>`+myFrac.svg;;1;
-  let path = document.querySelector("path");
-  path.setAttribute("fill","#db3");
-  path.setAttribute("stroke-linejoin","round");
-  path.setAttribute("stroke-width","3");// tweak
-  path.setAttribute("stroke-linecap","round");
-  path.setAttribute("stroke-dasharray","5,9,3,2,100"); // dashes tweak
-  path.setAttribute("stroke","#f50");
-  path.parentElement.style.background="#224"
-}
-function islandFrac(){
-   useFn = ridgeNoise;
-   nScale = 2;
-   document.write(  (_res =fractalPass(undefined,shapes.square,8,3.5,"-300 -200 800 800",'fill="#5d56" stroke="#55d6" stroke-linecap="round" stroke-linejoin="bevel"  stroke-dasharray="30,20,50"')).svg)
-}
-function coolRndCont(seed){
-    useFn = noisySeed; SEED=seed
-    nScale = 4.8;
-    document.write(  (_res =fractalPass(undefined,shapes.square,7,4,"-8000 -8000 16000 16000",' stroke-linecap="round" stroke-linejoin="bevel"  stroke-dasharray="30,20,50"')).svg)
-}
-async function CloudAnim(){
-   document.body.innerHTML="";coolRndCont(10*Math.random());
-   const svg = document.querySelector("svg");
-   window.steps=10000;
-   for(;steps--;){ await sleep(200), svg.viewBox.baseVal.x+=12*Math.random()-4,svg.viewBox.baseVal.y+=12*Math.random()-4}
 }
