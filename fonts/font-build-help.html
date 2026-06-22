@@ -457,7 +457,7 @@ A--------By5------C;#FF0M --,#A-----            .
 
 .....+.....+.....+
 </pre> 
-<pre name="char-ref-test" contenteditable="">
+<pre name="char-ref-test" contenteditable="" hidden>
 .....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+
     " unfinished 2d game character 
     !- use Alt+i for reference img; Ctrl+u for SVG source; Alt+s for SVG save;
@@ -615,14 +615,14 @@ A--------By5------C;#FF0M --,#A-----            .
 <pre name="zero" data-unicode="0" contenteditable="">
 .....+.....+.....+.....+
                  .
-      A§        B§
-         c§  a§
+      A§-       B 
+         c   a§-
 .....+..   .       ....+
                 .   
                   .
                 .
-.....+   d§  z§     ...+
-      Z§        C§
+.....+   d   eZ     ...+
+      Z         C 
                     .
                  .
 .....+.....+.....+.....+
@@ -630,14 +630,14 @@ A--------By5------C;#FF0M --,#A-----            .
 <pre name="zero-stroke" ignore contenteditable="">
 .....+.....+.....+.....+
                  .
-            &    .
-       A&5   F B&5
-.....+..c&5. Ga&5  ....+
+                 .
+       A&5-  F B 
+.....+..c  . Ga&5- ....+
                 .   
-         E&5      .
+         E       .
                 .
-.....+  d&5  z&5.......+
-       D&4    C&5
+.....+  d    eZ  .......+
+       D      C 
      &5Z       .
                  .
 .....+.....+.....+.....+
@@ -694,7 +694,7 @@ X7       L& A6~   .
            a  
 .....+.         .+.....+
             .
-     H z   b  E .D
+     H cZ  b  E .D
      I     J  B .C
 ..... ..       .  .....+
        *   Z  A    
@@ -724,9 +724,9 @@ X7       L& A6~   .
      §   §ByT  Z
 ..... A2xS     .+.....+
          A9 A8§
-  xS A3 c§  §z A7§
+  xS A3 c    dZA7§
     §                   
-.....   b§   a§      ..+
+.....   b    a§-     ..+
       A4       A5&7   
       §          .
                  .
@@ -751,12 +751,12 @@ X7       L& A6~   .
 .....+.....+.....+.....+
          &   &   
          A1  A 
-    &8 A2 z§a§ Z&7
-.... .    d§b§+....+
-         B c§C8 
-       C 3§  4ZC7§
-     &5      §       
-.....    2§  1§    ...+
+    &8 A2 zZa§-Z&8
+.... .    d b  ....+
+         B c C8 
+       C 3   4ZC7§
+     &5              
+.....    2   1§-   ...+
        C4      C5&5   
       &5          .
                  .
@@ -786,7 +786,7 @@ X7       L& A6~   .
        G§a§  bD  
              &4
       H&5   &4   
-.....   z§  c K +......+
+.....   zZ§ c K +......+
        §I   J Z A
             &5    .
                  .
@@ -801,7 +801,7 @@ X7       L& A6~   .
         D   y.5 
         b§x.8  G§
          c§ §x.5
-.....   L   z H§.+.....+
+.....   L   zZH§.+.....+
       A ZK J I  
         &§   &5    .
                  .
@@ -831,7 +831,7 @@ X7       L& A6~   .
        G§a§  bD  
              &4
       H&5   &4   
-.....   z§  c K +......+
+.....   zZ§ c K +......+
        §I   J Z A
             &5    .
                  .
@@ -886,15 +886,15 @@ X7       L& A6~   .
 </pre>
 <pre name="block" contenteditable=""  >
 .....+.....+.....+. ...+
-A  By2 C;        
-                
+      Bby.5    aC  
+               y.5
            
 ..... 
         
         
        
-.....  
- 
+.....  cy.5    zZy.5
+      A         Z
 .
                  .
 .....+.....+.....+.....+
@@ -966,6 +966,7 @@ A  By2 C;
     <script  src="canvasToSVG.js"></script>
     <script  src="font-sketch.js"></script>
     <script  src="blissGlyphs.js"></script>
+    <script  src="DSON.js"></script>
 
     <link rel="stylesheet" href="basis.css">
     <style>

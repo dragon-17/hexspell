@@ -12,16 +12,17 @@ S=R(0.9,1.2,1.5)
 let [s1,s2,s3,s4,s5,s6]=['#55d6','#55da','#d556','#d55a','#5d56','#5d5a']
 e=([x,y],n=Math.random()*S)=>[[x*0.3,y*0.3],[-y*n,x*n],[x*0.4,y*0.4],[y*n*0.5,-x*n*0.5],[x*0.3,y*0.3]];
 g=(o,s,f="fill",z=" stroke")=>`<svg viewBox="-40 0 120 80">
-<path fill="${_f=R('#cda','#dca','#adc')}"${z}="${_s=R(s1,s1,s1,s1,s1,s2,s3,s4,s5)}"${z}-width="${R(0,.2,.3,.5)}"${z}-linejoin="round" paint-order="${R(f,f,z)}"
+<path fill="${_f=R('#cda','#dca','#adc')}"${z}="${_s=R(s1,s1,s1,s1,s1,s1,s2,s2,s2,s3,s4,s5)}"${z}-width="${R(0,.2,.3,.5)}"${z}-linejoin="round" paint-order="${R(f,f,z)}"
 d="m${o[0]} ${o[1]} l${s.map(([x,y])=>[r(x),r(y)]).join("l")}z"/></svg>`
 p=R([[30,0],[0,20],[-30,0],[0,-20]],[[20,0],[-10,17],[-10,-17]]);
 lv=R(5);
 f=F([15,15],p,lv)
 n=R('Tellius','Eilbe','Fodlan');
-document.body.innerHTML+=(`<div><p hud>PRESS CTRL+ [m]ore [s]ave [p]rint pdf<br>TEXT: CTRL+ [i]->Mark [b]->Forest [u]->Text [b;i]->Water [i;b]->Evil<br>~by Dani.R.;own <b>ATLAS-fractal</b>;only 2.5kb;octa=${lv};base=&lt;path d="M10,10 l${p.join('l')}z"/></p>
+document.body.innerHTML+=(`<div><p hud>PRESS CTRL+ [m]ore [s]ave [p]rint/download PDF<br>TEXT: CTRL+ [i]->Mark [b]->Forest [u]->Text [b;i]->Water [i;b]->Evil<br>~by Dani.R.;own <b>ATLAS-fractal</b>;only 2.5kb;octa=${lv};base=&lt;path d="M10,10 l${p.join('l')}z"/></p>
 <pre contenteditable style="--landC:${_f};--cC:${_s}"><h2><u>Map of ${n}</u></h2> 
 <span hud>[ <u>Help: Use KEYS or Copy&Paste this:</u> Terrain .,_-|\\/'*% <u>Text</u> <b>bbP.</b> <u><i>AA^^</i></u> <i>x X [] () o O</i> <b><i>~~ ~ §$</i></b> <i><b>6^6 </b></i>]</span>
-<u hud>Emoji: 🧱✨🐉🐍🧛🐑💎🐫🐘🐬🦕🪸🕊️🐦‍🔥🐧🧟‍♀️🧞‍♀️🦴🪽  &#xFE0E;🐉&#xFE0E;🐍&#xFE0E;💀&#xFE0E;🐑&#xFE0E;💎</u>
+
+<u hud>Emoji: 🧱✨🐉🐍🧛🐑💎🐫🐘🐬🦕🪸🕊️🐦‍🔥🐧🧟‍♀️🧞‍♀️🦴🪽  🐉&#xFE0E;🐍&#xFE0E;💀&#xFE0E;🐑&#xFE0E;💎&#xFE0E;</u>
 ${(" ".repeat(100)+"<b hud>.</b>\n").repeat(40)}</pre>
 ${f.g}</div>`);
 D.fontFamily="monospace"}
@@ -42,7 +43,7 @@ this.onkeydown=e=>e.ctrlKey&&e.key=="m"?m(1):1
  caret-color:#55d6;
  padding:1em;
  b{color:#686;--ts:#6866;text-shadow:1px 1px var(--ts),-1px -1px var(--ts), 1px -1px var(--ts);font-size:medium;u{color:#282; } }
- i{color:#d79;text-shadow:none;u{color:#d13;}}
+ i{color:#d79;text-shadow:none;u{color:#d13;font-style: normal;}}
  i>b{color:#97d;font-style:normal;--ts:#97d6;u{color:#eea;}}
  b>i{color:#48c;--ts:#48c6; text-shadow: 1px 2px var(--ts), -1px -2px var(--ts);u{color:#282;}} 
  u{color:#335;text-shadow:none;text-decoration:none;&>b{background:#888;color:inherit }&>i{color:#667;}}

@@ -1,0 +1,10 @@
+<body><script>T=setTimeout,G=Math.random,C=_=>G().toString(16).slice(-4)
+R=(...x)=>x[~~(G()*x.length)]
+j=70,X=Y=0
+D=_=>{
+n=R(.3,.5,.9),f=C(),k=C()
+F=(n=8,s=[[20,0],[0,20],[-20,0],[0,-20]])=>{while(n--){s=s.flatMap(L)}return S(s);}
+S=(s)=>`<svg viewBox="-99 -99 600 300"><path fill=#${f} stroke=#${k} stroke-width=.5 d="m${X++} ${Y++}l${s.join("l")}z"/>`
+L=([x,y])=>(m=x/2,M=y/2,U=n*-y,V=n*x,[[m-U,M-V],[1.3*U,0.7*V],[m+U,M+V]])
+for(i=0;i++<9;)T(_=>document.body.innerHTML=F(_),i*170,i)
+j--&&T(D,2000)};D()</script>

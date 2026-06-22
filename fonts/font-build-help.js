@@ -149,7 +149,7 @@ function buildWebFont({ name = "hexSpellVxExport", hAdv = 500, adjtX = -0.5,
 
         // you must recalculate fliped path, cause fonts/postscript corrdinate system starts in lower left corner, not svg top-left.
         let dFlipped = isLoaded||elm.hasAttribute("d")? elm.getAttribute("d") ||"" 
-                : asciiToSVG(elm.innerText || elm.textContent, fontW, fontH, 0, true);
+                : asciiToSVG(elm.innerText || elm.textContent, fontW,{targetH:fontH,flipH:true,collectAllD:true});
         
         // parse all svg paths
         let xyAltCntr = 0;  let isVv = 0;
