@@ -253,13 +253,15 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
 
     const handleHashCSSM = (m,pnt,adjacent=false)=>{
         if(!m.data) return false;
-        let [_,fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,strokeDashOff,id] = 
-        m.data.match(/(?:([0-9a-f]+)M)?(?:#?([0-9a-f]{2,}))?(?:==(\d+(?:\.\d+)?))?(o=o|<=>|i=i)?(\(=\)|<=>|\[=\])?(?:=-=([+-]?\d+(?:,\d+)*))?(?:=\+=([+-]?\d+(?:.\d+)*))?(.+)?/i)??[]; 
+        let [_,fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,strokeDashOff,recurse,id] = 
+        m.data.match(/(?:([0-9a-f]+)M)?(?:#?([0-9a-f]{2,}))?(?:==(\d+(?:\.\d+)?))?(o=o|<=>|i=i)?(\(=\)|<=>|\[=\])?(?:=-=([+-]?\d+(?:,\d+)*))?(?:=\+=([+-]?\d+(?:.\d+)*))?(?:(\d+)R(?:EC)?)?(.+)?/i)??[]; 
         const isRefInstead = !adjacent && id;
         if(isRefInstead) return false;
         // set attr
         const obj = {fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,strokeDashOff,attrId: id};
         m.CSS={};             
+        if(recurse) m.CSS.maxR=recurse;
+
         for(const key in obj){
             if(obj[key]==undefined) continue
             let val = obj[key];
@@ -403,10 +405,11 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                 }
                 if(isNum ){
                     const num = Number(pnt.id);// not if has a z or m command  4z  5m
-                    let animMatch = line.slice(x).match(/s(\d+(?:\.\d*)ds)?(#\w*)?/)
+                    let animMatch = line.slice(x).match(/s(\d+(?:\.\d*)ds)?((\d+(?:\.\d*)?)N)?(#\w*)?/)
                     if( animMatch && !isNaN(num)){
-                        let [_,deltaSec,aniId]=animMatch;
+                        let [_,deltaSec,repeatN,aniId]=animMatch;
                         pnt.s=num;
+                        pnt.repeatN = repeatN=="0"?"indefinite":repeatN;// 0 means auto use 0.0 for nothing
                         pnt.id=aniId??"ani"+(anims.length++);
                         anims.push(pnt);
                         x+=_.length;
@@ -430,11 +433,12 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
 
                 if(isRefMarker && !handleHashCSSM(refM,pnt,false)){
                     const refMConnect = refM.data[0]=="-"?"-":"";
-                    let [_,isPathStart=refM.isPathStart,pathCon=refMConnect,startId="",endId="",lastIsPathEnd=""] = pnt.id.match(/(;)?(-)?[#\/]?((?:[A-Z]\d*|\d+)(?:'\d*)*)(?:-)?[#\/]?([A-Z]?\d*(?:'\d*)*)?(;)?/i)??[]; 
+                    let [_,isPathStart=refM.isPathStart,pathCon=refMConnect,startId="",endId="",lastIsPathEnd="",lastIsOpen=""] = pnt.id.match(/(;)?(-)?[#\/]?((?:[A-Z]\d*|\d+)(?:'\d*)*)(?:-)?[#\/]?([A-Z]?\d*(?:'\d*)*)?(;)?(-)?/i)??[]; 
                     pnt.idGrp=200;  // emit point(s) after all other, otherwise
                     Object.assign(pnt,{isPathStart,pathCon,endId,lastIsPathEnd});
                     pnt.raw = pnt.id;
                     pnt.id= startId;
+                    pnt.lastIsOpen=lastIsOpen;
                     pnt.isRef=true;
                     pnt.x= refM.x;
                 }
@@ -607,17 +611,22 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         }
     }
 
-    let maxRef=1;
-    let maxIterSteps = 100_000_000;
+    let maxRef=0;
+    let maxIterSteps = 15;
+    let maxOrderLeng = 9_999;
     for (const grpName in groups) if(groups[grpName]) for(const pnt of groups[grpName]){
-        if(!pnt.isRef||pnt.R>maxRef) continue;
+        if(!pnt.isRef|| pnt.R> Math.min(maxOrderLeng,pnt.maxR??maxRef) ) continue;
         
-        if(allOrderedPnts.length>maxIterSteps) throw Error("To Deep Recursion")
+        if(allOrderedPnts.length>maxOrderLeng--) throw Error("To Deep Recursion")
         let startPnt = groups[grpName].find(p=>p!==pnt && !p.isRef && p.idNorm==pnt.id) ?? allOrderedPnts.find(p=>!p.isRef&&p.idNorm==pnt.id);
+        let curGrp = getGrp(startPnt);
+        let centerPnt = startPnt;
+        if(pnt.pathCon){//  go back to last start, this changes the center point of refed shape #-B-C
+            startPnt = curGrp[0];
+        }
         let startPntIdx = allOrderedPnts.indexOf(startPnt);
         let endPntIdx = allOrderedPnts.findIndex( p=>!p.isRef && p.idNorm==pnt.endId);
         let insertees;
-        let curGrp = getGrp(startPnt);
         if(endPntIdx>=0){ 
             const reversed = endPntIdx<startPntIdx; 
             insertees  = reversed? allOrderedPnts.slice(endPntIdx,startPntIdx+1).reverse() 
@@ -638,8 +647,8 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         // }
         if( (lastIns.tickN??0)<=2  ) insertees = insertees.filter( x=> (x.copyNr??0)<=maxCopyNr )
         // base on the first point, -> could implement setting how to align via boundingbox e.g  center or left shift 
-        let anchorX = pnt.x - insertees[0]?.x; 
-        let anchorY = pnt.y - insertees[0]?.y; 
+        let anchorX = pnt.x - centerPnt?.x; 
+        let anchorY = pnt.y - centerPnt?.y; 
         let mulM = pnt.allMarker.find(m=>m.type=="*");
         const attrs = {};  // overwrite style attributes
         for(const attr in ATTR_2_PROP){
@@ -659,12 +668,18 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
             p.R= 1+ (pnt.R??0);// recursiv depth 
             p.copyOf=oriP;
             oriP.copyCnt = (oriP.copyCnt??0)+1;
+
+            // allow recursion only for same node makes it easier to understand
+            if(p.idNorm!==pnt.idNorm) p.isRef=false;
+            
             p.idNorm = p.idNorm+"'"+ oriP.copyCnt;
             p.copyNr = oriP.copyCnt;
             for(const c of p.idNorm) if(c=="'")  p.tickN = (p.tickN??0)+1;
             if(pnt.svgOrder!==undefined)p.svgOrder = pnt.svgOrder;
             if(i==0&& pnt.isPathStart) p.isPathStart=true;
-            if(i==insertees.length-1&&pnt.lastIsPathEnd) p.isPathEnd=true;
+            if(i==insertees.length-1)
+                if(pnt.lastIsPathEnd) p.isPathEnd=true;
+                if(pnt.lastIsOpen) p.isPathEnd=false;
             return p;
         } );
         let pntIdx= groups[grpName].indexOf(pnt);
@@ -673,7 +688,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         // always attach after the copied grp and goe over all preexisting copies to keep order
         //   #K1-K4'2  -> should ref  K1-K4   K1'1-K4'1  K1'2-K4'2, therefore this must be layed out linerary in allOrderedPnts arr
         
-        if(false&& pnt.pathCon){// remove the rev
+        if( pnt.pathCon){// remove the rev
             allOrderedPnts.splice(allOrderedPnts.indexOf(pnt),1,...insertees)
         } else {
             let endNode = curGrp.at(-1);
