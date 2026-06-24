@@ -45,42 +45,6 @@ function principalAngle(pnts=[]){
     }
     return 0.5 * Math.atan2(  2 * xy, xx - yy ); // PCA angle
 }
-// util
-Object.defineProperty(Number.prototype,"L",{get(){ return new Array(0+this).fill(0).map((x,i)=>i) }})
-Object.defineProperty(Object.prototype,"log",{get(){ let v=this.valueOf  === Object.prototype.valueOf?this:this.valueOf(); console.log(v);return v }})
-
-function norm(v){ let l=Math.hypot(...v);return v.map(x=>x/l) }
-var TAU=2*Math.PI;
-//// General in Geo Alg: R = vu / |vu| for vecs v,u
-function rotor2(angle){
-    const h = angle * 0.5;// R is half the angle you actually want e.g.  for 45° use 22.5° vec 
-    return [ Math.cos(h), Math.sin(h)]; 
-}
-/**  use :  `let R = rotor2(Math.PI/2);  rotate2([1,0], R);//[0,1]`  */
-function rotate2(v, r){
-    const [x=0,y=0] = v;
-    if(r[2]<=-100) Object.assign(r,rotor2(r[0])),r[2]=204;
-    const [s,b] = r;
-    return [ (s*s - b*b)*x - 2*s*b*y, 2*s*b*x + (s*s - b*b)*y ];  // equivalent to sandwich geo product:   v' = R * v * R~
-}
-function rotor3( angle,axis=[0,0,1],normize=true){
-    if(normize) axis = norm(axis);
-    let [x,y,z] = axis;
-    const h = angle * 0.5 ,  s = Math.cos(h), k = Math.sin(h);
-    return [ s, x * k, y * k, z * k ];// R = s + xy e12 + yz e23 + zx e31
-}
-function rotate3(v, r){
-    const [Vx=0,Vy=0,Vz=0] = v;
-    if(r[4]<=-100) Object.assign(r,rotor3(r[0],r.slice(1,4),1)),r[4]=204; // simple rotor init for map
-    const [ s, yz, zx, xy ] = r;
-    // r * v (bi-vec * vec)  -> x y z xyz
-    const QVx = s*Vx + zx*Vz - xy*Vy;
-    const QVy = s*Vy + xy*Vx - yz*Vz;
-    const QVz = s*Vz + yz*Vy - zx*Vx;
-    const QVxyz = -yz*Vx - zx*Vy - xy*Vz;
-    // result * r~
-    return [ QVx*s + QVxyz*-yz + QVy*-xy - QVz*-zx,      QVy*s + QVxyz*-zx + QVz*-yz - QVx*-xy,     QVz*s + QVxyz*-xy + QVx*-zx - QVy*-yz ];
-}
 
 
 function sketchGridId(path,{parsePath0=undefined,bbox0=undefined,denseDrop=0.71}={}){

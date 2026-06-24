@@ -1,5 +1,15 @@
 /*  this parses a string into a visually pleasant svg path usable for vector graphics like fonts   */
 
+// -> to do add stuff for ndoe comptatible single file lib release
+if(!globalThis.addEventListener){
+    globalThis.addEventListener=()=>0;//NOP prevents collaps
+    /// read directory and proce
+    const args = process.argv.slice(2)
+    console.log(args);
+}
+// dev util  ranges   10 .L    easy log   "...".log   
+Object.defineProperty(Number.prototype,"L",{get(){ return new Array(0+this).fill(0).map((x,i)=>i) }})
+Object.defineProperty(Object.prototype,"log",{get(){ let v=this.valueOf  === Object.prototype.valueOf?this:this.valueOf(); console.log(v);return v }})
 
 ///// HTML/SVG util
 let $attrs = (elm = document.body, attrs, val) => {
@@ -20,7 +30,8 @@ let $SVG = (tag = "", attrs = {}, childs = [], parent) => {
     parent?.appendChild?.(e);
     return e;
 }
-document.body.addEventListener("click",(ev)=>{
+
+globalThis.addEventListener("click",(ev)=>{
     if(ev.target.matches("button.addPanel")) ev.target.before(ev.target.previousElementSibling.cloneNode(true))
 });//  ?: .$button.addPanel  .>>-- .>++{}  
 
@@ -32,11 +43,12 @@ const blurEv = (ev) => {
     ev?.preventDefault?.();
     const W = (el.dataset.w ?? window.fontW??1000);
     const H = (el.dataset.h ?? window.fontH??1000);
-
+    
     let previewSvg = el.querySelector("&>svg");
     if (!previewSvg) {
         previewSvg = $SVG("svg", { "viewBox": `0 0 ${W} ${H}`, 'tabindex': 0, }, 0, el);
     }
+    let hasFocus = document.activeElement==previewSvg;
     let previewCanvas = el.querySelector("&>canvas");
     if(!previewCanvas){
         const openAr = (el.clientWidth-32) / (el.clientHeight-32);//padding 
@@ -56,7 +68,8 @@ const blurEv = (ev) => {
     el._asciiObj = asciiObj;
     previewSvg.outerHTML = asciiObj.svg;
     previewSvg = el.querySelector("&>svg");
-    previewSvg.setAttribute("tabindex","0")
+    previewSvg.setAttribute("tabindex","0");
+    if(hasFocus) previewSvg.focus();
 
     // mark first path for the font-builder
     const pathEl = previewSvg.querySelector(`path`) || $SVG("path", { "data-gly": "" }, 0, previewSvg);
@@ -78,11 +91,11 @@ const blurEv = (ev) => {
     }
     return asciiObj;
 }
-document.body.addEventListener("blur", blurEv, true,);
+globalThis.addEventListener("blur",e=>setTimeout( _=>blurEv(e),10), true,);
 const objToURL = (a)=>{
     return URL.createObjectURL(   new Blob([a.svg], { type: "image/svg+xml" }) );
 }
-document.body.addEventListener("keydown",(ev)=>{
+globalThis.addEventListener("keydown",(ev)=>{
     if(ev.ctrlKey && ev.key=="Enter") blurEv(ev);
     if(ev.ctrlKey && ev.key=="u"){
         const asciiObj = blurEv(ev)
@@ -95,19 +108,24 @@ document.body.addEventListener("keydown",(ev)=>{
         const asciiObj = blurEv(ev)
         if(!asciiObj) return;
         const url =objToURL(asciiObj);  
-        const a = $New("a",{download:asciiObj.svg.id||asciiObj.svg.name||"a.svg", href:url});
+        const a = $New("a",{download: lastBlurPre?.getAttribute?.("name")||"a.svg", href:url});
         a.click();
         URL.revokeObjectURL(url);
     }
 }, true,);
 let inputedText = false;
-document.body.addEventListener("input", (ev)=>  ev.data? inputedText=1:0 , true,);
+globalThis.addEventListener("input", (ev)=>  ev.data? inputedText=1:0 , true,);
 
 // init the pre icons in the html
-document.body.onload = () => {
+globalThis.onload = () => {
+    // basic overlay CSS for js lib only load, feel free to change it to suit your app (good luck achiving the overlay effect esp. with the sketch-er)
+    if(![...document.styleSheets].some(s=>s.title=="dvg")){
+        // to better see text and overlayed svg image
+        let txtShadow=`--L5:#eef;text-shadow:0.5px 0.5px var(--L5), -0.5px -0.5px var(--L5), 0.5px -0.5px var(--L5);svg text{text-shadow:none}`;
+        const dvgCSS=$New("style",{title:"dvg"},[`pre[name]{max-width:95vw; width: fit-content;height: fit-content;line-height: 1.1;position: relative;padding: 1rem; ${txtShadow} &>svg,&>canvas{position:absolute;width:stretch;height:stretch;inset:0;padding:inherit;z-index: -2;} &>svg:focus,&>canvas:focus{z-index:1;padding:0;margin:0;background-color:white;} &:focus svg text{opacity:0.2;}}`],document.body)
+    }
     for (const pre of document.querySelectorAll("pre[name]")) {
         blurEv({ target: pre });
-
     }
 }
 /* actual ascii to Svg algo starts here  */
@@ -398,8 +416,9 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                     refM.resolved=1;
                     (pnt.allMarker??=[]).push(refM);
                 }
-                const eat = isRefMarker? /[0-9A-Z\-;'/]/i : /[0-9zZmM]/; 
+                const eat = isRefMarker? /[0-9A-Z\-\.;'/]/i : /[0-9\.zZmM]/; 
                 while (eat.test(line[x + 1])) {// allow continuation with numbers like  42 or  A2 B3  and a ending Z to close a path 
+                    if(!isRefMarker && (line[x]=="."&&line[x + 1]==".")) break;
                     x++; pnt.id += (line[x]??"");
                     if (!line[x]||  (!isRefMarker &&  "zZmM".includes(line[x]) )) break;
                 }
@@ -410,7 +429,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                         let [_,deltaSec,repeatN,aniId]=animMatch;
                         pnt.s=num;
                         pnt.repeatN = repeatN=="0"?"indefinite":repeatN;// 0 means auto use 0.0 for nothing
-                        pnt.id=aniId??"ani"+(anims.length++);
+                        pnt.id=aniId??"ani"+(anims.length);
                         anims.push(pnt);
                         x+=_.length;
                         continue;
@@ -433,7 +452,8 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
 
                 if(isRefMarker && !handleHashCSSM(refM,pnt,false)){
                     const refMConnect = refM.data[0]=="-"?"-":"";
-                    let [_,isPathStart=refM.isPathStart,pathCon=refMConnect,startId="",endId="",lastIsPathEnd="",lastIsOpen=""] = pnt.id.match(/(;)?(-)?[#\/]?((?:[A-Z]\d*|\d+)(?:'\d*)*)(?:-)?[#\/]?([A-Z]?\d*(?:'\d*)*)?(;)?(-)?/i)??[]; 
+                    let [_,isPathStart=refM.isPathStart,pathCon=refMConnect,startId="",endId="",lastIsPathEnd="",lastIsOpen=""] 
+                    = pnt.id.match(/(;)?(-)?[#\/]?((?:[A-Z]\d*|\d+)(?:\.\d+)?(?:'\d*)*)(?:-)?[#\/]?([A-Z]?\d*(?:\.\d+)?(?:'\d*)*)?(;)?(-)?/i)??[]; 
                     pnt.idGrp=200;  // emit point(s) after all other, otherwise
                     Object.assign(pnt,{isPathStart,pathCon,endId,lastIsPathEnd});
                     pnt.raw = pnt.id;
@@ -442,7 +462,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                     pnt.isRef=true;
                     pnt.x= refM.x;
                 }
-                pnt.idNorm = pnt.id.match(/[A-Z]?\d*/i)?.[0]??pnt.id;
+                pnt.idNorm = pnt.id.match(/[A-Z]?\d*(\.\d+)?/i)?.[0]??pnt.id;
             } else {
                 lastIsPnt = false;
                 lastIsNoWSPnt = false;
@@ -456,7 +476,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
     const idToSortNum = (id,grp=0, offset=0)=> !isNaN(+id)?+id:(grp+id[0].charCodeAt(0))*10000+(isNaN(+id.slice(1))? +id.slice(2)||999 :+id.slice(1)+offset);
 
     for (const grp in groups) {
-        groups[grp].forEach( pnt=>pnt.sortNum=idToSortNum(pnt.id,pnt.idGrp, pnt.idOff) )
+        groups[grp].forEach( pnt=>pnt.sortNum=idToSortNum(pnt.idNorm,pnt.idGrp, pnt.idOff) )
         groups[grp] = groups[grp].sort((a, b) => a.sortNum-b.sortNum);
     }
     // for the enumeration order
@@ -619,6 +639,10 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         
         if(allOrderedPnts.length>maxOrderLeng--) throw Error("To Deep Recursion")
         let startPnt = groups[grpName].find(p=>p!==pnt && !p.isRef && p.idNorm==pnt.id) ?? allOrderedPnts.find(p=>!p.isRef&&p.idNorm==pnt.id);
+        if(!startPnt){
+            console.error(`No start point found for ref`,pnt)
+            continue;
+        }
         let curGrp = getGrp(startPnt);
         let centerPnt = startPnt;
         if(pnt.pathCon){//  go back to last start, this changes the center point of refed shape #-B-C
@@ -749,8 +773,8 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         nextG.svgOrder = nextG.nodes.findLast(  n=>n.svgOrder!==undefined )?.svgOrder ?? nextG.svgOrder;
         
         // only check first point, cause this could be used to hide singular segments or all via prolong
-        const hidden = nextG.nodes?.[0]?.hidden
-        if(hidden!==undefined) nextG.attr+=attrStr("visibility",hidden?"hidden":"visible");
+        // const hidden = nextG.nodes?.[0]?.hidden
+        // if(hidden!==undefined) nextG.attr+=attrStr("visibility",hidden?"hidden":"visible");
     }
     if(collectAllD) asciiParsed.allD = asciiParsed.allD.trim();
     
@@ -790,7 +814,38 @@ function add(a, b) { return { x: a.x + (b.x ?? b), y: a.y + (b.y ?? b) } }
 function sub(a, b) { return { x: a.x - (b.x ?? b), y: a.y - (b.y ?? b) } }
 function mul(a, b) { return { x: a.x * (b.x ?? b), y: a.y * (b.y ?? b) } }
 function div(a, b) { return { x: a.x / (b.x ?? b), y: a.y / (b.y ?? b) } }
-
+function norm(v){ let l=Math.hypot(...v);return v.map(x=>x/l) }
+var TAU=2*Math.PI;
+//// General in Geo Alg: R = vu / |vu| for vecs v,u
+function rotor2(angle){
+    const h = angle * 0.5;// R is half the angle you actually want e.g.  for 45° use 22.5° vec 
+    return [ Math.cos(h), Math.sin(h)]; 
+}
+/**  use :  `let R = rotor2(Math.PI/2);  rotate2([1,0], R);//[0,1]`  */
+function rotate2(v, r){
+    const [x=0,y=0] = v;
+    if(r[2]<=-100) Object.assign(r,rotor2(r[0])),r[2]=204;
+    const [s,b] = r;
+    return [ (s*s - b*b)*x - 2*s*b*y, 2*s*b*x + (s*s - b*b)*y ];  // equivalent to sandwich geo product:   v' = R * v * R~
+}
+function rotor3( angle,axis=[0,0,1],normize=true){
+    if(normize) axis = norm(axis);
+    let [x,y,z] = axis;
+    const h = angle * 0.5 ,  s = Math.cos(h), k = Math.sin(h);
+    return [ s, x * k, y * k, z * k ];// R = s + xy e12 + yz e23 + zx e31
+}
+function rotate3(v, r){
+    const [Vx=0,Vy=0,Vz=0] = v;
+    if(r[4]<=-100) Object.assign(r,rotor3(r[0],r.slice(1,4),1)),r[4]=204; // simple rotor init for map
+    const [ s, yz, zx, xy ] = r;
+    // r * v (bi-vec * vec)  -> x y z xyz
+    const QVx = s*Vx + zx*Vz - xy*Vy;
+    const QVy = s*Vy + xy*Vx - yz*Vz;
+    const QVz = s*Vz + yz*Vy - zx*Vx;
+    const QVxyz = -yz*Vx - zx*Vy - xy*Vz;
+    // result * r~
+    return [ QVx*s + QVxyz*-yz + QVy*-xy - QVz*-zx,      QVy*s + QVxyz*-zx + QVz*-yz - QVx*-xy,     QVz*s + QVxyz*-xy + QVx*-zx - QVy*-yz ];
+}
 function calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, type = 'start', tension = 0.8) {
     if (type == "start") { return add(pCurr, div(sub(pNext, pPrev), 6 * tension)) }
     return sub(pNext, div(sub(pNextNext, pCurr), 6 * tension))

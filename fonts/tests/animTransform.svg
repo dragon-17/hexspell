@@ -1,0 +1,31 @@
+<svg width="300" height="100" xmlns="http://www.w3.org/2000/svg"  stroke="#000" stroke-linecap="square" >
+  <title>SVG SMIL Animate with transform</title>
+  <!-- <rect x="0" y="0" width="300" height="100" stroke="black" stroke-width="1" /> -->
+  <path d="M0 0z" stroke-width="999" />
+  <path id="rect" d="M40 40  h30 v30 h-30z" fill="blue" >
+    <!-- <animateTransform
+      attributeName="transform"
+      begin="0s"
+      dur="20s"
+      type="rotate"
+      from="0 0 0"
+      to="360 100 60"
+      repeatCount="indefinite" /> -->
+
+       <animate
+      attributeName="transform"
+      dur="5s"
+      type="translate"
+      by="30 0 0"
+      repeatCount="indefinite" />
+  </path>
+  <!-- <rect
+    x="0"
+    y="50"
+    width="15"
+    height="34"
+    fill="blue"
+    stroke="black"
+    stroke-width="1">
+  </rect> -->
+</svg>

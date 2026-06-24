@@ -901,7 +901,74 @@ X7       L& A6~   .
 </pre>
 <button class="addPanel">add Panel</button>
 </details>
+<details name="samples">
+    <summary>More general <code>DVG</code> to <code>ttf</code> font syntax</summary>
+<pre name="fontEx" contenteditable>
+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+.....+
+    !-  Could be exported to a legacy svg font then via e.g font forge to .ttf  
+    !-  when i have time I integrate a direct JS -> .ttf export via a .tff with dummy curves and 
+    !-  bit injecting
 
+
+                                       
+.....+     ....A1....           B1   B1.1&5-       C3      C4-
+           .                                  
+           x.5    x-0.5        B3    B2, B4         y-0.5
+           .A4    A3          y.5   y.5 y.5        C2.1-  
+       y.9 A0.1    A1.9 y.9                             &9-     
+.....+     A       A2m#o=o[=]  ;B    B5;          ;Cm  ,C2 C1 
+              "A                 "B                   "C             
+         !- text is preview and can tell prog what unicode glyph the closest path is
+
+                                                  #A3      
+.....+  
+
+
+
+               
+.....+  L3        H1m   H4
+         
+                  
+                  H2    H3m     
+       #o=o    
+.....+ ;Lm,L2L1  ;H     H5
+         "L       "H
+
+
+
+.....+                         
+
+   !- use move command m to assure ref-origin is at lower left corner like most 
+   !- font programms 
+
+
+
+
+                               
+                                       *.5    *1,-1     #d00   #0a0 
+   #H      #A       #L     #L           #H   #A       #L *.8  #L
+                                    " you can use normal operators on paths
+
+
+
+
+
+        
+     #A       #A#339   #A         #A*.6   #B*.4 #C*.2    
+
+      001  002      11         25   24    
+                   12&9              
+                 13y-0.5       26   23   
+      &5-                      22.1&5-
+     ;000  003;    ;10#o=o    ;20m  21 
+                                ,22y-1
+                                    
+   !- to do fix number refs, get outline path (adapt from cancas extractor)
+
+
+.....+.....+.....+
+</pre>
+</details>
 <details name="samples" open>
     <summary>Diagramm Test</summary>
 
@@ -960,7 +1027,7 @@ X7       L& A6~   .
     <button class="addPanel">add Panel</button>
 </details>
 
-    <script  src="asciiToSVG.js"></script>
+    <script  src="dvg.js"></script>
     <script  src="font-build-help.js"></script>
     <script  src="font-path-simplifier.js"></script>
     <script  src="canvasToSVG.js"></script>
@@ -969,7 +1036,7 @@ X7       L& A6~   .
     <script  src="DSON.js"></script>
 
     <link rel="stylesheet" href="basis.css">
-    <style>
+    <style title="dvg">
         /* needed to align the nested svg and canvas to the contenteditable pre[name] */
         pre[name],[sketch] {
             color: var(--L1);
@@ -977,6 +1044,7 @@ X7       L& A6~   .
             &[data-is-sketching]{
                 user-select: none;
             }
+            &:focus svg text{ opacity: 0.2; }
             &[data-is-sketching]::selection{
                 background-color: transparent;
             }
@@ -989,10 +1057,10 @@ X7       L& A6~   .
             &>svg,&>canvas,&>img {
                 position: absolute;
                 inset: 0;
-                outline: solid 2px oklch(from var(--cG) 0.8 c h);
                 padding: inherit;
-                user-select: none;
                 z-index: -2;
+                outline: solid 2px oklch(from var(--cG) 0.8 c h);
+                user-select: none;
                 /* opacity: 0.55; */
                 /* path{ stroke: var(--cB); fill: var(--L1); stroke-width: 4; } */
             }

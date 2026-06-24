@@ -1,0 +1,30 @@
+<!--
+Source - https://stackoverflow.com/a/51617101
+Posted by Paul LeBeau, modified by community. See post 'Timeline' for change history
+Retrieved 2026-06-24, License - CC BY-SA 4.0
+-->
+
+<svg id="mySvg" xmlns:svg="http://www.w3.org/2000/svg" 
+     xmlns="http://www.w3.org/2000/svg" 
+     version="1.1" 
+     viewBox="0 0 1920 1080" 
+     preserveAspectRatio="none">
+      
+    <path 
+          fill="lightblue" 
+          stroke="#eee9ea" 
+          stroke-width="1.51">
+            <animate 
+            attributeName="d"  dur="1s" 
+            repeatCount="indefinite" 
+            fill="freeze"
+            values="M 1045,520 L 1173,558 L 1184,393 Z;
+                    M 1036,540 L 883,540 L 883,693 Z;
+                    "
+             />
+            <!-- keyTimes="0; 0.2; 1"  -->
+
+            <!-- <animate   /> -->
+            
+     </path>
+</svg>
