@@ -1,4 +1,6 @@
-/*  this parses a string into a visually pleasant svg path usable for vector graphics like fonts   */
+/*  this parses a string into a visually pleasant svg path usable for vector graphics like fonts  
+   minify:  terser -o dvg.min.js dvg.js -m  --compress ecma=2026
+*/
 
 // -> to do add stuff for ndoe comptatible single file lib release
 if(!globalThis.addEventListener){
@@ -122,7 +124,7 @@ globalThis.onload = () => {
     if(![...document.styleSheets].some(s=>s.title=="dvg")){
         // to better see text and overlayed svg image
         let txtShadow=`--L5:#eef;text-shadow:0.5px 0.5px var(--L5), -0.5px -0.5px var(--L5), 0.5px -0.5px var(--L5);svg text{text-shadow:none}`;
-        const dvgCSS=$New("style",{title:"dvg"},[`pre[name]{max-width:95vw; width: fit-content;height: fit-content;line-height: 1.1;position: relative;padding: 1rem; ${txtShadow} &>svg,&>canvas{position:absolute;width:stretch;height:stretch;inset:0;padding:inherit;z-index: -2;} &>svg:focus,&>canvas:focus{z-index:1;padding:0;margin:0;background-color:white;} &:focus svg text{opacity:0.2;}}`],document.body)
+        const dvgCSS=$New("style",{title:"dvg"},[`pre[name]{max-width:95vw; width: fit-content;height: fit-content;line-height: 1.1;position: relative;padding: 1rem; ${txtShadow} &>svg,&>canvas{position:absolute;width:stretch;height:stretch;inset:0;padding:inherit;z-index: -2;} &>svg:focus,&:not([contenteditable])>svg,&>canvas:focus{z-index:1;padding:0;margin:0;background-color:white;} &:focus svg text{opacity:0.2;}}`],document.body)
     }
     for (const pre of document.querySelectorAll("pre[name]")) {
         blurEv({ target: pre });
@@ -148,7 +150,7 @@ let STROKE_W_DFLT = 8;
 let XMLNS="http://www.w3.org/2000/svg"
 
 //  use   A#o=o
-let LINE_JOINS = {"o=o":"round","<=>":"miter","i=i":"square"};
+let LINE_JOINS = {"o=o":"round","<=>":"miter","/=\\":"bevel"};
 let LINE_CAPS = {"(=)":"round","M=M":"square","[=]":"butt"};
 // for points like <path d="M 30 40 v0 "/>  line join can stay pointe due to option of curve splines
 let LINE_CAPS_DFLT = "round";
@@ -157,6 +159,8 @@ let ATTR_LOOK_UP = {
     ...LINE_JOINS, ...LINE_CAPS, 
 };
 let TXT_DFLT = {fill:"currentColor",strokeW:0, };
+/** offset in cell-space to adjust position for your font */
+let TXT_CELL_OFF = {x:0,y:0};
 let TXT_FONT_SIZE_IN_Y_CELLS = 1; // ensures etxt has same look as in ascii
 /** if you have text this will be set on the root, fill and stroke-width are elm based cause normal paths use them already */
 let TXT_ROOT_ATTR = {"font-family":"monospace"}
@@ -200,6 +204,11 @@ const markerChars = {
     ">":{secondChar:"=>",},// for ordering in out svg 
     "<":{secondChar:"z>"},// closed eye to hide stuff 
     '"':{ wsScope:1 },// strings
+    /* TO DO ideas:  use @URL-Resouce after #ref to include JS/Img and use predefined @<OP> as Actions ^=JS-Event-Loop
+        #myImg@URL-to-img  (like a anchor syntax)    #$gloabalJSVar
+         (ON)ACTION GET  KEY  "d"    ACT ON-SET "myVar"   GET MOUSE LEFT   ON-UP KEY "w"  ON-IS-SET KEY w
+     #$jsFN  @.Kd                @=myVar                 @.ML     @.MR     @^Kw            @?Kw
+     */
 };
 
 // grid in most cases only 16x10 or smaller, use UPPERCASE hexadeciaml nums and lowercase hexspell nums 
@@ -255,7 +264,7 @@ function compactCombine(wrd,digit){
 function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=false,}={}) {
     let [lines, gridW, gridH] = gridStats(gridString);
     
-    //             v~~ monospace chars have aspect of 1:2
+    //             v~~ monospace chars assume ideal aspect of 1W:2H   !!Not the case so view lines not 100% Up
     const gridAR = (2 * gridH) / gridW;
     
     const viewH =  1000*  2*gridH / gridW;
@@ -269,10 +278,12 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
 
     let fontSize = TXT_FONT_SIZE_IN_Y_CELLS *  targetH/gridH; 
 
+    // TO DO Parse Attrs+Classes from id     A   B#myLineId.classA.classB.attr1="when=".attr2=5
+    //      !!Note: do not allow " in id block so it does not parse non-WS-sep "textNode as idBlock
     const handleHashCSSM = (m,pnt,adjacent=false)=>{
         if(!m.data) return false;
         let [_,fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,strokeDashOff,recurse,id] = 
-        m.data.match(/(?:([0-9a-f]+)M)?(?:#?([0-9a-f]{2,}))?(?:==(\d+(?:\.\d+)?))?(o=o|<=>|i=i)?(\(=\)|<=>|\[=\])?(?:=-=([+-]?\d+(?:,\d+)*))?(?:=\+=([+-]?\d+(?:.\d+)*))?(?:(\d+)R(?:EC)?)?(.+)?/i)??[]; 
+        m.data.match(/(?:([0-9a-f]+)M)?(?:#?([0-9a-f]{2,}))?(?:==(\d+(?:\.\d+)?))?(o=o|<=>|\/=\\)?(\(=\)|\[=\]|M=M)?(?:=-=([+-]?\d+(?:,\d+)*))?(?:=\+=([+-]?\d+(?:.\d+)*))?(?:(\d+)R(?:EC)?)?(.+)?/i)??[]; 
         const isRefInstead = !adjacent && id;
         if(isRefInstead) return false;
         // set attr
@@ -335,8 +346,8 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                     else while (line[x] && line[x]!==" "){x++}
                     
                     marker.data = line.slice(beginnX,x);
-                    if(marker.type=='"'){// exeption to scope rule for common close strings:   "My String"
-                        const endQ_m = line.slice(x).match(/(.*?)"(?:\s|$)/);
+                    if(marker.type=='"'){// exception to end tag rule for familiar close str syntax:   "My String"
+                        const endQ_m = line.slice(x).match(/(.*?)\S"(?:\s|$)/);
                         if(endQ_m){
                             marker.data+= endQ_m[1];
                             x+=  endQ_m[0].length;
@@ -499,7 +510,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         if(!allP.includes(m)) allP.push(pnt); 
 
         if(m.type==";"){
-            if(m.x> (pnt.x0??pnt.x) ) pnt.isPathEnd= true;
+            if(m.x>= (pnt.x0??pnt.x) ) pnt.isPathEnd= true;
             else pnt.isPathStart=true;
         } else if(m.type=="-" ){
             pnt.isPathStart=false;
@@ -582,7 +593,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         const minXY=pnts.reduce( (a,p)=>(a[0]=Math.min(a[0],p.x),a[1]=Math.min(a[1],p.y),a)  ,[Infinity,Infinity] );
         const maxXY=pnts.reduce( (a,p)=>(a[0]=Math.max(a[0],p.x),a[1]=Math.max(a[1],p.y),a)  ,[0,0] );
         const mid = {x: minXY[0]+(maxXY[0]- minXY[0])/2,y: minXY[1]+ (maxXY[1]- minXY[1])/2, };
-        for(const p of pnts) p.bbMid = mid;
+        for(const p of pnts) if(!p.isMove) p.bbMid = mid;
     }
 
     let fullPath = "";

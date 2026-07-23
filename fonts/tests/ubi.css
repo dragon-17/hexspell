@@ -1,0 +1,148 @@
+:root{ --ff_code:  ui-monospace, monospace; }
+h2, body>b:has(>u){display: block; font-size: 1.4rem;  
+    &>u,&>i{ opacity: 0.5;  } 
+}/**h2**/
+h3,body>b:has(>u+u){ font-size: 1.1rem;  } /**h3**/
+h1,body>b:has(>i+u){ font-size: 1.8rem;  } /**h1 1doc only 1*h1, so bit wired syntax but ok
+ and using b>u=h1 => the more verbose b>u+u=h2 b>u+u+u=h3 ...  **/
+    
+u:has(>b+b){ 
+    text-decoration: none;
+    display: grid; 
+    grid-template-columns: repeat(2,auto);
+    &:has(>b+b+b){ grid-template-columns: repeat(3,auto) }
+    &:has(>b+b+b+b){ grid-template-columns: repeat(4,auto) } /* ... same pattern */
+
+    justify-items: center;
+    &:has(>b>i)>*{  text-align: center };
+    &:has(>b>i+i)>*{  text-align: right };
+
+    &>b,i:has(>b){ box-shadow: 1px 1px var(--L0) ;  }
+    &>i{ box-shadow: 1px 1px var(--L5);  }
+    &>*:has(>u:first-child){ box-shadow: 0px 1px var(--L0) ;  &>u:first-child{ text-decoration: none; } }
+    &>*{  margin: 0;   width:  calc(100% - 2rem);padding: 0.1rem 1rem ; }
+    &>i{ font-style: normal; }
+} /* a grid or table  */
+    
+u:has(>i:only-child){
+    color: var(--L2,#557);
+    font-size: 0;
+    i{ font-size: 1rem;color: var(--cC,royalblue); cursor: pointer;  }
+}/* a */
+   
+
+code,i:has(>u:first-child~u){
+    font-family:var(--ff_code); font-style: normal; 
+    &>u:is(:first-child,:last-child){  opacity: 0.5;  display: none; }
+} /** code blocks, prefer use ticks **/
+
+pre,b>i:has(>u:first-child~u){
+    display: block;
+    white-space: pre;
+    margin-left: 1rem;
+    font-style: normal;
+    font-weight: normal;
+    font-family:var(--ff_code);
+
+}
+
+i>b:only-child{  color: var(--cP); font-style: normal;  } /*  color for accent */
+b>i:only-child{  background-color: var(--cL);  color: var(--L2); font-style: normal;font-weight: normal; }/* like a text marker  */
+
+i:has(>img){/* adjust images to fit dummy/alt text */
+    display: inline-block;
+    &:has(>b:first-child){ display: block; }
+    position: relative;
+    width: fit-content; height: fit-content;
+    color: var(--L2);
+    white-space: pre;
+    img{ position: absolute; inset: 0; width: 100%; height: 100%; padding: 0;
+        object-fit: cover; /* prevents stretch */
+    }
+}
+[contain]{ object-fit: contain; }
+[cover]{ object-fit: cover; }
+
+
+/* show metadata tags if focused/ hidde if unfocused */
+[contenteditable]:focus-within{
+    u:has(i:only-child){ font-size: inherit; }
+    b:has(>u)>u>i{ display: unset; }
+    i:has(u:first-child~u) >u{ display: inline; }
+
+    i>img{z-index: -1;}
+}
+
+
+/* A theme ******************
+ my basic style for pdf-export html documents
+ free to custumize (aks AI if you suck at CSS) or can be overwritten with more external stylessheet
+  */
+:root{ --c: #497; --cL: oklch(from mediumaquamarine 0.92 c h); --c2:  var(--cP);
+    --L0: /*#113*/#002;--L1: #335;--L2: #557;--L3: #669;--L4: #dde;--L5: #eef;
+    --cR:crimson;--cG:seagreen;--cB: royalblue;--cO: chocolate; --cY:goldenrod; --cC: lightskyblue; --cP:slateblue; }
+/*Center doc in middle*/
+body { margin: 0 clamp(1rem, 10vw, calc((100vw - 800px) / 2)); }
+figure {float: inline-end; width: 48%;padding: 0; margin: 0 0 1.5rem 0; border: 1px solid #e2e8f0; border-radius: 4px;}
+figure img {width: 100%; height: auto; display: block; }
+figcaption { text-align: center; font-size: 0.75rem; color: var(--L3); margin-top: 5px; font-style: italic; }
+h1, h2, h3, b:has(>u) { clear: both; color: #1e293b; font-family: system-ui, sans-serif; font-weight: 700; margin-bottom: 0.3rem; }
+body { font-family: system-ui, -apple-system, sans-serif; color: var(--L1); line-height: 1.6; font-size: 11pt; }
+h1,body>b:has(>i+u) { font-size: 1.8rem; margin-top: 1.4rem; border-bottom: 2px solid var(--L4); padding-bottom: 0.3rem; }
+h2,body>b:has(>u) { font-size: 1.4rem; margin-top: 1.4rem; color: var(--L0); }
+h3,body>b:has(>u+u) { font-size: 1.1rem; margin-top: 0.7rem; color: var(--L1); }
+p ,body *{ margin-top: 0; margin-bottom: 1rem; text-align: justify; text-justify: inter-word; }
+:is(b) { color: var(--L0); font-weight: 600; }
+:is(i) { color: var(--L2); }
+b,i{color:inherit}
+/* generic interaction elm */
+button,code,input,select,textarea,[contentEditable] ,i:has(>u:first-child~u)
+{ background: var(--c); color: var(--L5); padding: 0.15rem 0.35rem; 
+    border-radius: 4px; border:none; outline-color: var(--c); caret-color: var(--L0);font-size: 0.9em; }
+code,.invert,i:has(>u:first-child~u) {font-weight: 500; background: var(--L5); color: var(--c);font-family: ui-monospace, monospace; }
+pre,b>i:has(>u:first-child~u){ color: var(--L5); background-color:  var(--L2); overflow: auto;}
+
+pre,:b>i:has(>u:first-child~u){ /* give color for u b i */
+    >u { color: var(--L4); text-decoration: none; }/*op*/
+    >b { color: var(--cC);font-weight: normal; }/*var/member*/
+    >i { color: var(--cL); font-style: normal; }/* nums  */
+    >b>i { color: var(--cY);background: none; font-weight: normal;font-style: normal; }/* strs  */
+}
+code,i:has(>u:first-child~u){
+    >u { color: var(--L2); text-decoration: none; }/*op*/
+    >i { color: var(--c); font-style: normal; }/* nums  */
+}
+input[type="range"]{color:var(--c);padding:0;}
+input { accent-color: var(--c);padding: 0 0.05rem }
+textarea,input,[contentEditable] { background-color: inherit; color: inherit; field-sizing: content;/*!!not for Firefox Safari*/  }
+
+/*dialogs*/
+i+aside{ display: none;   position: fixed; position-anchor: --my-info; margin:0.25rem; position-area: top;  }
+i:is(:hover,:focus-within) + aside {display: block;}
+i:has(+aside){  anchor-name: --my-info; }
+:has(>i+aside){ anchor-scope: all; }/* can only have one anchor elm in a subtree */
+
+[popover],dialog,i+aside,i:has(+aside) { background: var(--L1); color: var(--L4); padding: 0.15rem 0.35rem; 
+    border-radius: 0.2rem; border: none; outline-color: var(--c);}
+i:has(>sup,>sub){ height: 1.2em; aspect-ratio: 1; display: inline-block; white-space: pre; 
+     border-radius: 1em;padding: 0; font-size: smaller; text-align: center;}
+
+/* for a papar */
+[columns]{ columns:2; column-wrap: wrap; text-align: justify; }
+@page {
+    body {margin:0}
+    size: A4;
+    margin: 10mm 20mm 10mm 20mm;
+    @bottom-right {
+        content: "Seite " counter(page);
+        font-family: system-ui, sans-serif;
+        font-size: 9pt;
+        color: var(--L3,#679);
+    }
+    @bottom-left {
+        content: var(--print-footer,"<insert CSS var --print-footer>");
+        font-family: system-ui, sans-serif;
+        font-size: 9pt;
+        color: var(--L3,#679);
+    }
+}

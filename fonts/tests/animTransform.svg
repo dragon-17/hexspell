@@ -10,14 +10,22 @@
       type="rotate"
       from="0 0 0"
       to="360 100 60"
-      repeatCount="indefinite" /> -->
+      repeatCount="1" /> -->
+    <animateTransform
+      begin="0s"
+      dur="1s"
+      attributetype="SVG"
+      type="translate"
+      by="20px 0 0"
+      repeatCount="1"
+       />
 
-       <animate
+       <!-- <animate
       attributeName="transform"
       dur="5s"
       type="translate"
       by="30 0 0"
-      repeatCount="indefinite" />
+      repeatCount="indefinite" /> -->
   </path>
   <!-- <rect
     x="0"

@@ -14,7 +14,7 @@ e=([x,y],n=Math.random()*S)=>[[x*0.3,y*0.3],[-y*n,x*n],[x*0.4,y*0.4],[y*n*0.5,-x
 g=(o,s,f="fill",z=" stroke")=>`<svg viewBox="-40 0 120 80">
 <path fill="${_f=R('#cda','#dca','#adc')}"${z}="${_s=R(s1,s1,s1,s1,s1,s1,s2,s2,s2,s3,s4,s5)}"${z}-width="${R(0,.2,.3,.5)}"${z}-linejoin="round" paint-order="${R(f,f,z)}"
 d="m${o[0]} ${o[1]} l${s.map(([x,y])=>[r(x),r(y)]).join("l")}z"/></svg>`
-p=R([[30,0],[0,20],[-30,0],[0,-20]],[[20,0],[-10,17],[-10,-17]]);
+p=R([[20,0],[0,20],[-20,0],[0,-20]],[[20,0],[-10,17],[-10,-17]]);
 lv=R(5);
 f=F([15,15],p,lv)
 n=R('Tellius','Eilbe','Fodlan');

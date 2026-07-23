@@ -1,0 +1,121 @@
+//<script> // here you have Intelisense
+
+/* for window in Node */
+globalThis.window??=globalThis; 
+/*  For Code Golf++   this(global) -> siz (de) -> ß (de szett)  */
+const ß= this;
+ß.addEventListener??=_=>0;// define for node-env
+
+
+let SERVER=null;
+let nodePort = 5863;// dekaspell SAphE
+const nodeHost = "localhost";
+let nodeIndex =  'index.html';
+let nodeRND = crypto.randomUUID();
+let ACAO = "*";
+const contentType = {bmp:"image/bmp",css:"text/css",gif:"image/gif",html:"text/html",jpg:"image/jpeg",js:"text/javascript",json:"application/json",jsonld:"application/ld+json",mjs:"text/javascript",png:"image/png",svg:"image/svg+xml",tiff:"image/tiff",webp:"image/webp"};
+
+async function nodeCLI() {
+    const [http,fs,{text}]= await Promise.all([
+        import("http"),import("fs"),import("stream/consumers"),
+    ])
+    // most compact args parse logic I can think of
+    const ARGS = process.argv;
+    const param = flag=>ARGS.find((_,i)=>ARGS[i-1]==flag);
+    const paramL = (flag,out=[])=>{
+        for(let i=ARGS.indexOf(flag); ARGS[i++]&&ARGS[i]?.[0]!=="-";) out.push(ARGS[i]);
+        return out;
+    }
+    
+    nodePort = param("-p") ?? nodePort;
+    nodeIndex = param("-i") ?? param("--index.html") ?? nodeIndex;
+    ACAO = param("-acao") ?? "http:"+nodeHost+":"+nodePort;
+
+    let handler;
+    SERVER = http.createServer( async (req, res) => {
+        // tell Browser his POST is ok
+        res.setHeader('Access-Control-Allow-Origin',ACAO );// use '*' for file:// write
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        
+        if (req.method === 'OPTIONS'||req.method === 'HEAD') return res.end();
+
+        let file =  req.url.slice(1);
+        if(/\.\.|^\/|^\w:/.test(file)){ return res.end("Ok");/*silent abort*/}
+
+        if (req.method === 'GET') {
+            req.url === '/' ?  file= nodeIndex  :0;
+
+            const end = file.match(/\.(\w+)$/)?.[1];
+            res.setHeader('Content-Type',contentType[end]??"text/plain");
+            
+            return  fs.readFile(file, (err, data) => {
+                if (err) res.statusCode = 404, res.end("404 Not found: "+file);
+                else res.end(data);
+            });
+            
+        }
+        if (req.method !== 'POST') { res.statusCode = 404; return res.end(); }
+
+        fs.writeFileSync( "./"+file, await text(req));
+
+        console.log(`Save: ${file}`);
+        res.end('OK');
+    });
+    
+    SERVER.listen(nodePort, nodeHost);
+    console.log('http://'+ nodeHost + ':' + nodePort,`\n\t\x1b[35m==> \x1b[1m\x1b[0muse \x1b[1m\x1b[35mCtrl+C\x1b[0m to stop ...`);
+}
+async function saveFile(filename, content){
+    console.log($2)
+    await fetch(`http://${nodeHost}:${nodePort}/${filename}`, { method: 'POST', body: content });
+}
+
+//</script>
+let boRaw=`
+
+<header>
+
+    <h1>Your heading</h1>
+    <a href="#">home</a>
+    <a href="#infoPage">info</a>
+    <a href="#timePage">time</a>
+    <b>Extern</b>
+    <a href="wiki">time</a>
+
+</header>
+
+<article id="#">
+
+A well crafted subset of <code>HTML</code> can simultaiously be opened in the browser and executed in a <code>JS</code>-Runtime like <code>node.js</code>.
+
+</article>
+
+<article id="infoPage">
+
+<h2>Usage</h2>
+
+<ul id="$myList">
+    <li> Open in the browser
+    <li> use via <br>  <code> node < THIS-FILE.html ></code>
+</ul>
+
+</article>
+
+<article id="timePage"> 
+
+<b> Time: </b> <time id="$TIME"></time>
+
+</article>
+
+<style>
+    header { display: flex; gap:1rem; flex-wrap: wrap; *{margin:0} }
+    br+code{margin-left: 1rem;}
+    body{
+        margin: 0.2rem clamp(1rem, 20vw, calc((100vw - var(--pageW,500px)) / 2))
+    }
+
+    [id$="Page"],[id="#"]{   display: none; &:target{  display: block;} }
+    body:not(:has(:target)) [id="#"]{  display: block;}
+</style>
+`

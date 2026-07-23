@@ -12,12 +12,14 @@ Retrieved 2026-06-24, License - CC BY-SA 4.0
       
     <path 
           fill="lightblue" 
-          stroke="#eee9ea" 
+          stroke="#eee9ea"
+          d="M 1045,520 L 1173,558 L 1184,393 Z" 
           stroke-width="1.51">
             <animate 
             attributeName="d"  dur="1s" 
-            repeatCount="indefinite" 
+            repeatCount="5" 
             fill="freeze"
+            begin="click"
             values="M 1045,520 L 1173,558 L 1184,393 Z;
                     M 1036,540 L 883,540 L 883,693 Z;
                     "

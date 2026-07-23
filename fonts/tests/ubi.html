@@ -1,0 +1,140 @@
+
+<!--  use u b i to nestings/combos to emultate other tags-->
+<link href="./ubi.css" rel="stylesheet">
+<!-- JS is only needed for Links and Setting Attributes like id and navigation  -->
+<script src="ubi.js"></script>
+
+<body contenteditable columns>
+    <!--       .dml   ** __#  Heading ...      .md =    **__#__  Heading  **  -->
+    <b> <u>#</u>  Heading via b>u </b>
+
+    <i><sup>i</sup></i><aside>use Ctrl+u to toggle u and ubi-heading</aside> And here is some top level text. 
+    <i>Ubi</i> is a Markdown language that is a subset of <i>HTML</i> that use only nestings of &lt;u> &lt;b> &lt;i> tags to encode Semantics 
+    and <i>CSS</i> to style it to appear as a norml <i>HTML/LaTex</i> document. 
+
+    the advantage is that browsers support via the simple <i>contenteditable</i> attribute 
+    convienient-/easy to memorize- keyboard shortcuts <i>Ctrl+ u b i</i>.
+    A <i>contenteditable</i> has alreayd <i>Undo/Redo</i> prebuild. Only New line insert is akward. 
+    In Chrome --no guarantee for any other Browser/Device-- you can insert &lt;br> instead of &lt;div> with <i>Shift+Enter</i> 
+    and one global JS handler can do this behaviour automatically without <i>Shift</i>.
+    The best is, that most Programms with <i>RichText</i> suport use the <b>exakt same!</b> so no need to relearn them. 
+    I even written keyboard shortcuts for VS-Code that use regex to toggle the selection for thes three and a list of more <i>HTML</i> elemtent.
+    I must never write/remove &lt;u>&lt;b>&lt;i> tags out manually. 
+
+    <!--  in  .dml (own future .md) **__;     .md   **__;__** 
+      not CSS targetable 
+      this could be made via contendeditable and can be later detected as either paragraph or multiple ; page break
+      It is a qualified heading so it will break the space for optical difference  
+
+      also <u>;;</u> could mark paragraph break in html JS marks their attr on blur or Ctrl+Enter
+    
+    
+      <b><u>;</u></b>
+    -->
+    
+    You can use <b>bold</b> <i>italic</i> and <u>underline</u> without and nestings normaly.
+    However if you nest them, they gain semantic meaning of tags.
+    <!--  that is a horizontal line canidate    .dml  **__--    .md  **__---__** 
+      
+        <b><u>-</u></b>
+    -->
+    
+    <b> <u>#</u><u>#</u>  A second level heading   </b>
+    it does not matter what you write into the u tags but <i>Mardown</i> is a good starting point.
+
+
+    <b> <u>1</u>.<u>1</u>  Also second level </b>
+    Numerics are also a good fit.
+    
+    <b> <u>1</u>.<u>2</u>  Still under 1. </b>
+    You can toogle the <i>u</i> to get a higher/deeper level. Currenlty only <i>h2-h4</i>. for <i>h1</i> you need the <i>CSS</i> selector <i>b>i+u</i>
+
+
+    <br>
+    Try to make the following into a <b>1.3</b> and 1.4 by using <i>Ctrl+ u b</i>
+    Some Text... Some Text... Some Text... Some Text...
+
+    <b> <u>2</u>  Level 2 </b>
+    Some Text... Some Text... Some Text... Some Text...
+    <b> <u>#</u>.<u>#</u>  Also second level </b>
+    Also there is the option to include more semantic  &lt;strong> & &lt;em> tag for styling.
+    They will never have <i>ubi</i> Semantics
+    
+    <b> <u>#LABLE_A</u>.<u>#</u>  Also second level </b>
+    You could also use the first u for labels and make it popover hide via CSS
+
+
+    <b> <u>#</u>  ubi-Anchors  </b>
+
+    Anchors are underlined so i think <i>&lt;u>&lt;i>&lt;/i>http://example.com&lt;/i>&lt;/u></i> is a good syntax. 
+    A second <i>i</i> may contain a long URL and is made a hover popover (still editable). 
+    Some use examples that you can edit with contentEditable: 
+
+    ... <u><i>http://example.com</i></u> ...  <br>
+    
+    <!-- Is same as working via JS
+    <a href="#bla">to bla</a> 
+        usable for page CSS :target routing
+    -->
+    ... <u><i>A link with hidden target</i>#bla</u>  <br>
+    ... <u><i>A link with hidden URL</i> https://en.wikipedia.org/wiki/Markdown </u>  <br>
+    
+    ... <u><i>Other site</i> ubiWebisteNav.html </u>   <br>
+    
+
+    <b> <u>#</u>  ubi-code and code blocks</b>
+    Code is when you use a <i>i</i> with a starting nested <i>u</i> and another <i>u</i>. Maybee efore for last. This can be wraped in 
+    backtick as in markdown, which can be removed via CSS when not <i>contentEditable</i> if desired.
+    <br>This line contains a JSON <i><u>`</u>let char = { name: "Lyn", class: "Swordmaster" }<u>`</u></i> that is rendered in monospace.
+    If you wrap this in a <i>b</i>, it is made into a <i>pre</i> equivalent code block:
+
+<b><i><u>`</u>let chars = [
+    { name: "Hector", class: "Armored Lord" },
+    { name: <b><i>"Eliwood"</i></b>, class<u>:</u> "Lord" },<!-- you could use ubi b>i to give highlight colors-->
+    42, <i>34</i>
+]<u>`</u></i></b>
+    
+    In my own <i>DML Markdown</i> lang, that does close tags based on right <i>Whitespace</i> and needs no explicit close tags, 
+    this would be a more readable  <i><u>`</u>** *__ your code __<u>`</u></i>
+    
+    
+    <b> <u>#</u>  ubi-tables  </b>
+    
+    Use u>b+b 
+
+    <u> 
+        <b>Stat</b> <b>Value</b> 
+        <i>Attack</i> <i>23</i>
+        <i>Magic</i> <i>4</i>
+        <i>Speed</i> <i>22</i>
+        <i>Dex</i> <i>15</i>
+        <i>Def</i> <i>10</i>
+        <i>Res</i> <i>21</i>
+
+        <b>no tag</b> no frame 
+        <u>Also u</u> usable
+    </u>
+    
+    You could add a new table by giving first writing some columns and using the shortcuts. Try wrapping following in a table form: 
+
+names    classes  lv  friends   
+ Lyn     Swordmaster   21   Florina
+ Florina Pegasus       16   Lyn   
+
+
+    
+
+    <b> <u>#</u>  Dubi  Dragonscript in ubi  </b>
+    Could combine with halftags and make operators in u as LISP like executables
+
+
+    <i> 3  <u>+</u> 2 </i>
+    <i> 3  <u>*</u> 2 </i>
+
+    <br>
+    
+
+</body>
+    
+    
+

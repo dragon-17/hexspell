@@ -1,0 +1,24 @@
+<svg id="editIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1117.6470588235295" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">
+    <path stroke-width="040" stroke-linejoin="round" d="M 78.8 109L952 109L952 947L78.8 947Z"/>
+    <path stroke-width="25" stroke-linejoin="round" d="M 159 832L350 776L377 720L841 273L841 161L705 161L595 273L705 385L595 273L268 608L377 720L268 608L159 664L159 832M214 776L323 664"/>
+</svg>
+<!--<dVG>  even ~ same size as paths   no-CMT=>ParseErr
+ *0.9-
+ A#==040o=o                      B
+                        G2   G1
+
+                    G3,G5    G
+           
+                        G4        
+
+
+        
+        H,H2 
+    H3    I1
+            F,H1
+      I    E1#==25o=o
+    E,H4m 
+    *0.90-   
+ D;                              C
+
+</dVG>-->
