@@ -1,0 +1,146 @@
+//<script> // here you have Intelisense
+
+/* for window in Node */
+// globalThis.window??=globalThis; 
+
+/* or for Code Golf++   this(global) -> siz (de) -> ß (de letter sizetta)  */
+const ß= this;
+
+console.log("Hello World in",ß.CSS?"Web":"Node")
+
+ß.addEventListener ??=_=>0;// define for node-env
+
+// tell HTML to fell toplevEL  cmt-txt nodes
+const fellTxtCMT_TXT_Nodes = _=>{
+    for(const t of document.body.childNodes) 
+    if( /^(\s*(\/\/|\/\*\s*(?:\*\/)?|\*\/(?:\+0))|)+\s*$|boRaw|\s*`\s*/.test(t.data)) t.remove()
+}
+ß.addEventListener("load",()=>{
+    fellTxtCMT_TXT_Nodes()
+    initObservableDOM_Macros()
+});
+
+_El=null; // for types via ?? 
+var _ElL = [_El];_ElL=null;
+
+const ßKEYS = Object.keys(ß); // for id misspell checking
+
+// lightweight in node the <body> str  w/o fs.readFile
+
+let boRaw = "";
+
+// logs body of HTML
+// setTimeout(_=> console.log( boRaw||=ß.document?.body?.innerHTML) ,0) 
+
+
+// simple JS-Macros via id, even observable
+$time = new Date().toDateString();
+$counter = 0;
+
+// deliberate demo of misspell warning
+$nemo = "observables no id correspondenc in DOM detected"
+
+// nativ J-query
+const $ = ß.document?.querySelector?.bind?.(ß.document)
+
+
+// write Macros to DOM , even observable with spellcheck
+const ONSET = {$counter:[]};
+// pus new action onset   
+ONSET.$counter.push(  (...a)=>console.log("action set",a) )
+let STORE = {};
+const initObservableDOM_Macros = ()=>{
+    const $ALL = Object.keys(ß).filter( k=> !ßKEYS.includes(k) );
+    for(const i in $ALL){
+        const key = $ALL[i];
+        if(key[0]!=="$") continue;
+        const gset = (newVal)=>{
+            // if(!newValOk) ... tests here if in range eg.
+            STORE[key]=newVal;
+            let els =  _ElL ?? ß.document.querySelectorAll(`[id="${key}"]`);
+            if(els.length==0) console.warn(`No id found for \n${key}=${JSON.stringify(newVal)}\n Did you misspell or forget the id?`)
+            else for(const el of els){
+                el.textContent=newVal;
+            }
+        }
+        (ONSET[key]??=[]).push(gset);
+        gset(ß[key]);
+        Object.defineProperty(ß,key,{  
+            get(){return  STORE[key];},configurable:1,enumerable:1,
+            set(v){ for(const fn of ONSET[key]??[]) fn(v,key,STORE)  }
+        })
+    }
+}
+
+//</script>
+boRaw=`
+<header>
+
+    <h1>Your heading</h1>
+    <a href="#">home</a>
+    <a href="#infoPage">info</a>
+    <a href="#obsPage">nativ JS observables</a>
+    <b>Extern</b>
+    <a href="https://en.wikipedia.org/wiki/HTML">HTML wikipedia</a>
+
+</header>
+
+<article id="#">
+
+A well crafted subset of <code>HTML</code> can simultaiously be opened in the browser and executed in a <code>JS</code>-Runtime like <code>node.js</code>.
+
+</article>
+
+<article id="infoPage">
+
+<h2>Usage</h2>
+
+<ul id="$myList">
+    <li> Open in the browser
+    <li> use via <br>  <code> node < THIS-FILE.html ></code>
+</ul>
+
+</article>
+
+<article id="obsPage"> 
+
+
+<b> Time: </b> <time id="$time"></time>
+
+<p>
+    <b> Counter: </b> 
+
+    <!-- normal JS -->
+    <button onclick="$counter--">dec</button>
+    
+    <data id="$counter">N/A</data>
+    
+    <button onclick="$counter++">inc</button>
+</p>
+
+</article>
+
+<style>
+    header { display: flex; gap:1rem; flex-wrap: wrap; *{margin:0} }
+    br+code{margin-left: 1rem;}
+    body{
+        margin: 0.2rem clamp(1rem, 20vw, calc((100vw - var(--pageW,500px)) / 2))
+    }
+    /* pure CSS Router, use Alt+Arr{Left|Right} */
+    [id$="Page"],[id="#"]{   display: none; &:target{  display: block;} }
+    body:not(:has(:target)) [id="#"]{  display: block;}
+</style>
+`
+
+/*<template><script>
+//not needed all works without this block, 
+// but to get auto complete w/o shadowing the gsetter
+// template>scripts are not executed
+var $time = "";   
+var $counter = 0;
+
+// intelisens spoofing better HTML autocomplete
+var _El = HTMLElement.prototype;
+
+var blabla = {name:"",age:22};
+//</script></template><!--*/-->

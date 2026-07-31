@@ -35,3 +35,4 @@ function selIsTable(){
     const pp=n.parentElement?.parentElement;
     return pp?.localName=="u"&&pp.firstElementChild?.nextElementSibling?.localName=="b";
 }
+

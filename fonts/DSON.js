@@ -1,3 +1,57 @@
+
+
+
+const DStypes={
+    I:"Int",N:"Num",S:"Str",B:"Byte",Bl:"Bool",O:"Obj",L:"Len"
+}
+const OByte= {B:0};// a this.B byte long array buffer view
+const OInt= {I:0, ...Number.prototype};// signed
+const ONum= {N:0, ...Number.prototype};// signed
+const OBool= {Bl:false, ...Number.prototype};
+const OStr= {S:"", ...String.prototype}; // for simplicity assume JS 1char always 1Byte
+
+// for(const Type of [OInt,ONum,OStr,OBool])
+// for(k in Type) Object.defineProperty(Type,k,{value:Object.getPrototypeOf( Type.k) , configurable:1} )
+
+
+let OPersonType = {};// start with Capital O, example of custom obj type name
+
+
+
+// give via proto the methods even w/o use of sub prop    myIntVar.I.toFixed(2) SAME  myIntVar.toFixed(2) 
+let myIntVar = {I:42, __proto__:OInt};
+
+
+
+
+//=================
+//  simple intelisense via   prototypes(ie. the REAL JS inheritance Model) + unused default params
+
+
+/**  @template T   @param {T} typeEx @returns {T}  DragonScript JS types */
+const DS = typeEx=>null;
+
+const _MEV =DS(MouseEvent.prototype);
+const _El = HTMLElement.prototype;
+const _Obj = DS({ name:"", age:0});
+
+const err = e=>console.error("missing param: ",e)
+
+function onClick(ev=  _MEV??err("ev "+onClick.name),   pseudoJSTypeParam= _Obj?? {age:42} /*in VS COde you may have even here autocomplete*/ ){
+    console.log(ev, pseudoJSTypeParam);
+}
+onClick("ok");
+onClick();// throws
+
+
+
+
+
+
+
+
+
+
 // I maybee try to add a little scripting language for complex data types thats types are validate against a implicit schema
 // my Type System, more compact and readable than JSON or XML Schema
 let Types = {

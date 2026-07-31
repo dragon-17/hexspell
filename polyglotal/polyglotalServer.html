@@ -1,5 +1,6 @@
-//<script> // here you have Intelisense
+// <script src="./polyglotal.html"></script>
 
+//<script> // here you have Intelisense
 /* for window in Node */
 globalThis.window??=globalThis; 
 /*  For Code Golf++   this(global) -> siz (de) -> ß (de szett)  */
@@ -14,6 +15,7 @@ let nodeIndex =  'index.html';
 let nodeRND = crypto.randomUUID();
 let ACAO = "*";
 const contentType = {bmp:"image/bmp",css:"text/css",gif:"image/gif",html:"text/html",jpg:"image/jpeg",js:"text/javascript",json:"application/json",jsonld:"application/ld+json",mjs:"text/javascript",png:"image/png",svg:"image/svg+xml",tiff:"image/tiff",webp:"image/webp"};
+
 
 async function nodeCLI() {
     const [http,fs,{text}]= await Promise.all([

@@ -1,0 +1,42 @@
+<body>
+<script defer>
+
+let name = "foo";
+
+const age = 42;
+
+
+function isOldEnough(person){
+    if(person.age>5) return 
+}
+
+const rndNums = [ 1, (2+2), 98  ];
+
+let El = HTMLElement.prototype;       El=null;
+let JsonEml =  ["tag",{attr:"val"},["txt1", El ,"txt2"],  ];  JsonEml=null;
+
+
+/*  JSONML API fn for less boilerplate DOM creation  */
+function $New(tag="",attrs={},chi=JsonEml,pa=El){
+    const el = document.createElement(tag);
+
+    if(attrs) for(const att in attrs)  el.setAttribute(att,attrs[att]);
+
+    if(chi?.map)  el.append(...chi.map( c=>  c.map? $New(...c) :c  ));
+
+    if(pa)  pa==1?pa=document.body:0,  pa.append(el);
+
+    return el;
+}
+
+const ulRd = $New("ul",{id:"myUl"},0,document.body);
+
+
+for(let i=0; i<rndNums.length; i++){
+    $New( "li",   { id:`id-${i}`, "data-i":i }, 
+        [ "my list text ",  ["b",0,["bold ",i," "] ] , Math.random().toString(36).slice(2,8)   ],
+        ulRd
+    )
+}
+
+</script>

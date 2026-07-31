@@ -1,0 +1,22 @@
+<svg viewBox="0 0 1000 553.1914893617021" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" font-size="42.5531914893617" font-family="monospace" xmlns="http://www.w3.org/2000/svg">
+<path fill="#00f3" stroke="#66f" stroke-width="30" stroke-linejoin="round" d="M 565 415M848 230L717 277ZL935 323ZL848 230L826 415 C763 456 628 466 565 415 C502 364 495 236 543 184 C592 133 778 133 783 184"/>
+<path fill="#0f03" stroke="#6f6" stroke-width="30" stroke-linejoin="round" d="M 391 415L283 138L196 46.1L65.2 115M 391 415L500 138L587 46.1L717 115"/>
+<path fill="#f003" stroke="#f66" stroke-width="30" stroke-linejoin="round" d="M 21.7 415M239 230L130 230Q21.7 230 21.7 323Q21.7 415 130 415L239 415L196 138L283 46.1"/>
+<text x="108.69565217391305" y="511.70212765957444" fill="currentColor" stroke-width="0">&#160;ASCII Art => SVG for Vector Art</text></svg>
+
+
+<!-- this could be a web standart some day, is easier to edit  sadly w/o cmt tag does not work
+<dVG>
+             d6  
+ y-0.5   v3y-1  
+   v4    d5  v2#6f6==30o=o          G8-y1#00f3M
+               #0f03M    G7 
+ d2&5-     d1                          G1,G4 
+ #f66==30o=o >=>1                G2z       
+ #f003M                                    G3z
+                    x-2
+ dm,d3     d4- -  ;v #v    Gm,G5       G4~0.75-
+                    *-1,1  #66f==30o=o
+  y-S" ASCII Art => SVG for Vector Art  
+</dVG>
+-->

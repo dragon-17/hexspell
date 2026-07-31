@@ -34,7 +34,7 @@ let $SVG = (tag = "", attrs = {}, childs = [], parent) => {
 }
 
 globalThis.addEventListener("click",(ev)=>{
-    if(ev.target.matches("button.addPanel")) ev.target.before(ev.target.previousElementSibling.cloneNode(true))
+    if(ev.target.matches("button.addPanel")||ev.target.textContent=="add Panel") ev.target.before(ev.target.previousElementSibling.cloneNode(true))
 });//  ?: .$button.addPanel  .>>-- .>++{}  
 
 let lastBlurPre = null;
@@ -84,12 +84,7 @@ const blurEv = (ev) => {
         inputedText = false;
         const sketchSVG = el.querySelector("&>svg.sketch")
         window?.alignViewPorts?.(previewCanvas,sketchSVG,asciiObj);
-        
-        // clearSketch(el);
-        // const canvasSVG = previewSvg.cloneNode(true);
-        // // remove the sketch path-elms
-        // canvasSVG.querySelectorAll(".sketch,.spell-circle").forEach(c=>c.remove())
-        // drawSVGToCanvas(canvasSVG,previewCanvas,)
+        // TO DO extract paint to dvg
     }
     return asciiObj;
 }
@@ -160,12 +155,12 @@ let ATTR_LOOK_UP = {
 };
 let TXT_DFLT = {fill:"currentColor",strokeW:0, };
 /** offset in cell-space to adjust position for your font */
-let TXT_CELL_OFF = {x:0,y:0};
+let TXT_CELL_OFF = {x:-1,y:0.6};
 let TXT_FONT_SIZE_IN_Y_CELLS = 1; // ensures etxt has same look as in ascii
 /** if you have text this will be set on the root, fill and stroke-width are elm based cause normal paths use them already */
 let TXT_ROOT_ATTR = {"font-family":"monospace"}
-/**  most case you want text on top, but I still prefer it to use the normal svgOrder for text, element with >=> order boost have prio  */
-let TXT_ALWAYS_TOP = false;
+/**  most case you want text on top, but you can use the normal svgOrder for text, use >=> order boost to have prio  */
+let TXT_ALWAYS_TOP = true;
 
 const ATTR_2_PROP = {   
     fill:"fill",stroke:"stroke",id:"attrId",
@@ -267,7 +262,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
     //             v~~ monospace chars assume ideal aspect of 1W:2H   !!Not the case so view lines not 100% Up
     const gridAR = (2 * gridH) / gridW;
     
-    const viewH =  1000*  2*gridH / gridW;
+    const viewH =  targetW*  2*gridH / gridW;
     targetH ||= viewH;
     let viewBox = 'viewBox="'+ 0 + " " + 0 + " " + targetW + " " + targetH+'"';
     
@@ -283,7 +278,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
     const handleHashCSSM = (m,pnt,adjacent=false)=>{
         if(!m.data) return false;
         let [_,fill,stroke,strokeW,strokeJoin,strokeCaps,strokeDash,strokeDashOff,recurse,id] = 
-        m.data.match(/(?:([0-9a-f]+)M)?(?:#?([0-9a-f]{2,}))?(?:==(\d+(?:\.\d+)?))?(o=o|<=>|\/=\\)?(\(=\)|\[=\]|M=M)?(?:=-=([+-]?\d+(?:,\d+)*))?(?:=\+=([+-]?\d+(?:.\d+)*))?(?:(\d+)R(?:EC)?)?(.+)?/i)??[]; 
+        m.data.match(/(?:([0-9a-f]+)M)?(?:#?([0-9a-f]{2,}))?(?:==(\d+(?:\.\d+)?))?(o=o|<=>|\/=\\)?(\(=\)|\[=\]|M=M)?(?:=-=([+-]?\d+(?:,\d+)*))?(?:=\+=([+-]?\d+(?:.\d+)*))?(?:(\d+)R(?:EC)?)?([^"]+)?/i)??[]; 
         const isRefInstead = !adjacent && id;
         if(isRefInstead) return false;
         // set attr
@@ -301,7 +296,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         return true;
     }
 
-    // 1. Grid parsen
+  
     ln:for (let yCell = 0, line; line = lines[yCell], line !== undefined; yCell++) {
         const y = yCell;
         let lastIsPnt = false;
@@ -338,16 +333,18 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                         marker.y0 = marker.y;
                         marker.x0 = marker.x ++;
                     }
+                    // line String   "  two WS util EoL
                     if(x==0|| (line[x]==" "&&line[x+1]==" ")  ){
                         marker.data = line.slice(beginnX);
                         continue ln;
                     }  
+                    let isWordWs=0;
                     if(line[x]==" ") while( line[x] && !(line[x]==" "&&line[x+1]==" ") ){x++}
-                    else while (line[x] && line[x]!==" "){x++}
+                    else while (line[x] && line[x]!==" "){x++;isWordWs=1}
                     
                     marker.data = line.slice(beginnX,x);
-                    if(marker.type=='"'){// exception to end tag rule for familiar close str syntax:   "My String"
-                        const endQ_m = line.slice(x).match(/(.*?)\S"(?:\s|$)/);
+                    if(isWordWs&& marker.type=='"'){// exception to end tag rule for familiar close str syntax:   "My String"
+                        const endQ_m = line.slice(x).match(/^(.*?\S|\S*)"(?:\s|$)/);
                         if(endQ_m){
                             marker.data+= endQ_m[1];
                             x+=  endQ_m[0].length;
@@ -762,13 +759,19 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
 
     for (const grpName in groups) 
     if (groups?.[grpName]?.length) {
+        const isTxt = grpName.startsWith("txt");
+        if(isTxt){   
+            groups[grpName][0].x+=TXT_CELL_OFF.x;
+            groups[grpName][0].y+=TXT_CELL_OFF.y;
+        }
+
         let nextG = { 
             d:buildSmartPath(groups[grpName], gridW, gridH, targetW, targetH, flipH),
             nodes: groups?.[grpName],
             attr:"", // inlcudes style
             svgOrder: 0, // svg has no z-index, so must sort output
         }
-        if(grpName.startsWith("txt")){
+        if(isTxt){
             nextG.attr+=attrStr("x",nextG.nodes[0].xOut,)+attrStr("y",nextG.nodes[0].yOut,);
             if(TXT_ALWAYS_TOP) nextG.svgOrder = 500;
         }
@@ -790,9 +793,9 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
     if(collectAllD) asciiParsed.allD = asciiParsed.allD.trim();
     
     // grp all by attribute and combine same attributes in a sinlge <path>
-    //  -> needed for Area substraction
+    //  -> needed for Area substraction polgons
     //  -> TO DO use a other form of id attr to seperate some
-    //    or TO DO the ;; as a <g> seperator 
+    //    or TO DO the ;; as a <g> seperator  and ;;; as file seperator
     const attrGrps = Object.groupBy( asciiParsed.allG, g=> g.attr+g.svgOrder);
     
     let rootAttrs = asciiParsed.allG.length? attrStr("fill",FILL_DFLT)
@@ -813,7 +816,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         const firstNode = attrGrp?.[0]?.nodes?.[0];
         if(firstNode?.type=='"'){
             const sane = firstNode.data.replaceAll(/^\s|\s$/g,`&#160;`).replaceAll("<","&lt;");
-            asciiParsed.svg+=`\n<text${attrGrp[0].attr}>${sane}</text>`
+            asciiParsed.svg+=`\n<text${attrGrp[0].attr}>${sane}</text>`;
         } else asciiParsed.svg+=`\n<path${attrGrp[0].attr} d="${attrGrp.reduce( (d,g)=>d+g.d,"")}"/>`;
     }
     asciiParsed.svg+="</svg>"

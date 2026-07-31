@@ -1,0 +1,110 @@
+//<script>// this tag and the .html makes it work in browser and node alike
+// simple version w/ braces
+// for Lisp like code mod and syntax highlighting  (.map and wrap with code> u>b>i>q combos  Ex <b>const<b> ...)
+// easily extensible and keep char index in the input string
+
+// extend as you like token-grps follow a name schema  Ex. t.startsWith("op")
+const rules1 = { // order important, obj assign order should be kept by JS at runtime
+    comment:/\/{2}[^\n]*?(\r?\n|$)|\/\*.*?\*\/|<\!--.*?-->/gm,
+    RE:/\/((?:[^\v\n])+)[^<\v\n]\//gm,// RE may not work perfectly, but for highlighting its enough and removing them prevents propagating str problems 
+    str:/"((?:[^"]|\\.)*)"|'((?:[^']|\\.)*)'|`((?:[^`]|\\.)*)`/gm,
+    num: /\b(0[xb])?\d+(?:\.\d*)?\b/g,
+    keyword:/\b(?:const|class|let|var|function|for|while|if|else|return|async|import)\b/g,
+    vari:/\b(([$_\p{L}][\w]*)[^\S\v]*)([=:]|:=)/gui,
+    opOpen: /(\()|(\{)|(\[)|(<[a-zA-Z]\w*)/gu,// use captare grp Nr. to match brace type
+    opClose: /(\))|(\})|(\])|(<\/[a-zA-Z]\w*\s*>|\/>)/g,
+    op: /=>|>>>|([!#%-/:-@\\^])\1?=?/g,
+    wordlist: /[^\S\v]*\S+(?:[^\S\v]\S+)*[^\S\v]*/gm, // tries to keep writen text (max 1" ") in 1 token; more semantic tokens
+    WS:/[^\S\v]+/g, // to 100% rebuild in-str from tok.raw
+}
+// Types                                          v-braces only-v  v-html
+let _Tok = {rule:"",idx:0,ln:0,raw:"",capt:[""],  brace:{},type:0, tag:""};  _Tok=null;
+let _TokL = [{..._Tok, brace:_Tok}];                        _TokL=null;
+/**   small token cuter keeps str char index */
+function tokiCuti(str,rules=rules1,ln0=1){
+    let strR = str;
+    let toks = _TokL ?? [];//optional ret type hint for better use, info: toksLEx always null
+    
+    for(const rule in rules){
+        strR=strR.replaceAll(rules[rule],(raw,...m)=>{  
+            toks.push({rule, idx:m.at(-2),ln:0,raw,capt:m.slice(0,-2)});
+            return "\v".repeat(raw.length);
+        }); 
+    }
+    console.assert(/^\v*$/.test(strR),"!! Uneaten tokens !!",strR)
+    toks.sort((a,b)=>a.idx-b.idx);
+
+    // give each open Brace the matching end Brace tok
+    const braces = toks.filter(t=>["opOpen","opClose"].includes(t.rule));
+    for(const br of braces){
+        br.type = br.capt.reduce( (a,s,i)=> a| (!!s*i) ,0)
+        if(br.type==3) br.tag=br.raw.match(/[A-z]+/)[0];
+    } 
+    // rev. onion peeling: connect refs from the inside of braces with no opening in between
+    let curBrIdx = 0;
+    let anyFound = 1; 
+    let guard=20; // determins the max amount of nested braces
+    while(anyFound--&&guard--) for(let i=1;i<braces.length;i++){
+        let brI = braces[i];
+        if(brI.brace!==undefined) continue; // already closed
+        if(brI.rule.includes("Open")) {
+            if(brI.type==3){
+                const tokI=toks.indexOf(brI);
+                for(let i=tokI+1;i<toks.length;i++){
+                    toks[i].attr=1;
+                    if(toks[i].raw==">"){
+                        brI.attrClose=toks[i];
+                        toks[i].attrEnd=1; 
+                        break;   
+                    }
+                } 
+                if(["input","meta","img","br"].includes(brI.tag)){
+                    brI.selfClose=1;
+                    brI.brace=brI.attrClose;
+                    continue;
+                }
+            }
+            curBrIdx = i;
+        } else if( curBrIdx>-1 && brI.type==braces[curBrIdx].type){
+            if(brI.type==3&& brI.tag!==braces[curBrIdx].tag){
+                throw Error("html tags do not match "+ braces[curBrIdx].raw+" "+brI.raw)
+            }
+            anyFound=1
+            brI.brace=braces[curBrIdx]
+            braces[curBrIdx].brace=brI;
+            curBrIdx=-1;
+        }
+    }
+    // add line count and takes str from input for " /*cmt*/ or /re/ in str " case,   written for better minifer
+    for(const tok of toks) tok.ln=ln0,tok.raw=str.slice(tok.idx,tok.idx+tok.raw.length), tok.raw.replaceAll(/\n/g,()=>(ln0++,0)) 
+    return toks;
+}
+// ***** only for nodeCLI
+if(!globalThis.CSS) nodeCLI();
+else toks=tokiCuti(document.body.innerHTML);
+
+async function nodeCLI() {
+    const fs = await import("node:fs");
+    const fileN = process.argv.at(-1);
+    const file = fs.readFileSync(fileN,"utf-8");
+    let ast =  tokiCuti(file); 
+    const param = flag=> process.argv.find( (a,i,argv)=>argv[i-1]==flag )
+   
+    if(param("-vari"))  ast=ast.filter(t=>t.rule=="vari")
+    if(param("-str"))  ast=ast.filter(t=>t.rule=="str")
+    if(param("-RE"))  ast=ast.filter(t=>t.rule=="RE")
+    if(param("-fnNames"))  ast=ast.filter(a=>a.rule!=="WS").filter( (t,i,ast)=>t.rule=="wordlist"&&ast[i+1]?.raw=="(")
+    if(param("-br"))  ast=ast.filter( (t,i,ast)=>["opOpen","opClose"].includes(t.rule));
+
+    if(param("-no-ws"))  ast=ast.filter(a=>a.rule!=="WS");
+    if(param("-raw")) ast=ast.map(t=>  [t.raw,t.idx,t.ln,t.rule]);
+
+    // no recursive obj in JSON
+    for(const t of ast) if(t.brace) t.brace={raw:t.brace.raw,idx:t.brace.idx,ln:t.brace.ln};
+
+    console.log( "["+ast.map(t=> JSON.stringify(t,null,"")).join(",\n")+"]");
+
+    // node tokiCuti01.js -no-ws -raw  tokiCutiExIn00.js > tokiCutiExIn00.ast.js
+    // tail -c +400 tokiCutiExIn.html | head -n 2
+}
+//</script>
