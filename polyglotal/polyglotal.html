@@ -17,13 +17,14 @@ const fellTxtCMT_TXT_Nodes = _=>{
 }
 ß.addEventListener("load",()=>{
     fellTxtCMT_TXT_Nodes()
-    initObservableDOM_Macros()
+    initObservableDOM_Macros(ß,STORE,ONSET)
 });
 
 _El=null; // for types via ?? 
-var _ElL = [_El];_ElL=null;
+_ElL=null;
+var _EV=FocusEvent.prototype; _EV=null;
 
-const ßKEYS = Object.keys(ß); // for id misspell checking
+let ßKEYS = Object.keys(ß); // for id misspell checking
 
 // lightweight in node the <body> str  w/o fs.readFile
 
@@ -46,29 +47,83 @@ const $ = ß.document?.querySelector?.bind?.(ß.document)
 
 // write Macros to DOM , even observable with spellcheck
 const ONSET = {$counter:[]};
-// pus new action onset   
-ONSET.$counter.push(  (...a)=>console.log("action set",a) )
+
+
+$dblcntr = ($dblcntrGET= _=>  2* $counter )();
+
+// push new action onset   
+ONSET.$counter.push(  (...a)=>console.log("action set",a) );
+
+(ONSET.$dblcntr??=[]).push( (...a)=>console.log("updated dbl counter to",a)  );
+
 let STORE = {};
-const initObservableDOM_Macros = ()=>{
-    const $ALL = Object.keys(ß).filter( k=> !ßKEYS.includes(k) );
+const initObservableDOM_Macros = (Obj=window,Store=Obj.STORE??={},Onset=Obj.ONSET??={})=>{
+    const Keys= Obj.ßKEYS??ßKEYS;
+    const $ALL = Object.keys(Obj).filter( k=> !Keys.includes(k) );
+    Obj.ßKEYS = Object.keys(Obj);// update for optional call afterwards
+    
+    if(!initDOM.INIT) initDOM.INIT=1,initDOM()
+
     for(const i in $ALL){
         const key = $ALL[i];
-        if(key[0]!=="$") continue;
+        if(key[0]!=="$") continue;  
+        
+        if(key.endsWith("GET")){
+            const obsK = key.replace("GET","");
+            const gsetFn=Obj[key];
+            setTimeout(_=>{ // auto updates for $observable, ignores the parameters 
+                const depK = (Obj[key]+"").replace(/([^)]*)\s*({|=>)/,"").match(/\$\S+/g)??[];
+                const fn=  depK.includes(obsK)?  gsetFn : _=>Obj[obsK]=gsetFn(_);
+                fn.triggeringObservables=depK;
+                for(const k of depK) 
+                   if(k!==obsK) Onset[k].push(fn)
+            },10)//delay after this function when all are defined
+            continue;
+        }
+        const cstmTag = key.slice(1,).toLowerCase()+"-s";//  $name  ->   <name-s> custom str elm </name-s>
+        let prop = key.includes("HTML")? "innerHTML":"textContent";
+
         const gset = (newVal)=>{
             // if(!newValOk) ... tests here if in range eg.
-            STORE[key]=newVal;
-            let els =  _ElL ?? ß.document.querySelectorAll(`[id="${key}"]`);
+            Store[key]=newVal;
+            let els =  _ElL ?? ß.document.querySelectorAll(`[id="${key}"],${cstmTag}`);
+            let useProp = prop;
             if(els.length==0) console.warn(`No id found for \n${key}=${JSON.stringify(newVal)}\n Did you misspell or forget the id?`)
             else for(const el of els){
-                el.textContent=newVal;
+                if(el.localName=="input"||el.localName=="select") useProp="value"; // inputs
+                else el.textContent=newVal;
+                el[useProp]= newVal;
             }
         }
-        (ONSET[key]??=[]).push(gset);
-        gset(ß[key]);
+        (Onset[key]??=[]).push(gset);
+        gset(ß[key]);//inital DOM sync
         Object.defineProperty(ß,key,{  
-            get(){return  STORE[key];},configurable:1,enumerable:1,
-            set(v){ for(const fn of ONSET[key]??[]) fn(v,key,STORE)  }
+            get(){return  Store[key] ?? STORE[key];},configurable:1,enumerable:1,
+            set(v){ for(const fn of Onset[key]??[]) fn(v,key,Store)  }
         })
+    }
+}
+function initDOM(){
+    // for inputs/contenteditables
+    const changeUpdt = (ev=_EV)=>{
+        const el=_El??ev.target;
+        let obsK = el.id[0]=="$"?el.id  
+            :el.localName.endsWith("-s")? "$"+el.localName.slice(0,-2)
+            :"";
+        if(obsK){
+            window[obsK]= typeof el.value??el.textContent;
+        }
+    }
+    window.addEventListener("change",changeUpdt);
+        // prepend for autocomplete scripts
+    for(const s of document.querySelectorAll("script")){
+        if(s.textContent.trim().startsWith("$")){
+            const obsK=s.textContent.trim().match(/\$[A-z]+/)[0];
+            const span=document.createElement("span");
+            span.id=obsK;
+            s.before(span);
+            s.remove();//makes HTML prettier
+        }
     }
 }
 
@@ -105,7 +160,10 @@ A well crafted subset of <code>HTML</code> can simultaiously be opened in the br
 <article id="obsPage"> 
 
 
-<b> Time: </b> <time id="$time"></time>
+<b> Time: </b> <time id="$time"></time> 
+
+    <button onclick="fn=_=> $time=new Date().toLocaleTimeString();fn();clearClk=setInterval( fn,1000);this.remove()"
+        >Start Clock</button>
 
 <p>
     <b> Counter: </b> 
@@ -116,6 +174,24 @@ A well crafted subset of <code>HTML</code> can simultaiously be opened in the br
     <data id="$counter">N/A</data>
     
     <button onclick="$counter++">inc</button>
+</p>
+<p>
+    <!-- More advanced stuff -->
+    <b> Double Counter: </b> 
+    <span id="$dblcntr">N/A</span>
+    
+    <button onclick="$dblcntr++">inc dblcntr</button>
+
+    <br>
+    Other ways to bind a value:  
+    <br>
+    <b>Via "new" custom element tags:</b>   
+        <dblcntr-s></dblcntr-s>
+    <!-- (unregistered is ok for browser) -->
+    <br>
+    <b>Via script-tag with auto init convert to id: </b>
+        <!-- this updates with F2 refactor  Note currently only var ref no JS fn -->
+        <script>$dblcntr</script>
 </p>
 
 </article>
@@ -138,9 +214,11 @@ A well crafted subset of <code>HTML</code> can simultaiously be opened in the br
 // template>scripts are not executed
 var $time = "";   
 var $counter = 0;
+var $dblcntr = 0;
 
 // intelisens spoofing better HTML autocomplete
 var _El = HTMLElement.prototype;
+var _ElL = [_El];
 
 var blabla = {name:"",age:22};
 //</script></template><!--*/-->

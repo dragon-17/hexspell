@@ -196,7 +196,7 @@ const markerChars = {
     '!':{ secondChar:"-", wsScope:1},// use !- like a simpler HTML <!-- Comment  -->  space after determins end
     // '#':{  anyNonWSDataConnect:true },
     '#':{  anyNonWSData:true },
-    ">":{secondChar:"=>",},// for ordering in out svg 
+    ">":{secondChar:"=>", dataRE:/\*|x|y/,dataIsStr:1 },// for ordering in out svg and other sort related strategies
     "<":{secondChar:"z>"},// closed eye to hide stuff 
     '"':{ wsScope:1 },// strings
     /* TO DO ideas:  use @URL-Resouce after #ref to include JS/Img and use predefined @<OP> as Actions ^=JS-Event-Loop
@@ -362,7 +362,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                 let anyData = markerT.anyNonWSData;
                 if(lastIsNoWSPnt ) anyData ||= markerT.anyNonWSDataConnect;
 
-                const dataBlockRE =  anyData?  /[^\s;]/ : markerT.format ?  compactNumsRE : /[0-9]/ ;
+                const dataBlockRE =  anyData?  /[^\s;"]/ :  markerT.dataRE? markerT.dataRE:  markerT.format ?  compactNumsRE : /[0-9]/ ;
                 // allow continuation with numbers like  42 or  A2 B3 
                 if (!markerT.noData) while (  
                     (line[x + 1]&&dataBlockRE.test(line[x + 1])) || 
@@ -373,7 +373,7 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                     x++;
                     marker.data += line[x];
                 }
-                if ( marker.data && !anyData) {
+                if ( marker.data && !anyData && !markerT.dataIsStr) {
                     if(markerT.format)  parseCompactNums(marker.data,markerT.format, marker.data={},markerT.formatPrePrint);
                     // use as lerp radius or for catmull as tension
                     else if (marker.data.includes(".")) marker.data = Number(marker.data);
@@ -414,7 +414,6 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
                         x+=prolongDataM[0].length;
                     } 
                 }
-
             } else if (isNum || /[A-Za-z]/.test(char)) {
                 const pnt = { id: char, char, x, y, grp: isNum ? "num" : /[a-z]/.test(char) ? "lower" : "upper",idNorm:char };
                 let refM = openRef;
@@ -519,7 +518,10 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
         } else if(m.type=="#"){
             Object.assign(pnt,m.CSS);
         } else if(m.type==">=>"){
-            pnt.svgOrder = m.data||1; 
+            if(isNaN(+m.data)){
+                if(m.data=="*") pnt.grpSameLetterCircleOrder=true;   
+            }
+            else pnt.svgOrder = m.data||1; 
         } else if(m.type=="<z>"){
             pnt.hidden = true;
         } else if(m.type=="<o>"){
@@ -585,11 +587,12 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
 
     let allOrderedPnts = Object.values(groups).flatMap(g=>g??[]);
     
-    const calcMidPnt = (pnts)=>{
+    const calcMidPnt = (pnts,onlyRet=false)=>{
         if(!pnts) return;
         const minXY=pnts.reduce( (a,p)=>(a[0]=Math.min(a[0],p.x),a[1]=Math.min(a[1],p.y),a)  ,[Infinity,Infinity] );
         const maxXY=pnts.reduce( (a,p)=>(a[0]=Math.max(a[0],p.x),a[1]=Math.max(a[1],p.y),a)  ,[0,0] );
         const mid = {x: minXY[0]+(maxXY[0]- minXY[0])/2,y: minXY[1]+ (maxXY[1]- minXY[1])/2, };
+        if(onlyRet) return mid;
         for(const p of pnts) if(!p.isMove) p.bbMid = mid;
     }
 
@@ -757,6 +760,20 @@ function asciiToSVG(gridString, targetW, {flipH=false,targetH=0,collectAllD=fals
   
     const attrStr = (k,v)=> v==undefined?"":" "+k+'="'+v+'"';
 
+    // sort same groups
+    for(const grpName in groups){
+        const grp=groups[grpName];
+        if(grp&& grp.some(n=>n.grpSameLetterCircleOrder)){
+            const grpsByLetter= Object.groupBy(grp,  n=>n.idNorm);
+            for(const letter in grpsByLetter){
+                if(grpsByLetter[letter].length==1) continue;
+                throw Error("to implement auto order same")
+
+            }
+            grp.sort((a, b) => a.sortNum==b.sortNum?a.hullIdx-b.hullIdx   : a.sortNum-b.sortNum)        
+        }
+    }
+
     for (const grpName in groups) 
     if (groups?.[grpName]?.length) {
         const isTxt = grpName.startsWith("txt");
@@ -864,7 +881,6 @@ function calculateCatmullCP(pPrev, pCurr, pNext, pNextNext, type = 'start', tens
     if (type == "start") { return add(pCurr, div(sub(pNext, pPrev), 6 * tension)) }
     return sub(pNext, div(sub(pNextNext, pCurr), 6 * tension))
 }
-
 /** further away marker like rund & or catrom ~, the higher the radius or tension, but if a number after marker use this as data value */
 function markerDistToPercent(pnt,baseOffset=0.2) {
     return pnt?.marker?.data !== "" ? pnt.marker.data : Math.round(2 * pnt?.marker.dist) / 10 - baseOffset;

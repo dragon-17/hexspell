@@ -1,0 +1,152 @@
+<head>
+    <title>My Title</title>
+    <meta charset="UTF-8">
+</head>
+<script src="lib.min.js.html"></script>
+<script>
+$count = 0;
+
+$count_LT_18 =  ($count_LT_18GET= _=>   $count < 18 )();
+</script>
+<template><script>
+var $count=0;// optional for intelisense
+</script></template>
+
+
+<header>
+    <h1>Demo page</h1>
+    <a href="#">#</a>
+    <a href="#infoPage">#info</a>
+    <a href="#popoversPage">#popovers</a>
+    <a> <href->#slide<span id="$count">0</span>Page</href->  </a>
+    bottom-nav:<bottom-nav-><input type="checkbox"></bottom-nav->
+</header>
+
+<article id="#">
+<h2>Home</h2>
+<p>Here is the home page. Also displayed if no idPage found.
+
+
+<p>
+   Count: <script>$count</script> 
+   
+   <button onclick="$count++" >inc</button>
+   <button onclick="$count--" >dec</button>
+
+
+<div> Count input:
+   <input id="$count" type="number">
+   <aside contenteditable="">You can use &lt;aside> after &lt;i> or &lt;input> for popover info
+<pre>There interpolations do work: <var id="$count"></var>
+</pre>
+   </aside>
+
+</div> 
+<div>
+    <!-- custum tags that end with a - set the parent attribute -->
+    <hidden- id="$count" hidden></hidden->
+    
+    This will get $count as attribute 
+</div>   
+<div>
+    <script>$yourClass="classA1"</script>
+    <i>(info)</i><aside>Try red blue green u b i s </aside>
+    Your Class: <class- id="$yourClass"></class->
+    
+    <br> Your Class <code>&lt;input></code> :
+    <input id="$yourClass" >
+</div>
+<p> 
+    hidden: <hidden- ><script>$count_LT_18</script></hidden->
+    <code>$count</code> is above <i>18</i><b>!!!</b>
+
+</article>
+
+<article id="infoPage">
+<h2>Info</h2>
+<p>Here is the info page 
+    [also a count <count-s>Suspense</count-s>]
+
+</p>
+
+</article>
+
+
+<article id="popoversPage">
+<h2>Aside popovers</h2>
+<p> Uses modern CSS for simple popovers
+<ul>   
+ <li>  <i>(info)</i> <aside>Here info on hover</aside>
+ <li> <i tabindex="0">(info tabindex-able)</i> <aside>Can be tabed</aside>
+  
+ <li> <input type="checkbox"> <aside>Inputs also allow asides. checks stays open</aside>
+
+
+ <li> <input placeholder="red b s pop_r pop_b  pre" id="$inPWD"> 
+    <aside>You can use interpolations
+<code> $inPWD =  </code><class- id="$inPWD"></class->  </aside>
+    <script>$inPWD=""</script>
+
+</ul>
+    
+</article>
+
+<style>
+    header,[bottom-nav] { display: flex; gap:1rem; flex-wrap: wrap; *{margin:0} }
+    br+code{margin-left: 1rem;}
+    body{  margin: 0.2rem clamp(1rem, 20vw, calc((100vw - var(--pageW,500px)) / 2)) }
+
+    /* pure CSS Router, use Alt+Arr{Left|Right} */
+    [id$="Page"],[id="#"]{   display: none; &:target{  display: block;} }
+    body:not(:has(:target)) [id="#"]{  display: block;}
+
+
+    .red{color: #f42; background: #fdb;}
+    .green{color: #4f4; background: #dfd;}
+    .blue{color: #44f; background: #ddf;}
+    .bold{ font-weight: bold; }
+    .i{ font-style: italic; }
+    .u { text-decoration: underline; }
+    .s { text-decoration: line-through; }
+
+    :is(i,input){  /* for dialog    <i>  <aside> */
+        &+aside{ display: none;position: fixed; position-anchor: --my-info; margin:0.5rem;position-area: top; position-try-fallbacks:  right, bottom, left;}
+        &:is(:hover,:focus-within,:checked):has(+aside){
+            anchor-name: --my-info;
+            &+aside{display: block;}
+        }  
+        /* popup style */
+        &+aside{  background: #111d; color: #fff; border-radius: 0.25rem; padding: 0.5rem 1rem; }
+    }
+    :has(>:is(i,input)+aside){ anchor-scope: all; } /* better for multiple popovers when enclodes in single parent */
+    
+    .pop_r{ position-area: right; }
+    .pop_l{ position-area: left; }
+    .pop_b{ position-area: bottom; }
+    pre{white-space: pre-wrap;}
+
+    [hidden-next] +*{display: none;}
+    [hide]>:not(hide-){display: none;}
+    [bottom-nav]{ position: fixed; bottom: 1rem; h1,h2,h3{display: none;} }
+
+</style>
+
+
+
+<article id="slide0Page">
+<h2>Slide 0</h2>
+<p>Here is slide 0</p>
+<span id="$inc_btn_html">
+<button onclick="$count--;location.hash='slide'+$count+'Page'">--</button>
+<button onclick="$count++;location.hash='slide'+$count+'Page'">++</button>
+</span>
+</article>
+<article id="slide1Page">
+<h2>Slide 1</h2>
+<p>Here is slide 1</p>
+<inc-btn-html-s></inc-btn-html-s>
+</article>
+<article id="slide2Page">
+<h2>Slide 2</h2>
+<p>Here is slide 2</p>
+</article>
