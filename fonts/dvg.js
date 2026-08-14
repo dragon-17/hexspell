@@ -56,7 +56,6 @@ const blurEv = (ev) => {
         const openAr = (el.clientWidth-32) / (el.clientHeight-32);//padding 
         previewCanvas = $New("canvas",{width:1000,height: 1000/ openAr,},0,el);
     }
-
     // use innerText, cause it deals intelegently with <br> of contenteditable, 
     // but innerText returns nothing if elm hidden in <details>, so for init use textContent as fallback, you should use <br> in the static HTML anyway
    
@@ -86,6 +85,7 @@ const blurEv = (ev) => {
         window?.alignViewPorts?.(previewCanvas,sketchSVG,asciiObj);
         // TO DO extract paint to dvg
     }
+    syncPasteImg(el);
     return asciiObj;
 }
 globalThis.addEventListener("blur",e=>setTimeout( _=>blurEv(e),10), true,);
@@ -112,6 +112,86 @@ globalThis.addEventListener("keydown",(ev)=>{
 }, true,);
 let inputedText = false;
 globalThis.addEventListener("input", (ev)=>  ev.data? inputedText=1:0 , true,);
+document.body.onpaste =async function (ev=ClipboardEvent.prototype){
+    if(!ev.clipboardData.files[0]?.type?.startsWith("image"))return;
+    let sel=getSelection();
+    let whSel = sel+"";
+    if(!whSel){ sel.modify("extend","backward","word"); whSel = sel+"";}
+
+    const imgFile = ev.clipboardData.files[0];
+    const attrs= [];
+    document.execCommand("insertHTML",0,`<i class="img-info dirty" >${whSel}</i>`)
+    setTimeout( syncPasteImg ,50,ev.target,".dirty");
+}
+function syncPasteImg(ev,onlyDirty=""){
+    const pa = ev.target ?? ev; 
+
+    let lns=null;
+   
+    for(const br of pa.querySelectorAll("br")){ br.before("\n");br.remove() }
+    
+    for(const info of pa.querySelectorAll(".img-info"+onlyDirty)){
+    
+    for(const k in info.dataset) delete info.dataset[k]; 
+
+        info.innerText.replaceAll(/(-?\d+(?:\.\d*)?)(%|px|c)?([WHo]|hide|([xyz]))/gi, 
+            (_,num,unit,key,noPerc)=>{ info.dataset[key]=num + ( noPerc?"": unit||"%"); return ""} ) 
+    
+        let [x,y]=xyElm(info,false);
+        if(info.dataset.x) x=+info.dataset.x;
+        if(info.dataset.y) y=+info.dataset.y;
+        const img = info.nextElementSibling;
+        img.removeAttribute("style");
+        const pre= info.closest?.("pre[name],[sketch]");
+      
+        // circa 1 cell padding  
+        const gW = (pre._asciiObj.gridW?? (lns??=pre.innerText.split(/\r?\n/))[0].length)-1;
+        const gH = (pre._asciiObj.gridH?? lns.length)-1;
+        const xPerc=((x<0?gW:0)+x+1)/gW;
+        const yPerc=((x<0?gH:0)+y+1)/gH;
+        img.style.left= trimNum(100*xPerc,3)+"%";
+        img.style.top= trimNum(100*yPerc,3)+"%";
+        if(info.dataset.W) img.style.width=info.dataset.W;
+        if(info.dataset.H) img.style.height=info.dataset.H;
+        if(info.dataset.z) img.style.zIndex=info.dataset.z;
+        let o=info.dataset.o;
+        if(o){ img.style.opacity= isNaN(+o)? o:o+"" }
+        info.classList.remove("dirty");
+        if(info.textContent.includes("mmm")){
+            const canvas = pre.querySelector("canvas");
+            
+            const ctx= canvas.getContext("2d");
+            let w = (parseFloat(info.dataset.W)/100*canvas.width) || img.width;
+            let h = (parseFloat(info.dataset.H)/100*canvas.height)|| w? img.height/img.width*w : img.height;
+       
+             img.crossOrigin ="anonymous";
+             img.onload= _=>{
+                 ctx.drawImage(img,xPerc*canvas.width,yPerc*canvas.height,w,h);
+                 img.remove(); info.remove();
+             }
+        }
+    }
+}
+/** calcs x y of a direct child element */
+function xyElm(elm=HTMLElement.prototype,setData=true){
+    let chLen=0, y=0,x=0; let noX=true;
+    for(let e=elm;e=e.previousSibling;){
+        let str= e.data??e.textContent;
+        for(const ch of str) if(ch=="\n"){
+            if(noX){
+                noX=false;
+                let lastIdx=str.lastIndexOf("\n");
+                if(lastIdx!=-1) x= chLen + -1+str.length-lastIdx;
+            } 
+            y++;
+        }  
+        chLen+=str.length;
+        if(e.localName=="br") y++;
+    }
+    if(elm.dataset.hide) elm.hidden=true;
+    if(setData) elm.dataset.x=x,elm.dataset.y=y;
+    return [x,y];
+}
 
 // init the pre icons in the html
 globalThis.onload = () => {
