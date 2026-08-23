@@ -112,7 +112,7 @@ globalThis.addEventListener("keydown",(ev)=>{
 }, true,);
 let inputedText = false;
 globalThis.addEventListener("input", (ev)=>  ev.data? inputedText=1:0 , true,);
-document.body.onpaste =async function (ev=ClipboardEvent.prototype){
+async function onpaste(ev=ClipboardEvent.prototype){
     if(!ev.clipboardData.files[0]?.type?.startsWith("image"))return;
     let sel=getSelection();
     let whSel = sel+"";
@@ -204,6 +204,7 @@ globalThis.onload = () => {
     for (const pre of document.querySelectorAll("pre[name]")) {
         blurEv({ target: pre });
     }
+    document.body.onpaste = onpaste
 }
 /* actual ascii to Svg algo starts here  */
 

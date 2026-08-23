@@ -1,0 +1,204 @@
+/*
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SVG to Audio Synthesizer</title>
+</head>
+<body>
+
+    <main>
+
+        <blockquote> <b>Warn:</b> 
+            Just some test generated with gemini. Sounds bad.
+        </blockquote>
+
+        <canvas onclick="drawToCanvas()" id="canvas" width="400" height="200" style="border:1px solid #ccc; display:block; margin-bottom:10px;"></canvas>
+        <br>
+        <button onclick="generateAudio()">Convert Canvas to Audio</button>
+    </main>
+*/
+//   <script>
+        function drawToCanvas() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear background white
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw sample paths (simulating your SVG paths / stereogram elements)
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.arc(100, 100, 40, 0, Math.PI * 2);
+            ctx.rect(220, 50, 60, 100);
+            ctx.fill();
+
+            // Add a line going off-viewport to influence phase offset
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 25;
+            ctx.beginPath();
+            ctx.moveTo(-10, 0);
+            ctx.lineTo(410, 200);
+            ctx.stroke();
+        }
+       
+
+        function generateAudio(canvas = document.querySelector('canvas'),dur=0.5) {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const imgData = ctx.getImageData(0, 0, width, height).data;
+
+            const sampleRate = 11025; // Lower sample rate keeps buffer sizes lightweight
+            const durationSec = dur;  // Total duration of the resulting audio clip
+            const totalSamples = Math.floor(sampleRate * durationSec);
+            const audioBuffer = new Uint8Array(totalSamples);
+
+            ctx.fillStyle="#00f";
+
+            // Define frequency range for Y-axis (e.g., from 150 Hz to 2200 Hz)
+            const minFreq = 220;
+            const maxFreq = 4000;
+            const freqParts = 10*8;
+            const freqDiff = maxFreq-minFreq;
+            const step =  (maxFreq -minFreq)/freqParts;
+
+            let allFreqs = [];
+            for (let t = 0; t < totalSamples; t++) {
+                // Map time sample to X coordinate on canvas
+                const x = Math.floor((t / totalSamples) * width);
+                let sampleVal = 0;
+                let nActiveNotes = 0;
+
+                // Sum frequencies across the vertical scanline (Y-axis)
+                for (let y = 0,i=0; y < height; y += step,i++) { // Step by 2 for performance
+                    let yRound = Math.floor(y);
+                    const pixelIndex = (yRound * width + x) * 4;
+                    const red = imgData[pixelIndex];
+                    
+                    
+                    // Darkness: 0 is black (loud), 255 is white (silent)
+                    const darkness = (255 - red) / 255; 
+
+                    const freqNorm = 1 - (y / height);
+                    const freq = minFreq + freqNorm * freqDiff;
+                    allFreqs[i]={freq, amp:darkness,};
+                    if (darkness > 0.05) {
+                        nActiveNotes++;
+                        // Map Y to frequency (inverted so top is high pitch, bottom is low)
+
+                        // Calculate phase offset based on position / boundary interaction
+                        const phaseOffset = Math.sin(x);
+
+                        // Add additive synthesis sine wave weighted by pixel darkness
+                        sampleVal += darkness * Math.sin(2 * Math.PI * freq * (t / sampleRate) + phaseOffset);
+                    }
+                }
+
+                // Normalize and scale to 8-bit PCM (0 to 255, center at 128)
+                const normalized = Math.max(-1, Math.min(1, sampleVal/ freqParts*30 ));
+                audioBuffer[t] = Math.floor((normalized + 1) * 127.5);
+
+                console.log(allFreqs)
+                // ctx.fillRect(x, normalized*50+100 ,1,1)
+            }
+            // Create WAV container
+            const wavData = createWavFile(audioBuffer, sampleRate);
+            const blob = new Blob([wavData], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+
+            const player = window.audioPlayer?? document.createElement("audio");
+            if(!player.isConnected){
+                document.body.prepend(player); player.id="audioPlayer";
+                player.controls=true;
+            }
+            player.src = url;
+            player.play();
+        }
+
+        function createWavFile(pcmData, sampleRate) {
+            const numChannels = 1;
+            const bytesPerSample = 1;
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = pcmData.length * blockAlign;
+            const chunkSize = 36 + dataSize;
+
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, chunkSize, true);
+            writeString(view, 8, 'WAVE');
+
+            // fmt sub-chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // SubChunk1Size (16 for PCM)
+            view.setUint16(20, 1, true);  // AudioFormat (1 for PCM)
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bytesPerSample * 8, true); // Bits per sample
+
+            // data sub-chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            // Write PCM samples
+            const offset = 44;
+            for (let i = 0; i < pcmData.length; i++) {
+                view.setUint8(offset + i, pcmData[i]);
+            }
+
+            return buffer;
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+        document.addEventListener("keydown",ev=>{
+            if(!ev.altKey || ev.key!=="k")return;
+            ev.preventDefault();
+            const el=ev.target;
+            const box = el.closest("pre,article,div");
+            const canvas = box.querySelector("canvas");
+            generateAudio(canvas);
+        })
+
+
+// Example: Playing a discrete set of frequencies simultaneously (Additive Synthesis)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playFrequencies(frequencyDataArray= [{ freq: 440, amp: 0.5 }, { freq: 880, amp: 0.2 },{ freq: 500, amp: 1 }]) {
+    // frequencyDataArray format: [{ freq: 440, amp: 0.5 }, { freq: 880, amp: 0.2 }, ...]
+    frequencyDataArray.forEach(item => {
+       makeOsci(item.freq,item.amp)
+    });
+}
+function makeOsci(freq,amp){
+    const osc = audioCtx.createOscillator();
+    let gain = audioCtx.createGain()
+        
+    osc.type = 'sawtooth';
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+        
+    const now = audioCtx.currentTime;
+    osc.frequency.setValueAtTime(freq, now);
+    // Set amplitude based on pixel darkness
+    gain.gain.setValueAtTime(amp * 0.1, now); // scaled down to prevent clipping
+
+    // Connect: Oscillator -> Gain Node -> Speakers
+    // Play for a short duration (e.g., 100ms per scanline column)
+    osc.start(now);
+    osc.stop(now + 0.1);
+}
+
+
+//    </script>
+/*</body>
+</html>*/
